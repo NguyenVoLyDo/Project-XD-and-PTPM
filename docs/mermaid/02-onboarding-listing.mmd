@@ -1,0 +1,16 @@
+flowchart TD
+  A([Supplier đăng ký]) --> B{Admin duyệt?}
+  B -- Từ chối --> BR[Thông báo lý do và cho phép bổ sung hồ sơ]
+  BR --> A
+  B -- Duyệt --> C[Supplier tạo sản phẩm nguồn\nSKU, giá vốn, tồn kho, ảnh]
+  C --> D{Sản phẩm cần duyệt?}
+  D -- Có --> E[Admin kiểm duyệt nội dung]
+  E -- Từ chối --> EF[Supplier sửa và gửi lại]
+  EF --> E
+  E -- Duyệt --> F[Catalog sẵn sàng]
+  D -- Không --> F
+  F --> G[Seller tìm và chọn sản phẩm]
+  G --> H[Seller tạo Listing\nđặt giá bán, mô tả riêng]
+  H --> I{Giá bán hợp lệ?}
+  I -- Không --> H
+  I -- Có --> J[Listing ACTIVE trên gian hàng]

@@ -1,0 +1,15 @@
+stateDiagram-v2
+  [*] --> NONE
+  NONE --> REQUESTED: customer opens return/dispute
+  REQUESTED --> EVIDENCE_PENDING: admin requests evidence
+  REQUESTED --> UNDER_REVIEW: supplier responds
+  EVIDENCE_PENDING --> UNDER_REVIEW: evidence submitted or deadline passes
+  UNDER_REVIEW --> APPROVED: supplier/admin approves
+  UNDER_REVIEW --> REJECTED: supplier/admin rejects
+  APPROVED --> RETURN_IN_TRANSIT: customer ships return
+  RETURN_IN_TRANSIT --> RECEIVED: supplier confirms receipt
+  RECEIVED --> REFUND_PENDING: refund instruction created
+  REFUND_PENDING --> REFUNDED: payment completed
+  REJECTED --> CLOSED
+  REFUNDED --> CLOSED
+  CLOSED --> [*]

@@ -1,0 +1,12 @@
+flowchart LR
+  A[Fulfillment Order DELIVERED] --> B{Qua thời gian đổi trả?}
+  B -- Chưa --> C[Giữ tiền đối soát]
+  C --> B
+  B -- Có --> D[Settlement ELIGIBLE]
+  D --> E[Tính giá bán - giá vốn - phí nền tảng - phí vận chuyển]
+  E --> F[Seller earning và Supplier payable]
+  F --> G[Admin/Job tạo Payout batch]
+  G --> H{Payout thành công?}
+  H -- Không --> I[FAILED: retry / đối chiếu thủ công]
+  I --> G
+  H -- Có --> J([Settlement PAID])

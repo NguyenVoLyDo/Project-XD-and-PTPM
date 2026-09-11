@@ -1,0 +1,30 @@
+sequenceDiagram
+  actor C as Khách hàng
+  participant Web as Web App
+  participant Order as Order Service
+  participant Catalog as Catalog/Inventory Service
+  participant Pay as Payment Gateway
+  participant Notify as Notification Service
+  participant S1 as Supplier A
+  participant S2 as Supplier B
+
+  C->>Web: Checkout (giỏ, địa chỉ, phương thức)
+  Web->>Order: createOrder(cart, address, paymentMethod)
+  Order->>Catalog: validate listings and reserve stock
+  Catalog-->>Order: valid + reservation IDs
+  Order->>Order: snapshot prices, create CustomerOrder
+  Order->>Order: group items by supplier + seller
+  Order->>Order: create FulfillmentOrder A, B
+  alt Thanh toán online
+    Order->>Pay: create payment request
+    Pay-->>C: màn hình / liên kết thanh toán
+    Pay->>Order: payment callback PAID
+  else COD
+    Order->>Order: mark PENDING_COD
+  end
+  Order->>Notify: publish OrderConfirmed
+  Notify->>S1: Có đơn thực hiện A
+  Notify->>S2: Có đơn thực hiện B
+  Notify->>C: Xác nhận đơn tổng và các kiện hàng
+  Order-->>Web: orderNo + trạng thái
+  Web-->>C: Hiển thị theo dõi đơn

@@ -1,0 +1,37 @@
+sequenceDiagram
+  actor C as Customer
+  participant UI as Storefront
+  participant Order as Order Orchestrator
+  participant Inv as Inventory Service
+  participant Pay as Payment Service
+  participant GW as Payment Gateway
+  participant Outbox as Transactional Outbox
+  participant Notify as Notification Service
+
+  C->>UI: Submit checkout
+  UI->>Order: createOrder(cartId, address, paymentMethod, idempotencyKey)
+  Order->>Order: Validate user, address, listing, price
+  Order->>Inv: reserve(items, reservationTTL)
+  alt Không đủ tồn hoặc Listing không active
+    Inv-->>Order: reject(reason)
+    Order-->>UI: 409 conflict + item errors
+  else Reserve thành công
+    Inv-->>Order: reservationIds
+    Order->>Order: Begin transaction
+    Order->>Order: Create order, items, fulfillment groups, payment snapshots
+    Order->>Outbox: Save OrderCreated event
+    Order->>Order: Commit transaction
+    alt Online
+      Order->>Pay: createPayment(orderId, amount)
+      Pay->>GW: create checkout session
+      GW-->>UI: payment redirect URL
+      GW->>Pay: signed callback(transactionRef, PAID)
+      Pay->>Pay: Verify signature and idempotency
+      Pay->>Order: confirmPaid(orderId)
+      Order->>Notify: publish OrderConfirmed
+    else COD
+      Order->>Order: mark PENDING_COD
+      Order->>Notify: publish OrderConfirmed
+      Order-->>UI: orderNo, PENDING_COD
+    end
+  end

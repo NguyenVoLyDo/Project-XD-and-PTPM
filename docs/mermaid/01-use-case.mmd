@@ -1,0 +1,35 @@
+flowchart LR
+  Customer[Khách hàng]
+  Seller[Người bán]
+  Supplier[Nhà cung cấp]
+  Admin[Quản trị viên]
+  Payment[Cổng thanh toán]
+  Carrier[Đơn vị vận chuyển]
+
+  subgraph System[Hệ thống DropConnect]
+    UC1((Đăng ký / đăng nhập))
+    UC2((Tìm kiếm và xem sản phẩm))
+    UC3((Giỏ hàng và checkout))
+    UC4((Thanh toán / COD))
+    UC5((Theo dõi đơn và đánh giá))
+    UC6((Tạo gian hàng))
+    UC7((Chọn sản phẩm và niêm yết))
+    UC8((Thiết lập giá bán))
+    UC9((Theo dõi doanh thu / lợi nhuận))
+    UC10((Quản lý sản phẩm, giá vốn, tồn kho))
+    UC11((Xác nhận, đóng gói và giao đơn))
+    UC12((Duyệt tài khoản / sản phẩm))
+    UC13((Quản lý tranh chấp / hoàn tiền))
+    UC14((Tách đơn theo nhà cung cấp))
+    UC15((Gửi thông báo))
+  end
+
+  Customer --> UC1 & UC2 & UC3 & UC4 & UC5
+  Seller --> UC1 & UC6 & UC7 & UC8 & UC9
+  Supplier --> UC1 & UC10 & UC11
+  Admin --> UC12 & UC13
+  UC3 --> UC14
+  UC14 --> UC15
+  UC11 --> UC15
+  UC4 <--> Payment
+  UC11 <--> Carrier

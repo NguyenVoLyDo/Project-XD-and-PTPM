@@ -1,0 +1,9 @@
+stateDiagram-v2
+  [*] --> HOLD: đơn delivered
+  HOLD --> ELIGIBLE: hết thời hạn đổi trả
+  HOLD --> REVERSED: hoàn tiền / tranh chấp thắng khách
+  ELIGIBLE --> CALCULATED: tạo số tiền supplier và seller
+  CALCULATED --> PAYOUT_PENDING: đưa vào đợt chi trả
+  PAYOUT_PENDING --> PAID: chuyển tiền thành công
+  PAYOUT_PENDING --> PAYOUT_FAILED: lỗi nhận tiền
+  PAYOUT_FAILED --> PAYOUT_PENDING: retry hoặc sửa thông tin

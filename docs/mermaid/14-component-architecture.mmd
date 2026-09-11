@@ -1,0 +1,41 @@
+flowchart TB
+  subgraph Clients[Client applications]
+    Storefront[Customer Storefront]
+    SellerPortal[Seller Portal]
+    SupplierPortal[Supplier Portal]
+    AdminPortal[Admin Portal]
+  end
+
+  subgraph Platform[DropConnect Platform]
+    API[API Gateway / Auth RBAC]
+    Identity[Identity Service]
+    Catalog[Catalog and Listing Service]
+    Cart[Cart Service]
+    Orders[Order Orchestrator]
+    Fulfillment[Fulfillment Service]
+    Payments[Payment Service]
+    Settlement[Settlement Service]
+    Notify[Notification Service]
+    Audit[Audit and Dispute Service]
+    DB[(PostgreSQL)]
+    Queue[(Event Queue)]
+    Storage[(Object Storage)]
+  end
+
+  subgraph External[External systems]
+    Gateway[Payment Gateway]
+    Carrier[Carrier API]
+    Mail[Email/SMS/Push Provider]
+  end
+
+  Storefront & SellerPortal & SupplierPortal & AdminPortal --> API
+  API --> Identity & Catalog & Cart & Orders & Fulfillment & Payments & Settlement & Audit
+  Catalog --> Storage
+  Identity & Catalog & Cart & Orders & Fulfillment & Payments & Settlement & Audit --> DB
+  Orders --> Queue
+  Fulfillment --> Queue
+  Payments --> Queue
+  Queue --> Notify & Settlement
+  Payments <--> Gateway
+  Fulfillment <--> Carrier
+  Notify --> Mail

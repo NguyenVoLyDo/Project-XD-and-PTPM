@@ -1,0 +1,15 @@
+flowchart TD
+  A([Khách / Seller yêu cầu hủy hoặc trả hàng]) --> B{Đơn đã bàn giao carrier?}
+  B -- Chưa --> C[Supplier hoặc Admin xác nhận hủy]
+  C --> D[Khôi phục tồn kho nếu đã giữ]
+  D --> E{Đã thanh toán online?}
+  E -- Có --> F[Tạo yêu cầu Refund]
+  E -- Không / COD --> G[Đánh dấu CANCELED]
+  F --> H{Refund thành công?}
+  H -- Có --> G
+  H -- Không --> I[Admin xử lý ngoại lệ]
+  B -- Rồi --> J[Khách tạo Return Request\nkèm lý do/bằng chứng]
+  J --> K[Supplier phản hồi]
+  K --> L{Admin quyết định khi có tranh chấp}
+  L --> M[Nhận hàng trả / xác minh]
+  M --> F

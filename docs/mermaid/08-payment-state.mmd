@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> PENDING
+  PENDING --> AUTHORIZED: cổng thanh toán ủy quyền
+  AUTHORIZED --> PAID: capture thành công
+  PENDING --> PAID: callback thanh toán thành công
+  PENDING --> FAILED: callback thất bại / hết hạn
+  PENDING --> PENDING_COD: khách chọn COD
+  PENDING_COD --> COLLECTED: carrier xác nhận thu COD
+  PAID --> REFUND_PENDING: hủy / hoàn hàng được duyệt
+  COLLECTED --> REFUND_PENDING: hoàn tiền COD theo quy trình
+  REFUND_PENDING --> REFUNDED: gateway / admin xác nhận
+  REFUND_PENDING --> REFUND_FAILED: hoàn tiền lỗi
+  REFUND_FAILED --> REFUND_PENDING: retry

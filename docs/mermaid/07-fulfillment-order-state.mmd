@@ -1,0 +1,21 @@
+stateDiagram-v2
+  [*] --> PENDING_ACCEPTANCE: hệ thống tách đơn
+  PENDING_ACCEPTANCE --> ACCEPTED: supplier xác nhận
+  PENDING_ACCEPTANCE --> REJECTED: supplier từ chối / hết hàng
+  PENDING_ACCEPTANCE --> CANCELED: customer/admin hủy hợp lệ
+  ACCEPTED --> PACKING: bắt đầu đóng gói
+  ACCEPTED --> CANCELED: hủy trước bàn giao
+  PACKING --> READY_TO_SHIP: tạo vận đơn
+  READY_TO_SHIP --> SHIPPED: bàn giao carrier
+  SHIPPED --> IN_TRANSIT: carrier quét nhận
+  IN_TRANSIT --> DELIVERED: giao thành công
+  IN_TRANSIT --> DELIVERY_FAILED: giao không thành công
+  DELIVERY_FAILED --> IN_TRANSIT: giao lại
+  DELIVERY_FAILED --> RETURNING: hoàn về supplier
+  DELIVERED --> RETURN_REQUESTED: yêu cầu đổi trả được mở
+  RETURN_REQUESTED --> RETURNING: chấp nhận trả hàng
+  RETURNING --> RETURNED: supplier nhận hàng trả
+  RETURNED --> REFUNDED: hoàn tiền hoàn tất
+  REJECTED --> [*]
+  CANCELED --> [*]
+  REFUNDED --> [*]

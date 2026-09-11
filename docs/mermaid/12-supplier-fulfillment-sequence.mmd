@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor S as Nhà cung cấp
+  participant Portal as Supplier Portal
+  participant Fulfill as Fulfillment Service
+  participant Inventory as Inventory Service
+  participant Carrier as Carrier API
+  participant Notify as Notification Service
+  actor C as Khách hàng
+
+  S->>Portal: Xác nhận Fulfillment Order
+  Portal->>Fulfill: accept(fulfillmentId)
+  Fulfill->>Inventory: commit reservation / deduct stock
+  Inventory-->>Fulfill: success
+  Fulfill-->>Portal: ACCEPTED
+  S->>Portal: Tạo vận đơn
+  Portal->>Carrier: create shipment(receiver, parcels)
+  Carrier-->>Portal: trackingNo
+  Portal->>Fulfill: markShipped(trackingNo)
+  Fulfill->>Notify: FulfillmentShipped
+  Notify->>C: Tracking và trạng thái giao hàng
+  Carrier->>Fulfill: webhook DELIVERED
+  Fulfill->>Notify: FulfillmentDelivered
+  Notify->>C: Giao hàng thành công

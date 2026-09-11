@@ -1,0 +1,20 @@
+sequenceDiagram
+  participant Gateway as Payment Gateway
+  participant API as Payment API
+  participant Payment as Payment Service
+  participant Order as Order Service
+  participant Log as Audit Log
+
+  Gateway->>API: webhook(transactionRef, status, signature)
+  API->>API: verify signature + idempotency key
+  alt Callback hợp lệ và chưa xử lý
+    API->>Payment: update status atomically
+    Payment->>Order: confirm order when PAID
+    Payment->>Log: record payment transition
+    API-->>Gateway: 200 OK
+  else Callback trùng lặp
+    API-->>Gateway: 200 OK (no-op)
+  else Chữ ký / dữ liệu sai
+    API->>Log: record rejected callback
+    API-->>Gateway: 400 / 401
+  end

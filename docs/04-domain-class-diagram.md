@@ -1,0 +1,122 @@
+# 4. UML Class Diagram — miền nghiệp vụ
+
+```mermaid
+classDiagram
+  class User {
+    +UUID id
+    +string email
+    +string passwordHash
+    +UserStatus status
+    +Role role
+  }
+  class SupplierProfile {
+    +UUID id
+    +string legalName
+    +ApprovalStatus approvalStatus
+    +string payoutAccountRef
+  }
+  class SellerProfile {
+    +UUID id
+    +string displayName
+    +ApprovalStatus approvalStatus
+  }
+  class Shop {
+    +UUID id
+    +string name
+    +ShopStatus status
+  }
+  class Product {
+    +UUID id
+    +string supplierSku
+    +string name
+    +decimal costPrice
+    +int availableStock
+    +ProductStatus status
+  }
+  class Listing {
+    +UUID id
+    +string sellerSku
+    +decimal salePrice
+    +ListingStatus status
+    +bool visible
+  }
+  class Cart {
+    +UUID id
+  }
+  class CartItem {
+    +int quantity
+  }
+  class CustomerOrder {
+    +UUID id
+    +string orderNo
+    +OrderStatus status
+    +decimal grandTotal
+    +datetime placedAt
+  }
+  class OrderItem {
+    +int quantity
+    +decimal unitSalePriceSnapshot
+    +decimal unitCostPriceSnapshot
+  }
+  class FulfillmentOrder {
+    +UUID id
+    +string fulfillmentNo
+    +FulfillmentStatus status
+    +string trackingNo
+  }
+  class Payment {
+    +UUID id
+    +PaymentMethod method
+    +PaymentStatus status
+    +decimal amount
+    +string providerTransactionRef
+  }
+  class Shipment {
+    +UUID id
+    +string carrierCode
+    +string trackingNo
+    +ShipmentStatus status
+  }
+  class Settlement {
+    +UUID id
+    +SettlementStatus status
+    +decimal sellerEarning
+    +decimal supplierPayable
+    +decimal platformFee
+  }
+  class Review {
+    +UUID id
+    +int rating
+    +string comment
+  }
+
+  User "1" --> "0..1" SupplierProfile : owns
+  User "1" --> "0..1" SellerProfile : owns
+  SellerProfile "1" --> "1..*" Shop : manages
+  SupplierProfile "1" --> "0..*" Product : supplies
+  Product "1" --> "0..*" Listing : source for
+  Shop "1" --> "0..*" Listing : publishes
+  User "1" --> "0..1" Cart : owns
+  Cart "1" --> "1..*" CartItem : contains
+  CartItem "*" --> "1" Listing : selects
+  User "1" --> "0..*" CustomerOrder : places
+  CustomerOrder "1" --> "1..*" OrderItem : contains
+  OrderItem "*" --> "1" Listing : snapshot of
+  CustomerOrder "1" --> "1..*" FulfillmentOrder : splits into
+  FulfillmentOrder "*" --> "1" SupplierProfile : fulfilled by
+  FulfillmentOrder "*" --> "1" SellerProfile : sold for
+  FulfillmentOrder "1" --> "1..*" OrderItem : fulfills
+  CustomerOrder "1" --> "1..*" Payment : paid by
+  FulfillmentOrder "1" --> "0..1" Shipment : ships via
+  FulfillmentOrder "1" --> "0..1" Settlement : settles
+  User "1" --> "0..*" Review : writes
+  Review "*" --> "1" Product : rates
+```
+
+## Invariant quan trọng
+
+1. `Listing.salePrice >= Product.costPrice + minMargin` theo chính sách nền tảng.
+2. Một `OrderItem` lưu snapshot `unitSalePriceSnapshot` và `unitCostPriceSnapshot` khi checkout thành công.
+3. Mỗi `FulfillmentOrder` chỉ thuộc một `SupplierProfile` và một `SellerProfile`.
+4. Chỉ `Listing.ACTIVE` của `Product.ACTIVE` mới được thêm vào giỏ.
+5. Thay đổi trạng thái fulfillment phải được audit kèm actor, thời điểm và lý do.
