@@ -114,9 +114,15 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 ## Quy ước và phạm vi MVP
 
 - Một **Đơn mua** của khách có thể chứa sản phẩm từ nhiều Người bán/Nhà cung cấp. Hệ thống tự tách thành các **Đơn thực hiện** theo cặp Nhà cung cấp–Người bán để giao hàng và đối soát độc lập.
-- Thanh toán hỗ trợ COD và thanh toán trực tuyến ở mức tích hợp/mô phỏng. Cổng thanh toán và đơn vị vận chuyển là hệ thống ngoài.
+- **Quản lý dòng tiền tập trung (COD & Online)**:
+  - Toàn bộ dòng tiền thanh toán — bao gồm tiền thanh toán trực tuyến qua Cổng thanh toán (Gateway) và tiền COD do Đơn vị vận chuyển (Carrier) thu hộ — đều được **đối soát và chuyển về tài khoản trung gian của Nền tảng (DropConnect)**.
+  - Tiền COD **không chuyển trực tiếp cho Supplier**. Sau khi đơn hàng chuyển sang trạng thái `DELIVERED` và qua thời hạn khiếu nại/đổi trả (Holding period), hệ thống mới tự động khấu trừ phí sàn (`platformFee`), chi trả tiền hàng gốc cho Nhà cung cấp (`supplierPayable`) và chuyển hoa hồng/lợi nhuận cho Người bán (`sellerEarning`).
+- **Chiến lược tính phí vận chuyển đa nhà cung cấp**:
+  - Do mỗi Fulfillment Order xuất phát từ kho hàng của một Nhà cung cấp độc lập (địa chỉ, khoảng cách khác nhau), phí vận chuyển được tính riêng cho từng kiện hàng dựa trên khoảng cách từ kho của Supplier đến địa chỉ của Customer cùng khối lượng/kích thước gói hàng.
+  - Tổng phí vận chuyển của đơn hàng là **tổng cộng phí ship của các kiện hàng thành phần**: `grandTotal = sum(itemSalePrices) + sum(fulfillmentShippingFees) - discount`.
+  - Giao diện Checkout hiển thị bóc tách minh bạch chi phí vận chuyển của từng kiện hàng theo từng Nhà cung cấp trước khi khách xác nhận đặt hàng.
 - Giá vốn tại thời điểm đặt hàng được snapshot vào từng dòng đơn; không dùng giá vốn hiện hành để tính lại lợi nhuận của đơn cũ.
-- MVP cho phép Nhà cung cấp tự cập nhật giao hàng. Tích hợp hãng vận chuyển là phần mở rộng.
+- MVP cho phép Nhà cung cấp tự cập nhật giao hàng hoặc nhận webhook mô phỏng từ hãng vận chuyển. Tích hợp hãng vận chuyển thật là phần mở rộng.
 
 ## Danh mục sơ đồ
 
@@ -124,12 +130,13 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 |---|---|
 | [01-actors-use-cases.md](01-actors-use-cases.md) | Actor, quyền hạn và use case hệ thống |
 | [02-workflows.md](02-workflows.md) | Workflow nghiệp vụ đầu-cuối |
-| [03-state-machines.md](03-state-machines.md) | State machine cho đơn, thanh toán, fulfillment và đối soát |
+| [03-state-machines.md](03-state-machines.md) | State machine cho đơn, thanh toán, fulfillment, tồn kho và đối soát |
 | [04-domain-class-diagram.md](04-domain-class-diagram.md) | UML class diagram miền nghiệp vụ |
-| [05-sequence-diagrams.md](05-sequence-diagrams.md) | Sequence diagram các tình huống quan trọng |
+| [05-sequence-diagrams.md](05-sequence-diagrams.md) | Sequence diagram các tình huống quan trọng (checkout, fulfillment, callback) |
 | [06-components-and-data.md](06-components-and-data.md) | Component architecture và ERD dữ liệu |
 | [07-operational-rules.md](07-operational-rules.md) | Quy tắc vận hành, điều kiện chuyển trạng thái, SLA và ngoại lệ |
 | [08-requirements-traceability.md](08-requirements-traceability.md) | Traceability từ yêu cầu đến workflow, dữ liệu và tiêu chí nghiệm thu |
+| [mermaid/](mermaid/) | Thư mục chứa toàn bộ mã nguồn Mermaid (.mmd), bao gồm checkout chi tiết, tồn kho và tranh chấp |
 
 ## Thuật ngữ
 
