@@ -9,10 +9,20 @@ stateDiagram-v2
   CONFIRMED --> CANCELED: hủy toàn bộ trước khi giao
   PROCESSING --> PARTIALLY_FULFILLED: một số đơn con đang giao/hoàn tất
   PROCESSING --> FULFILLED: tất cả đơn con delivered
+  PROCESSING --> PARTIALLY_CANCELED: một đơn con canceled
   PARTIALLY_FULFILLED --> FULFILLED: tất cả đơn con delivered
   PARTIALLY_FULFILLED --> PARTIALLY_CANCELED: có đơn con canceled
-  FULFILLED --> COMPLETED: hết cửa sổ đổi trả
-  FULFILLED --> RETURN_REQUESTED: khách yêu cầu trả hàng
-  RETURN_REQUESTED --> REFUNDED: hoàn tiền hoàn tất
-  PROCESSING --> PARTIALLY_CANCELED: một đơn con canceled
   PARTIALLY_CANCELED --> CANCELED: tất cả đơn con canceled
+  PARTIALLY_CANCELED --> PARTIALLY_REFUNDED: hoàn tiền phần đơn con bị hủy
+  
+  FULFILLED --> COMPLETED: hết 7 ngày đổi trả (khóa return)
+  FULFILLED --> RETURN_REQUESTED: khách yêu cầu trả hàng (trong 7 ngày)
+  
+  RETURN_REQUESTED --> REFUNDED: hoàn tiền toàn bộ
+  RETURN_REQUESTED --> PARTIALLY_REFUNDED: hoàn tiền một phần đơn
+  RETURN_REQUESTED --> COMPLETED: khiếu nại bị từ chối / hết hạn
+
+  COMPLETED --> [*]
+  CANCELED --> [*]
+  REFUNDED --> [*]
+  PARTIALLY_REFUNDED --> [*]
