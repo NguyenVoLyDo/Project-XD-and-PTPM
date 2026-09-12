@@ -3,20 +3,21 @@ flowchart TD
   B --> C{Kiểm tra listing active\nvà tồn kho khả dụng}
   C -- Không đạt --> D[Thông báo dòng hàng không khả dụng\nKhách sửa giỏ]
   D --> A
-  C -- Đạt --> E[Tạo Customer Order và Order Items\nSnapshot giá bán/giá vốn]
-  E --> F[Nhóm item theo Supplier + Seller]
-  F --> G[Tạo một hoặc nhiều Fulfillment Orders]
+  C -- Đạt --> E[Tạo Customer Order & Order Items\nSnapshot giá bán/giá vốn]
+  E --> RES[Giữ tồn kho tạm thời\nStockReservation = HELD kèm TTL]
+  RES --> F[Nhóm item theo Supplier + Seller]
+  F --> G[Tạo các Fulfillment Orders]
   G --> H{Phương thức thanh toán}
   H -- Online --> I[Gửi yêu cầu cổng thanh toán]
-  I --> J{Callback thành công?}
-  J -- Không --> K[Payment FAILED\nĐơn chờ thanh toán hoặc hủy]
-  J -- Có --> L[Payment PAID]
-  H -- COD --> M[Payment PENDING_COD]
-  L --> N[Giữ / trừ tồn kho theo chính sách]
-  M --> N
-  N --> O[Thông báo supplier và seller]
+  I --> J{Thanh toán thành công\ntrong thời hạn TTL?}
+  J -- Hết hạn / Thất bại --> K[Payment FAILED\nGiải phóng tồn kho RELEASED\nĐơn CANCELED]
+  J -- Thành công --> L[Payment PAID\nReservation chuyển sang chờ giao]
+  H -- COD --> M[Payment PENDING_COD\nReservation giữ đến khi xác nhận]
+  L --> O[Thông báo Supplier và Seller]
+  M --> O
   O --> P[Supplier xác nhận từng Fulfillment Order]
-  P --> Q[Đóng gói và bàn giao Carrier]
+  P --> COMMIT[Commit trừ tồn kho thực tế\nStockReservation = COMMITTED]
+  COMMIT --> Q[Đóng gói và bàn giao Carrier]
   Q --> R[Tracking và trạng thái giao hàng]
   R --> S{Tất cả đơn thực hiện hoàn tất?}
   S -- Chưa --> R
