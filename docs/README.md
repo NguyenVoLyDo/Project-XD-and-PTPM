@@ -130,6 +130,7 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 | [06-components-and-data.md](06-components-and-data.md) | Component architecture và ERD dữ liệu |
 | [07-operational-rules.md](07-operational-rules.md) | Quy tắc vận hành, điều kiện chuyển trạng thái, SLA và ngoại lệ |
 | [08-requirements-traceability.md](08-requirements-traceability.md) | Traceability từ yêu cầu đến workflow, dữ liệu và tiêu chí nghiệm thu |
+| [09-technical-architecture-plan.md](09-technical-architecture-plan.md) | Kế hoạch kiến trúc kỹ thuật, stack và cấu trúc thư mục trước khi lập trình |
 
 ## Thuật ngữ
 
