@@ -1,0 +1,17 @@
+{
+  "name": "dropconnect",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DropConnect B2B2C domestic dropshipping platform",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "eslint": "^9.39.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.6"
+  }
+}

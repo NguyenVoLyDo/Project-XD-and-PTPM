@@ -18,7 +18,7 @@ sequenceDiagram
   else Reserve thành công
     Inv-->>Order: reservationIds
     Order->>Order: Begin transaction
-    Order->>Order: Create order, items, fulfillment groups, payment snapshots
+    Order->>Order: Create order/items, fulfillment groups, PaymentIntent + allocations
     Order->>Outbox: Save OrderCreated event
     Order->>Order: Commit transaction
     alt Online
@@ -27,10 +27,10 @@ sequenceDiagram
       GW-->>UI: payment redirect URL
       GW->>Pay: signed callback(transactionRef, PAID)
       Pay->>Pay: Verify signature and idempotency
-      Pay->>Order: confirmPaid(orderId)
+      Pay->>Order: confirmPaid(orderId), fund allocations; reservations remain HELD
       Order->>Notify: publish OrderConfirmed
     else COD
-      Order->>Order: mark PENDING_COD
+      Order->>Order: mark PENDING_COD; set amountToCollect per Fulfillment Order
       Order->>Notify: publish OrderConfirmed
       Order-->>UI: orderNo, PENDING_COD
     end

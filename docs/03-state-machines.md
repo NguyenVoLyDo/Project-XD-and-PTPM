@@ -2,7 +2,7 @@
 
 ## 3.1 Customer Order
 
-`Customer Order` là trạng thái tổng hợp ở góc nhìn khách hàng. Nó chỉ `COMPLETED` khi mọi `Fulfillment Order` hoàn tất; `PARTIALLY_*` khi các đơn con có kết quả khác nhau.
+`Customer Order` chỉ giữ trạng thái đặt hàng/thanh toán ban đầu; tiến trình giao hàng hiển thị cho khách là `fulfillmentSummary` được tính từ các `Fulfillment Order`. Đơn con luôn là nguồn sự thật để kiểm tra quyền, tồn kho, giao hàng, đổi trả và đối soát.
 
 ```mermaid
 stateDiagram-v2
@@ -16,7 +16,8 @@ stateDiagram-v2
   CONFIRMED --> CANCELED: hủy toàn bộ trước khi giao
   PROCESSING --> PARTIALLY_FULFILLED: một số đơn con đang giao/hoàn tất
   PROCESSING --> FULFILLED: tất cả đơn con delivered
-  PARTIALLY_FULFILLED --> FULFILLED: tất cả đơn con delivered
+  PARTIALLY_FULFILLED --> PARTIALLY_COMPLETED: các đơn con còn lại đã có kết quả cuối
+  PARTIALLY_CANCELED --> PARTIALLY_FULFILLED: một đơn con còn lại đã delivered
   PARTIALLY_FULFILLED --> PARTIALLY_CANCELED: có đơn con canceled
   FULFILLED --> COMPLETED: hết cửa sổ đổi trả
   FULFILLED --> RETURN_REQUESTED: khách yêu cầu trả hàng
@@ -24,6 +25,19 @@ stateDiagram-v2
   PROCESSING --> PARTIALLY_CANCELED: một đơn con canceled
   PARTIALLY_CANCELED --> CANCELED: tất cả đơn con canceled
 ```
+
+### Quy tắc tổng hợp trạng thái đơn cha
+
+`fulfillmentSummary` là projection được tính lại sau mỗi transition của đơn con, không phải workflow để ghi đè đơn con. Các quy tắc ưu tiên là:
+
+| Điều kiện trên các Fulfillment Order | `fulfillmentSummary` |
+|---|---|
+| Tất cả bị `REJECTED` hoặc `CANCELED` | `CANCELED` |
+| Có đơn bị từ chối/hủy và còn đơn chưa có kết quả cuối | `PARTIALLY_CANCELED` |
+| Có ít nhất một đơn `DELIVERED`, còn đơn khác đang xử lý | `PARTIALLY_FULFILLED` |
+| Có đơn đã giao và có đơn bị hủy/hoàn tiền | `PARTIALLY_COMPLETED` |
+| Tất cả đơn giao thành công và chưa hết cửa sổ đổi trả | `FULFILLED` |
+| Tất cả đơn giao thành công, hết cửa sổ đổi trả và không có hoàn tiền | `COMPLETED` |
 
 ## 3.2 Fulfillment Order
 
