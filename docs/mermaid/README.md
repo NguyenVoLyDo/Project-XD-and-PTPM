@@ -13,3 +13,5 @@ Mỗi file `.mmd` chứa đúng một sơ đồ, có thể xem bằng tiện íc
 | Checkout, tồn kho và tranh chấp chi tiết | `16` đến `18` |
 
 Các file Markdown ở thư mục cha vẫn là bản thuyết minh đi kèm của các sơ đồ này.
+
+`.mmd` là source diagram chuẩn để render. Khi sửa một sơ đồ có bản nhúng trong Markdown cha, phải cập nhật hai bản trong cùng thay đổi và kiểm tra chúng giống nhau trước khi merge.

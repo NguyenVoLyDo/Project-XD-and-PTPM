@@ -35,3 +35,24 @@ Mỗi yêu cầu bên dưới có sơ đồ tham chiếu và tiêu chí có th�
 4. Supplier A nhận đơn, tạo tracking và giao thành công; Supplier B từ chối do hết hàng.
 5. Customer Order trở thành `PARTIALLY_CANCELED`; hệ thống release tồn và hoàn tiền phần của B.
 6. Sau cửa sổ đổi trả của A, hệ thống tính Settlement cho Supplier A và Seller X.
+
+## Bổ sung traceability cho các quyết định BA bắt buộc
+
+| ID | Yêu cầu | Artefact liên quan | Tiêu chí nghiệm thu có thể tự động hóa |
+|---|---|---|---|
+| FR-09 | Phân bổ thanh toán theo Fulfillment Order | BR 7.8, class/ERD PaymentAllocation, detailed checkout | Cart có 2 Fulfillment Order tạo 2 allocation; tổng `amountToCollect` bằng `totalPayable`; hủy một đơn con chỉ void/refund allocation đó. |
+| FR-10 | Xử lý COD theo kiện hàng | BR 7.8, payment state, fulfillment sequence | Carrier xác nhận `COLLECTED` cho kiện A không làm kiện B thành đã thu; Supplier B reject trước ship làm giảm COD phải thu và không tạo refund gateway. |
+| FR-11 | Idempotent checkout | BR 7.9, API contract, idempotency_keys | Gửi đồng thời hai request cùng key/payload chỉ tạo một order, reservation, allocation và outbox event. Cùng key/payload khác trả 409. |
+| FR-12 | Tự động revalidate Listing khi giá vốn đổi | BR 7.11, Catalog/Listing module | Tăng cost làm sale price dưới margin chuyển đúng Listing sang `PAUSED_BY_POLICY`; OrderItem cũ không đổi. |
+| FR-13 | SLA và escalation | BR 7.12, worker scheduler, audit log | Job chạy lại không hủy/hoàn hai lần; đơn quá 24 giờ chưa accept có `SUPPLIER_TIMEOUT`, reservation release và financial action đúng loại payment. |
+| NFR-05 | Tính đúng đắn tài chính | BR 7.8, FinancialEntry, Settlement | Không dùng `float`; mọi refund/fee/payout có `sourceRef`; tổng ledger của allocation truy ra được số phải thu, hoàn và settlement. |
+| NFR-06 | Bảo vệ PII theo ownership | BR 7.13, RBAC/ownership tests | Seller gọi API chi tiết đơn không nhận đủ điện thoại/địa chỉ; Supplier chỉ nhận PII của fulfillment thuộc mình; audit có actor và lý do. |
+| NFR-07 | Độ tin cậy outbox/webhook | BR 7.9, outbox_events, provider_events | Provider gửi lại cùng event ID không tạo ledger/refund thứ hai; worker retry sau lỗi vẫn publish event đúng một lần về mặt nghiệp vụ. |
+
+## Ma trận UAT rủi ro cao
+
+1. **Online đa Supplier:** trả tiền một lần cho hai kiện; Supplier A accept/giao, Supplier B reject; chỉ B release tồn và refund allocation, A chỉ settlement sau return window.
+2. **COD đa Supplier:** hai kiện có `amountToCollect` riêng; B reject trước ship; tổng phải thu của A được cập nhật, không gọi refund online.
+3. **Race tồn kho:** hai Customer checkout cùng SKU với lượng tồn bằng một cart; chỉ một transaction thành công, transaction còn lại trả lỗi item-level, không có reservation mồ côi.
+4. **Callback và scheduler lặp:** gửi hai payment webhook giống nhau và chạy job timeout hai lần; số order, reservation, refund, ledger và notification nghiệp vụ không tăng thêm.
+5. **Giá vốn đổi:** Seller có hai Listing của cùng Product; chỉ Listing vi phạm margin bị pause, audit và notification có trước/sau, đơn lịch sử giữ nguyên snapshot.

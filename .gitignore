@@ -1,0 +1,38 @@
+# Dependency and package-manager artifacts
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build and test output
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Environment configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+
+# Local services and object-storage data
+postgres-data/
+redis-data/
+minio-data/
+uploads/
+storage/
+*.sqlite
+*.sqlite3
+
+# Logs, IDE, and operating-system files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json

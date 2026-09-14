@@ -149,3 +149,23 @@ erDiagram
 | `FulfillmentDelivered` | Fulfillment/Carrier webhook | Order, Settlement, Notification | Đánh dấu giao thành công, bắt đầu hold đối soát |
 | `RefundCompleted` | Payment Service | Order, Settlement, Notification | Cập nhật hoàn tiền và đảo đối soát nếu cần |
 | `SettlementEligible` | Settlement Service | Payout job | Đưa đơn vào đợt chi trả |
+
+## 6.4 Phần mở rộng ERD bắt buộc cho MVP
+
+ERD ở trên minh họa aggregate lõi. Physical schema phải bổ sung các quan hệ sau trước khi tạo migration:
+
+```text
+CustomerOrder 1 --- * PaymentIntent 1 --- * PaymentAttempt
+CustomerOrder 1 --- * PaymentAllocation * --- 1 FulfillmentOrder
+PaymentAllocation 1 --- * Refund
+FulfillmentOrder 1 --- * FulfillmentItem * --- 1 OrderItem
+OrderItem 1 --- * StockReservation
+FulfillmentOrder 1 --- 0..1 Shipment
+FulfillmentOrder 1 --- 0..1 Settlement 1 --- * FinancialEntry
+```
+
+- `PaymentAllocation` snapshot hàng hóa, ship, discount, `amountToCollect` và currency theo Fulfillment Order. Đây là dữ liệu nguồn cho COD, refund từng phần và settlement, không phải giá trị tính lại khi đọc.
+- `FinancialEntry` là append-only; mọi refund, platform fee, supplier payable, seller earning và payout adjustment phải mang `sourceRef` duy nhất.
+- `provider_events(provider, provider_event_id)` và `idempotency_keys(customer_id, key)` có unique constraint. `outbox_events` được ghi cùng transaction business và worker publish sau commit.
+- `user_role_memberships` thay cho cột role đơn: cùng một User có thể có Seller và Supplier profile, nhưng request luôn chạy trong active role/profile cụ thể.
+- Một Fulfillment Order chỉ có một Shipment trong MVP. Nếu yêu cầu nhiều kiện, phải tách thành phạm vi mở rộng có state machine và allocation riêng, không thêm dòng Shipment thứ hai âm thầm.

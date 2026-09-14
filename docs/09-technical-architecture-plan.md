@@ -293,3 +293,33 @@ kiểm thử mà không cần tài khoản cổng thanh toán hay hãng vận ch
   chỉnh.
 - Không kết nối trực tiếp payment/carrier thật trước khi test mock webhook,
   idempotency và retry hoàn tất.
+
+## 9.9 Hợp đồng dữ liệu và quyết định triển khai BA
+
+Các bảng dưới đây là phần bắt buộc của physical schema, bổ sung cho ERD lõi. Chúng không phải dữ liệu tùy chọn hay chỉ log kỹ thuật.
+
+| Nhóm | Bảng/constraint tối thiểu | Mục đích |
+|---|---|---|
+| Đa vai trò | `user_role_memberships(user_id, role)` unique; profile theo role | Một User có thể đồng thời là Customer, Seller, Supplier; API xác thực active profile cho từng hành động. |
+| Fulfillment | `fulfillment_items`, unique `(fulfillment_order_id, order_item_id)` | Phân bổ rõ dòng OrderItem cho một đơn con, không nối trực tiếp mơ hồ giữa hai aggregate. |
+| Tồn kho | `stock_reservations(order_item_id, status, quantity, expires_at)`; unique active reservation theo order item | Hold/commit/release idempotent; không âm `on_hand - reserved`. |
+| Thanh toán | `payment_intents`, `payment_attempts(provider, provider_event_id unique)`, `payment_allocations` | Tách ý định trả tiền, lần gọi provider và khoản phải thu của từng Fulfillment Order. |
+| Hoàn và tài chính | `refunds`, append-only `financial_entries(source_type, source_id, entry_type)` | Hủy/hoàn một phần và payout luôn truy vết được, không update đè. |
+| Vận hành | `outbox_events`, `idempotency_keys`, `audit_logs`, `return_requests`, `payout_batches` | Đảm bảo retry, audit và batch settlement an toàn. |
+
+### Checkout transaction chuẩn
+
+`OrdersApplicationService` tạo UUID cho OrderItem trước khi persist và mở một transaction chia sẻ với `InventoryService`. Trong transaction đó, truy vấn tồn phải có điều kiện tương đương `on_hand - reserved >= requestedQuantity`; không chỉ đọc tồn rồi mới update. Sau khi tạo order/items, fulfillment groups, reservation, payment intent/allocation và outbox, transaction commit. Adapter payment/carrier được gọi ngoài transaction.
+
+`PaymentAttempt` lưu provider transaction reference; webhook được lưu/deduplicate theo provider event ID trước khi gọi application service. Nếu application service retry, unique constraint và FinancialEntry source reference là hàng rào cuối cùng chống side effect trùng.
+
+### Tiền, PII và schema API
+
+- MVP khóa `currency = VND`; API dùng integer amount và database dùng `bigint`/minor unit nhất quán. Khi cần đa tiền tệ, thêm currency scale/version thay vì đổi kiểu số cũ.
+- `shippingAddressSnapshot` và thông tin người nhận thuộc CustomerOrder/FulfillmentOrder, không join động từ profile. DTO Supplier trả PII tối thiểu; DTO Seller chỉ trả trường đã mask.
+- OpenAPI phải định nghĩa `Idempotency-Key`, error `IDEMPOTENCY_KEY_REUSED`, `SUPPLIER_TIMEOUT`, `LISTING_PAUSED_BY_POLICY` và lỗi item-level `INSUFFICIENT_STOCK`.
+- Migration phải đặt unique/foreign key/check constraint cho các quy tắc nêu trên; domain service không phải là cơ chế bảo vệ duy nhất.
+
+### Quy tắc đồng bộ tài liệu
+
+File `.mmd` là source diagram được render; Markdown diễn giải và/hoặc nhúng đúng nội dung source đó. Mỗi thay đổi diagram phải sửa cả hai nơi trong cùng commit và CI cần render toàn bộ `docs/mermaid/*.mmd` trước khi merge. Điều này ngăn workflow nhúng và file Mermaid độc lập bị lệch nhau.

@@ -114,9 +114,20 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 ## Quy ước và phạm vi MVP
 
 - Một **Đơn mua** của khách có thể chứa sản phẩm từ nhiều Người bán/Nhà cung cấp. Hệ thống tự tách thành các **Đơn thực hiện** theo cặp Nhà cung cấp–Người bán để giao hàng và đối soát độc lập.
-- Thanh toán hỗ trợ COD và thanh toán trực tuyến ở mức tích hợp/mô phỏng. Cổng thanh toán và đơn vị vận chuyển là hệ thống ngoài.
+- Một **Fulfillment Order** trong MVP được đóng thành **một kiện/một mã vận đơn**. Tách nhiều kiện cho cùng một Fulfillment Order là phần mở rộng; không được tự ý tạo shipment thứ hai trong cùng luồng MVP.
+- Thanh toán hỗ trợ COD và thanh toán trực tuyến ở mức tích hợp/mô phỏng. Một lần checkout có thể tạo một Payment tổng, nhưng số tiền phải được **phân bổ bất biến theo Fulfillment Order** để xử lý giao nhiều kiện, hủy một phần và hoàn tiền chính xác. Với COD, mỗi kiện có `amountToCollect` riêng; tổng các khoản thu phải bằng tổng khách phải trả.
 - Giá vốn tại thời điểm đặt hàng được snapshot vào từng dòng đơn; không dùng giá vốn hiện hành để tính lại lợi nhuận của đơn cũ.
+- `Customer Order.status` là trạng thái hiển thị/tổng hợp; `Fulfillment Order` là nguồn sự thật cho tiến trình giao hàng, hủy và trả hàng. Không dùng trạng thái đơn cha để bỏ qua kiểm tra trạng thái của đơn con.
+- MVP dùng tiền tệ VND, truyền/lưu số tiền là số nguyên (không dùng `float`). Phí ship, giảm giá, khoản phải thu COD, hoàn tiền và bút toán điều chỉnh đều phải có snapshot tại thời điểm phát sinh.
 - MVP cho phép Nhà cung cấp tự cập nhật giao hàng. Tích hợp hãng vận chuyển là phần mở rộng.
+
+## Hợp đồng nghiệp vụ cần giữ nhất quán
+
+1. **Checkout nguyên tử:** server tạo snapshot, giữ tồn, các Fulfillment Order, phân bổ thanh toán và outbox event trong một transaction. Cổng thanh toán chỉ được gọi sau khi transaction này commit.
+2. **Tồn kho:** `HELD` giữ hàng, không trừ tồn bán được hai lần; chỉ `COMMITTED` khi Supplier chấp nhận; mọi lỗi thanh toán, quá hạn hoặc từ chối phải `RELEASED` đúng một lần.
+3. **Thanh toán và giao hàng:** Online đã thanh toán vẫn giữ reservation cho đến khi Supplier chấp nhận. Settlement chỉ đủ điều kiện khi kiện hàng đã giao thành công, khoản thanh toán tương ứng đã được thu/xác nhận, và đã qua cửa sổ đổi trả.
+4. **Giá thay đổi:** khi Supplier tăng giá vốn khiến Listing không còn đạt biên lợi nhuận tối thiểu, hệ thống tạm dừng Listing đó, audit thay đổi và thông báo Seller; giá của OrderItem lịch sử không đổi.
+5. **Dữ liệu cá nhân:** Supplier chỉ xem dữ liệu người nhận của Fulfillment Order thuộc mình; Seller chỉ xem thông tin cần cho chăm sóc đơn, không xem đầy đủ địa chỉ/số điện thoại; mọi truy cập phải qua kiểm tra ownership ở API.
 
 ## Danh mục sơ đồ
 

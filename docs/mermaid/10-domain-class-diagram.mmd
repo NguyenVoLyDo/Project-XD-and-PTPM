@@ -4,7 +4,11 @@ classDiagram
     +string email
     +string passwordHash
     +UserStatus status
-    +Role role
+  }
+  class UserRoleMembership {
+    +UUID id
+    +RoleType role
+    +RoleMembershipStatus status
   }
   class SupplierProfile {
     +UUID id
@@ -48,12 +52,20 @@ classDiagram
     +string orderNo
     +OrderStatus status
     +decimal grandTotal
+    +FulfillmentSummary fulfillmentSummary
+    +decimal totalPayable
+    +string currency
     +datetime placedAt
   }
   class OrderItem {
     +int quantity
     +decimal unitSalePriceSnapshot
     +decimal unitCostPriceSnapshot
+  }
+  class FulfillmentItem {
+    +UUID id
+    +int quantity
+    +decimal itemGrossSnapshot
   }
   class FulfillmentOrder {
     +UUID id
@@ -89,6 +101,7 @@ classDiagram
 
   User "1" --> "0..1" SupplierProfile : owns
   User "1" --> "0..1" SellerProfile : owns
+  User "1" --> "1..*" UserRoleMembership : has roles
   SellerProfile "1" --> "1..*" Shop : manages
   SupplierProfile "1" --> "0..*" Product : supplies
   Product "1" --> "0..*" Listing : source for
@@ -102,9 +115,37 @@ classDiagram
   CustomerOrder "1" --> "1..*" FulfillmentOrder : splits into
   FulfillmentOrder "*" --> "1" SupplierProfile : fulfilled by
   FulfillmentOrder "*" --> "1" SellerProfile : sold for
-  FulfillmentOrder "1" --> "1..*" OrderItem : fulfills
+  FulfillmentOrder "1" --> "1..*" FulfillmentItem : contains
+  FulfillmentItem "*" --> "1" OrderItem : allocates
   CustomerOrder "1" --> "1..*" Payment : paid by
+  Payment "1" --> "1..*" PaymentAllocation : allocates
+  PaymentAllocation "*" --> "1" FulfillmentOrder : collects for
+  PaymentAllocation "1" --> "0..*" Refund : refunds
   FulfillmentOrder "1" --> "0..1" Shipment : ships via
   FulfillmentOrder "1" --> "0..1" Settlement : settles
+  Settlement "1" --> "1..*" FinancialEntry : posts
   User "1" --> "0..*" Review : writes
   Review "*" --> "1" Product : rates
+  class PaymentAllocation {
+    +UUID id
+    +decimal merchandiseAmount
+    +decimal shippingAmount
+    +decimal discountAmount
+    +decimal amountToCollect
+    +string currency
+    +AllocationStatus status
+  }
+  class Refund {
+    +UUID id
+    +decimal amount
+    +RefundStatus status
+    +string reasonCode
+  }
+  class FinancialEntry {
+    +UUID id
+    +FinancialEntryType type
+    +decimal amount
+    +string currency
+    +string sourceRef
+    +datetime postedAt
+  }

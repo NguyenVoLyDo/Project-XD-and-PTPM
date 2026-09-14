@@ -10,17 +10,17 @@ sequenceDiagram
 
   C->>Web: Checkout (giỏ, địa chỉ, phương thức)
   Web->>Order: createOrder(cart, address, paymentMethod)
-  Order->>Catalog: validate listings and reserve stock
+  Order->>Catalog: validate listings; reserve through shared transaction
   Catalog-->>Order: valid + reservation IDs
-  Order->>Order: snapshot prices, create CustomerOrder
+  Order->>Order: atomically create snapshots, reservations and outbox
   Order->>Order: group items by supplier + seller
-  Order->>Order: create FulfillmentOrder A, B
+  Order->>Order: create FulfillmentOrder A, B and Payment Allocations
   alt Thanh toán online
     Order->>Pay: create payment request
     Pay-->>C: màn hình / liên kết thanh toán
-    Pay->>Order: payment callback PAID
+    Pay->>Order: payment callback PAID; allocations funded, stock still HELD
   else COD
-    Order->>Order: mark PENDING_COD
+    Order->>Order: mark PENDING_COD with amountToCollect per fulfillment
   end
   Order->>Notify: publish OrderConfirmed
   Notify->>S1: Có đơn thực hiện A

@@ -36,7 +36,7 @@ Checkout chạy trong giao dịch dữ liệu hoặc dùng cơ chế outbox/even
 | Tình huống | Customer Order | Payment | StockReservation | Hành động tiếp theo |
 |---|---|---|---|---|
 | Online vừa checkout | `PENDING_PAYMENT` | `PENDING` | `HELD` | Chờ callback hợp lệ trong TTL. |
-| Callback thành công | `CONFIRMED` | `PAID` | `COMMITTED` hoặc tiếp tục `HELD` đến Supplier accept | Thông báo Supplier/Seller. |
+| Callback thành công | `CONFIRMED` | `PAID` | `HELD` đến khi đúng Supplier accept đơn con | Thông báo Supplier/Seller; chỉ accept mới commit tồn. |
 | Callback thất bại hoặc hết TTL | `PAYMENT_FAILED` / `CANCELED` | `FAILED` | `RELEASED` | Cho phép Customer thử lại nếu chưa hết TTL đơn. |
 | COD | `CONFIRMED` | `PENDING_COD` | `HELD` | Supplier nhận và xác nhận đơn. |
 | Supplier từ chối vì hết hàng | `PARTIALLY_CANCELED` hoặc `CANCELED` | Không đổi ngay | `RELEASED` cho các dòng bị từ chối | Hoàn tiền phần tương ứng nếu đã thu tiền. |
@@ -94,3 +94,57 @@ MVP có thể ghi nhận `supplierPayable` theo giá vốn snapshot nhân số l
 | Shipment thay đổi trạng thái | Customer, Seller | Ngay khi nhận webhook | Mã tracking và trạng thái mới. |
 | Có yêu cầu trả hàng | Supplier, Seller, Admin | Ngay lập tức | Lý do, bằng chứng, hạn phản hồi. |
 | Settlement đủ điều kiện | Seller, Supplier | Theo batch hàng ngày | Số tiền dự kiến, kỳ chi trả. |
+## 7.8 Phân bổ thanh toán, COD và sổ cái tài chính
+
+`Payment` là payment intent của toàn bộ Customer Order; mỗi lần gọi cổng thanh toán là một `PaymentAttempt`. `PaymentAllocation` là nghĩa vụ tiền của đúng một Fulfillment Order, được tạo trong checkout và không suy diễn lại từ giá hiện hành.
+
+| Trường snapshot của PaymentAllocation | Ý nghĩa |
+|---|---|
+| `merchandiseAmount` | Tổng giá bán các dòng hàng của đơn con. |
+| `shippingAmount` | Phí ship khách chịu cho đúng kiện hàng. |
+| `discountAmount` | Giảm giá đã phân bổ theo quy tắc làm tròn xác định. |
+| `amountToCollect` | `merchandiseAmount + shippingAmount - discountAmount`; là số tiền COD của kiện. |
+| `currency` | MVP luôn là `VND`; số tiền là số nguyên, không dùng `float`. |
+
+1. Tổng `amountToCollect` của các allocation đang hiệu lực phải bằng `CustomerOrder.totalPayable`.
+2. Online: sau callback hợp lệ, allocation chuyển `FUNDED`; nếu đơn con bị từ chối/hủy, chỉ allocation đó tạo Refund.
+3. COD: Carrier xác nhận `COLLECTED` theo từng Fulfillment Order. Nếu đơn con bị từ chối trước khi bàn giao Carrier, allocation thành `VOIDED` và tổng COD còn phải thu được tính lại trước khi tạo vận đơn.
+4. Không tạo Settlement chỉ vì `DELIVERED`: điều kiện bắt buộc là allocation đã `FUNDED` hoặc `COLLECTED`, không có dispute mở, và qua cửa sổ đổi trả.
+5. Mọi refund, phí, khoản phải trả Supplier, doanh thu Seller và adjustment phải ghi `FinancialEntry` append-only với `sourceRef`; cấm sửa đè số tiền lịch sử.
+
+## 7.9 Checkout nguyên tử và idempotency phía khách
+
+`POST /checkout` bắt buộc có `Idempotency-Key` duy nhất theo Customer. Cùng key, cùng payload phải trả về cùng Customer Order; cùng key nhưng payload khác trả `409 IDEMPOTENCY_KEY_REUSED`.
+
+Trong **một PostgreSQL transaction**, server phải: khóa/cập nhật tồn có điều kiện; tạo Customer Order, OrderItem, snapshot giá/phí/địa chỉ; tạo Fulfillment Order và FulfillmentItem; tạo StockReservation `HELD`; tạo Payment Intent và PaymentAllocation; ghi Outbox Event. Chỉ gọi cổng thanh toán hoặc gửi notification sau khi transaction commit.
+
+Không được gọi dịch vụ ngoài trong transaction. Callback/webhook phải deduplicate bằng `(provider, providerEventId)` và transition Payment, ledger, outbox trong cùng transaction; callback trùng luôn trả kết quả thành công không tạo side effect lần hai.
+
+## 7.10 Đơn con, một kiện hàng và trạng thái tổng hợp
+
+1. Một Fulfillment Order thuộc đúng một `(supplierId, sellerId)` và trong MVP có tối đa một Shipment/một `trackingNo`. Partial shipment hoặc nhiều kiện là out-of-scope, phải được từ chối bằng mã nghiệp vụ rõ ràng.
+2. Một Customer Order không tự chuyển trạng thái giao hàng độc lập. `fulfillmentSummary` là projection tính từ các Fulfillment Order sau commit; API không nhận lệnh đổi trực tiếp summary này.
+3. Return, evidence, tracking, reservation, payment allocation và settlement luôn tham chiếu Fulfillment Order hoặc FulfillmentItem; không thao tác mơ hồ ở cấp đơn cha.
+
+## 7.11 Thay đổi giá nguồn và Listing đang hoạt động
+
+Khi Supplier thay đổi `costPrice`, server đánh giá lại mọi Listing `ACTIVE` tham chiếu Product đó trong cùng luồng nghiệp vụ. Listing có `salePrice < costPrice + minMargin` chuyển `PAUSED_BY_POLICY`, không checkout được, phát notification cho Seller và audit trước/sau. Supplier giảm tồn về 0 chỉ ngăn checkout mới, không làm mất OrderItem lịch sử. Giá, tên sản phẩm, phí và mô tả đã snapshot trong đơn không được cập nhật lại.
+
+## 7.12 SLA có hành động leo thang
+
+| Sự kiện | Hạn MVP | Hành động khi quá hạn |
+|---|---:|---|
+| Online chưa thanh toán | 15 phút | Đánh dấu payment failed, release reservation và đóng checkout. |
+| Supplier nhận đơn nhưng chưa accept/reject | 24 giờ | Auto-cancel với `SUPPLIER_TIMEOUT`, release tồn và tạo refund/void allocation phù hợp. |
+| Đơn đã accept nhưng chưa shipped | 48 giờ | Cảnh báo Supplier, mở task Admin; Admin có thể hủy theo chính sách. |
+| Supplier chưa phản hồi Return Request | 48 giờ | Escalate cho Admin, Settlement giữ `HOLD`. |
+| Khách chưa gửi hàng trả sau khi được duyệt | 72 giờ | Hết hạn yêu cầu trả, đóng dispute nếu không có ngoại lệ đã phê duyệt. |
+
+Các mốc trên là cấu hình server-side. Scheduler phải thực thi idempotent và ghi audit với reason code.
+
+## 7.13 Quyền sở hữu và dữ liệu cá nhân
+
+- Supplier chỉ xem tên người nhận, địa chỉ và số điện thoại của Fulfillment Order thuộc mình sau khi order đã `CONFIRMED`; không xem dữ liệu của đơn khác.
+- Seller xem trạng thái, dòng hàng và số liệu tài chính liên quan Shop; chỉ xem khu vực giao hàng đã làm mờ, không xem đầy đủ số điện thoại/địa chỉ người nhận.
+- Admin chỉ truy cập dữ liệu cá nhân khi phục vụ moderation, fulfillment support hoặc dispute; thao tác export/xem bằng chứng phải có audit event.
+- Địa chỉ giao hàng là snapshot của Order, không đọc lại địa chỉ profile hiện tại. URL evidence/media phải là signed URL có hạn, không công khai trực tiếp.

@@ -3,21 +3,23 @@ flowchart TD
   B --> C{Kiểm tra listing active\nvà tồn kho khả dụng}
   C -- Không đạt --> D[Thông báo dòng hàng không khả dụng\nKhách sửa giỏ]
   D --> A
-  C -- Đạt --> E[Tạo Customer Order và Order Items\nSnapshot giá bán/giá vốn]
-  E --> F[Nhóm item theo Supplier + Seller]
-  F --> G[Tạo một hoặc nhiều Fulfillment Orders]
-  G --> H{Phương thức thanh toán}
-  H -- Online --> I[Gửi yêu cầu cổng thanh toán]
-  I --> J{Callback thành công?}
-  J -- Không --> K[Payment FAILED\nĐơn chờ thanh toán hoặc hủy]
-  J -- Có --> L[Payment PAID]
-  H -- COD --> M[Payment PENDING_COD]
-  L --> N[Giữ / trừ tồn kho theo chính sách]
-  M --> N
-  N --> O[Thông báo supplier và seller]
-  O --> P[Supplier xác nhận từng Fulfillment Order]
-  P --> Q[Đóng gói và bàn giao Carrier]
-  Q --> R[Tracking và trạng thái giao hàng]
-  R --> S{Tất cả đơn thực hiện hoàn tất?}
-  S -- Chưa --> R
-  S -- Có --> T([Customer Order COMPLETED])
+  C -- Đạt --> E[Bắt đầu transaction\nKhóa tồn theo điều kiện]
+  E --> F[Tạo Customer Order và Order Items\nSnapshot giá, phí, địa chỉ]
+  F --> G[Nhóm item theo Supplier + Seller]
+  G --> H[Tạo Fulfillment Orders, Reservation HELD\nPayment, Payment Allocation và Outbox]
+  H --> I[Commit transaction]
+  I --> J{Phương thức thanh toán}
+  J -- Online --> K[Gửi yêu cầu cổng thanh toán sau commit]
+  K --> L{Callback hợp lệ và chưa xử lý?}
+  L -- Không --> M[Payment FAILED\nRelease reservation đúng một lần]
+  L -- Có --> N[Payment PAID\nReservation vẫn HELD]
+  J -- COD --> O[Payment PENDING_COD\nGán amountToCollect cho từng kiện]
+  N --> P[Thông báo Supplier và Seller]
+  O --> P
+  P --> Q[Supplier xác nhận từng Fulfillment Order]
+  Q --> R[Commit reservation của đơn con đã ACCEPTED]
+  R --> S[Đóng một kiện và bàn giao Carrier]
+  S --> T[Tracking và trạng thái giao hàng]
+  T --> U{Các đơn con đã có kết quả?}
+  U -- Chưa --> T
+  U -- Có --> V([Cập nhật trạng thái tổng hợp Customer Order])
