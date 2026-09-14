@@ -142,6 +142,8 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 | [07-operational-rules.md](07-operational-rules.md) | Quy tắc vận hành, điều kiện chuyển trạng thái, SLA và ngoại lệ |
 | [08-requirements-traceability.md](08-requirements-traceability.md) | Traceability từ yêu cầu đến workflow, dữ liệu và tiêu chí nghiệm thu |
 | [09-technical-architecture-plan.md](09-technical-architecture-plan.md) | Kế hoạch kiến trúc kỹ thuật, stack và cấu trúc thư mục trước khi lập trình |
+| [10-team-work-allocation.md](10-team-work-allocation.md) | Phân công module, nghiệm thu và mốc tích hợp cho 4 thành viên |
+| [11-parallel-development-contracts.md](11-parallel-development-contracts.md) | Ranh giới code, mock contract và quy tắc làm song song cho 4 thành viên |
 
 ## Thuật ngữ
 
