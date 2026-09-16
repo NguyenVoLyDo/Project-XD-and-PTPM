@@ -145,7 +145,7 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 | [09-technical-architecture-plan.md](09-technical-architecture-plan.md) | Kế hoạch kiến trúc kỹ thuật, stack và cấu trúc thư mục trước khi lập trình |
 | [10-team-work-allocation.md](10-team-work-allocation.md) | Phân công module, nghiệm thu và mốc tích hợp cho 4 thành viên |
 | [11-parallel-development-contracts.md](11-parallel-development-contracts.md) | Ranh giới code, mock contract và quy tắc làm song song cho 4 thành viên |
-| [mermaid/](mermaid/) | Thư mục chứa toàn bộ mã nguồn Mermaid (.mmd), bao gồm checkout chi tiết, tồn kho và tranh chấp |
+
 ## Thuật ngữ
 
 | Thuật ngữ | Ý nghĩa |
