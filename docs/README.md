@@ -116,11 +116,12 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 - Một **Đơn mua** của khách có thể chứa sản phẩm từ nhiều Người bán/Nhà cung cấp. Hệ thống tự tách thành các **Đơn thực hiện** theo cặp Nhà cung cấp–Người bán để giao hàng và đối soát độc lập.
 - Một **Fulfillment Order** trong MVP được đóng thành **một kiện/một mã vận đơn**. Tách nhiều kiện cho cùng một Fulfillment Order là phần mở rộng; không được tự ý tạo shipment thứ hai trong cùng luồng MVP.
 - Thanh toán hỗ trợ COD và thanh toán trực tuyến ở mức tích hợp/mô phỏng. Một lần checkout có thể tạo một Payment tổng, nhưng số tiền phải được **phân bổ bất biến theo Fulfillment Order** để xử lý giao nhiều kiện, hủy một phần và hoàn tiền chính xác. Với COD, mỗi kiện có `amountToCollect` riêng; tổng các khoản thu phải bằng tổng khách phải trả.
+- Toàn bộ tiền Online/COD được đối soát về tài khoản trung gian của nền tảng; Supplier và Seller chỉ nhận payout sau khi kiện đã `DELIVERED`, khoản thu tương ứng đã được xác nhận và hết cửa sổ đổi trả.
+- Phí vận chuyển được tính theo từng Fulfillment Order; `grandTotal = sum(itemSalePrices) + sum(fulfillmentShippingFees) - discount`, và Checkout phải bóc tách phí của từng kiện.
 - Giá vốn tại thời điểm đặt hàng được snapshot vào từng dòng đơn; không dùng giá vốn hiện hành để tính lại lợi nhuận của đơn cũ.
 - `Customer Order.status` là trạng thái hiển thị/tổng hợp; `Fulfillment Order` là nguồn sự thật cho tiến trình giao hàng, hủy và trả hàng. Không dùng trạng thái đơn cha để bỏ qua kiểm tra trạng thái của đơn con.
 - MVP dùng tiền tệ VND, truyền/lưu số tiền là số nguyên (không dùng `float`). Phí ship, giảm giá, khoản phải thu COD, hoàn tiền và bút toán điều chỉnh đều phải có snapshot tại thời điểm phát sinh.
-- MVP cho phép Nhà cung cấp tự cập nhật giao hàng. Tích hợp hãng vận chuyển là phần mở rộng.
-
+- MVP cho phép Nhà cung cấp tự cập nhật giao hàng hoặc nhận webhook mô phỏng từ hãng vận chuyển. Tích hợp hãng vận chuyển thật là phần mở rộng.
 ## Hợp đồng nghiệp vụ cần giữ nhất quán
 
 1. **Checkout nguyên tử:** server tạo snapshot, giữ tồn, các Fulfillment Order, phân bổ thanh toán và outbox event trong một transaction. Cổng thanh toán chỉ được gọi sau khi transaction này commit.
@@ -135,14 +136,16 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 |---|---|
 | [01-actors-use-cases.md](01-actors-use-cases.md) | Actor, quyền hạn và use case hệ thống |
 | [02-workflows.md](02-workflows.md) | Workflow nghiệp vụ đầu-cuối |
-| [03-state-machines.md](03-state-machines.md) | State machine cho đơn, thanh toán, fulfillment và đối soát |
+| [03-state-machines.md](03-state-machines.md) | State machine cho đơn, thanh toán, fulfillment, tồn kho và đối soát |
 | [04-domain-class-diagram.md](04-domain-class-diagram.md) | UML class diagram miền nghiệp vụ |
-| [05-sequence-diagrams.md](05-sequence-diagrams.md) | Sequence diagram các tình huống quan trọng |
+| [05-sequence-diagrams.md](05-sequence-diagrams.md) | Sequence diagram các tình huống quan trọng (checkout, fulfillment, callback) |
 | [06-components-and-data.md](06-components-and-data.md) | Component architecture và ERD dữ liệu |
 | [07-operational-rules.md](07-operational-rules.md) | Quy tắc vận hành, điều kiện chuyển trạng thái, SLA và ngoại lệ |
 | [08-requirements-traceability.md](08-requirements-traceability.md) | Traceability từ yêu cầu đến workflow, dữ liệu và tiêu chí nghiệm thu |
 | [09-technical-architecture-plan.md](09-technical-architecture-plan.md) | Kế hoạch kiến trúc kỹ thuật, stack và cấu trúc thư mục trước khi lập trình |
-
+| [10-team-work-allocation.md](10-team-work-allocation.md) | Phân công module, nghiệm thu và mốc tích hợp cho 4 thành viên |
+| [11-parallel-development-contracts.md](11-parallel-development-contracts.md) | Ranh giới code, mock contract và quy tắc làm song song cho 4 thành viên |
+| [mermaid/](mermaid/) | Thư mục chứa toàn bộ mã nguồn Mermaid (.mmd), bao gồm checkout chi tiết, tồn kho và tranh chấp |
 ## Thuật ngữ
 
 | Thuật ngữ | Ý nghĩa |

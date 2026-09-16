@@ -11,6 +11,17 @@ flowchart TD
   D -- Không --> F
   F --> G[Seller tìm và chọn sản phẩm]
   G --> H[Seller tạo Listing\nđặt giá bán, mô tả riêng]
-  H --> I{Giá bán hợp lệ?}
+  H --> I{Giá bán hợp lệ?\nsalePrice >= costPrice + minMargin}
   I -- Không --> H
   I -- Có --> J[Listing ACTIVE trên gian hàng]
+
+  subgraph PriceChange[Xử lý biến động giá vốn]
+    K[Supplier cập nhật giá vốn mới] --> L{costPrice mới > salePrice\nhoặc vi phạm minMargin?}
+    L -- Không --> M[Cập nhật giá vốn ngầm\nListing giữ nguyên]
+    L -- Có --> N[Listing chuyển PAUSED_PRICE_MISMATCH\nTạm ẩn khỏi gian hàng]
+    N --> O[Hệ thống cảnh báo Seller qua Notification]
+    O --> P[Seller cập nhật giá bán mới]
+    P --> I
+  end
+  C -.-> K
+  J -.-> L

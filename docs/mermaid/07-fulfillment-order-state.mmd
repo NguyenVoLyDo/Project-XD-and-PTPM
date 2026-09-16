@@ -10,12 +10,18 @@ stateDiagram-v2
   SHIPPED --> IN_TRANSIT: carrier quét nhận
   IN_TRANSIT --> DELIVERED: giao thành công
   IN_TRANSIT --> DELIVERY_FAILED: giao không thành công
-  DELIVERY_FAILED --> IN_TRANSIT: giao lại
-  DELIVERY_FAILED --> RETURNING: hoàn về supplier
-  DELIVERED --> RETURN_REQUESTED: yêu cầu đổi trả được mở
-  RETURN_REQUESTED --> RETURNING: chấp nhận trả hàng
+  
+  DELIVERY_FAILED --> IN_TRANSIT: giao lại (lần <= 3)
+  DELIVERY_FAILED --> RETURNING: giao thất bại > 3 lần (hoàn kho)
+  
+  DELIVERED --> RETURN_REQUESTED: mở yêu cầu đổi trả (trong 7 ngày)
+  RETURN_REQUESTED --> RETURN_REJECTED: từ chối đổi trả (không hợp lệ)
+  RETURN_REJECTED --> DELIVERED: giữ nguyên trạng thái giao thành công
+  RETURN_REQUESTED --> RETURNING: chấp nhận đổi trả
+  
   RETURNING --> RETURNED: supplier nhận hàng trả
   RETURNED --> REFUNDED: hoàn tiền hoàn tất
+  
   REJECTED --> [*]
   CANCELED --> [*]
   REFUNDED --> [*]
