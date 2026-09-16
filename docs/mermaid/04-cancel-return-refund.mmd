@@ -1,15 +1,20 @@
 flowchart TD
   A([Khách / Seller yêu cầu hủy hoặc trả hàng]) --> B{Đơn đã bàn giao carrier?}
   B -- Chưa --> C[Supplier hoặc Admin xác nhận hủy]
-  C --> D[Khôi phục tồn kho nếu đã giữ]
-  D --> E{Đã thanh toán online?}
-  E -- Có --> F[Tạo yêu cầu Refund]
-  E -- Không / COD --> G[Đánh dấu CANCELED]
-  F --> H{Refund thành công?}
+  C --> D[Giải phóng tồn kho RELEASED]
+  D --> E{Phương thức thanh toán gốc?}
+  E -- Online đã trừ tiền --> F[Hoàn tiền tự động qua Gateway]
+  E -- COD chưa thu tiền --> G[Đánh dấu CANCELED\nKhông phát sinh hoàn tiền]
+  F --> H{Hoàn tiền thành công?}
   H -- Có --> G
   H -- Không --> I[Admin xử lý ngoại lệ]
-  B -- Rồi --> J[Khách tạo Return Request\nkèm lý do/bằng chứng]
-  J --> K[Supplier phản hồi]
-  K --> L{Admin quyết định khi có tranh chấp}
-  L --> M[Nhận hàng trả / xác minh]
-  M --> F
+  B -- Rồi --> J[Khách tạo Return Request\nkèm lý do/ảnh bằng chứng]
+  J --> K{Xác định nguyên nhân & phí ship trả}
+  K -- Lỗi do SP / Supplier --> K1[Supplier chịu phí ship trả\nKhấu trừ supplierPayable]
+  K -- Khách đổi ý hợp lệ --> K2[Khách chịu phí ship trả\nTrừ vào số tiền hoàn lại]
+  K1 & K2 --> L[Supplier/Admin thẩm định & duyệt]
+  L --> M[Carrier nhận hàng trả / Supplier xác minh]
+  M --> REF{Phương thức thanh toán gốc?}
+  REF -- Online --> F
+  REF -- COD --> N[Khách cung cấp STK ngân hàng\nAdmin tạo lệnh chuyển khoản hoàn tiền]
+  N --> G

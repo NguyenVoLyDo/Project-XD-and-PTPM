@@ -6,13 +6,13 @@ flowchart TD
   C -- Đạt --> E[Bắt đầu transaction\nKhóa tồn theo điều kiện]
   E --> F[Tạo Customer Order và Order Items\nSnapshot giá, phí, địa chỉ]
   F --> G[Nhóm item theo Supplier + Seller]
-  G --> H[Tạo Fulfillment Orders, Reservation HELD\nPayment, Payment Allocation và Outbox]
+  G --> H[Tạo Fulfillment Orders, Reservation HELD kèm TTL\nPayment, Payment Allocation và Outbox]
   H --> I[Commit transaction]
   I --> J{Phương thức thanh toán}
   J -- Online --> K[Gửi yêu cầu cổng thanh toán sau commit]
   K --> L{Callback hợp lệ và chưa xử lý?}
   L -- Không --> M[Payment FAILED\nRelease reservation đúng một lần]
-  L -- Có --> N[Payment PAID\nReservation vẫn HELD]
+  L -- Có --> N[Payment PAID\nReservation vẫn HELD đến Supplier accept]
   J -- COD --> O[Payment PENDING_COD\nGán amountToCollect cho từng kiện]
   N --> P[Thông báo Supplier và Seller]
   O --> P
