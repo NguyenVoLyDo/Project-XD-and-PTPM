@@ -4,18 +4,18 @@ Mục tiêu: bốn người có thể làm và test phần mình ngay từ ngày
 
 ## 1. Ranh giới sở hữu bắt buộc
 
-| Người | Chỉ được chủ động sửa |
-|---|---|
-| 1 | common, identity, admin, disputes, notifications, giao diện auth/admin |
-| 2 | catalog, listings, giao diện supplier/seller/catalog |
-| 3 | cart, orders, inventory reservation, giao diện public/customer/checkout |
-| 4 | payments, fulfillment, settlements, giao diện vận hành đơn |
+| Người | Backend Modules (`backend/src/modules/`) | Frontend Routes (`frontend/src/app/`) |
+|---|---|---|
+| **1** | `common`, `identity`, `admin`, `notifications` | `/admin/*`, `/(public)/login`, `/(public)/register`, `/(public)/auth/*` |
+| **2** | `catalog`, `listings`, `inventory` (trọn gói) | `/supplier/products/*`, `/supplier/inventory/*`, `/seller/shops/*`, `/seller/listings/*` |
+| **3** | `cart`, `orders` | `/(public)/*`, `/(customer)/cart`, `/(customer)/checkout`, `/(customer)/orders/*` |
+| **4** | `fulfillment`, `payments`, `settlements`, `disputes` | `/supplier/orders/*`, `/supplier/finance/*`, `/seller/finance/*`, `/customer/disputes/*` |
 
-Không ai tự sửa module của người khác, init.sql, package root, cấu hình dùng chung hoặc API contract đã khóa. Thay đổi cần thiết được ghi issue/PR riêng và chỉ tích hợp ở mốc chung.
+Không ai tự sửa module hay route của người khác, `init.sql`, package root, cấu hình dùng chung hoặc API contract đã khóa. Thay đổi cần thiết được ghi issue/PR riêng và chỉ tích hợp ở mốc chung.
 
 ## 2. Contract trước, implementation sau
 
-Mỗi module công bố một file contract trong docs/contracts/<module>.md trước khi code:
+Mỗi module công bố một file contract trong `docs/contracts/<module>.md` trước khi code:
 
 - Request/response DTO mẫu.
 - Danh sách status, error code và quyền gọi.
@@ -28,10 +28,10 @@ Contract được dùng như interface tạm thời. Khi API thật chưa có, m
 
 | Người | Dữ liệu/adapter mock phải dùng | Không cần chờ |
 |---|---|---|
-| 1 | User/Profile/Audit in-memory hoặc seed riêng | Catalog, Order, Payment |
-| 2 | CurrentActor mock và Supplier/Seller profile fixture | Auth API thật, Checkout |
-| 3 | CatalogGateway mock, InventoryGateway mock, PaymentIntentGateway mock | Catalog API, Payment API, Fulfillment |
-| 4 | OrderGateway mock, PaymentGateway mock, DisputeGateway mock | Checkout API, Admin dispute API |
+| **1** | User/Profile/Audit in-memory hoặc seed riêng | Catalog, Order, Payment, Fulfillment |
+| **2** | CurrentActor mock và Supplier/Seller profile fixture | Auth API thật, Checkout |
+| **3** | CatalogGateway mock, InventoryGateway mock, PaymentIntentGateway mock | Catalog API, Payment API, Fulfillment |
+| **4** | OrderGateway mock, PaymentGateway mock, InventoryCommitGateway mock | Checkout API, Order API thật |
 
 Mock đặt trong chính feature/module của người sở hữu. Không đưa mock vào common để tránh conflict.
 
