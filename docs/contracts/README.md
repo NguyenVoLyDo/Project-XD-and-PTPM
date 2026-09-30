@@ -42,3 +42,14 @@ Checkout là use case của orders. Reviews trong docs/09 chưa được phân c
 5. Người tích hợp review migrations, race/idempotency/PII UAT và xác nhận lại contract v1 trong PR. Sự xác nhận của từng thành viên cần ghi bằng review; tài liệu này không thay thế việc đó.
 
 **Nguồn:** docs/03–11 và backend/database/init.sql. Khi một mô tả cũ mâu thuẫn với baseline này, cập nhật tài liệu cũ trong cùng thay đổi; không để hai định nghĩa tồn tại song song.
+
+## Xác nhận thành viên
+
+Mỗi thành viên ký tên bên dưới xác nhận đã đọc, hiểu và đồng ý với nội dung baseline contract v1.0. Thứ tự ký không thể hiện mức ưu tiên.
+
+| Người | Họ tên | Module phụ trách | Ngày xác nhận | Trạng thái |
+|---|---|---|---|---|
+| Người 1 | _(chưa xác nhận)_ | common, identity, admin, notifications | — | ⏳ Chờ |
+| Người 2 | **Bùi Trường Quyền** | catalog, listings, inventory | 2026-09-30 | ✅ Đã xác nhận |
+| Người 3 | _(chưa xác nhận)_ | cart, orders | — | ⏳ Chờ |
+| Người 4 | _(chưa xác nhận)_ | fulfillment, payments, settlements, disputes | — | ⏳ Chờ |
