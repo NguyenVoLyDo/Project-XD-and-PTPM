@@ -23,7 +23,7 @@ flowchart TD
   subgraph PriceChange[Xử lý biến động giá vốn]
     K[Supplier cập nhật giá vốn mới] --> L{costPrice mới > salePrice\nhoặc vi phạm minMargin?}
     L -- Không --> M[Cập nhật giá vốn ngầm\nListing giữ nguyên]
-    L -- Có --> N[Listing chuyển PAUSED_PRICE_MISMATCH\nTạm ẩn khỏi gian hàng]
+    L -- Có --> N[Listing chuyển PAUSED_BY_POLICY\nTạm ẩn khỏi gian hàng]
     N --> O[Hệ thống cảnh báo Seller qua Notification]
     O --> P[Seller cập nhật giá bán mới]
     P --> I
@@ -34,7 +34,7 @@ flowchart TD
 
 **Quy tắc nghiệp vụ chính:**
 - Người bán chỉ tạo `Listing` tham chiếu `Product`; không có quyền sửa `costPrice`, tồn kho hoặc SKU nguồn.
-- **Xử lý biến động giá vốn:** Khi Supplier tăng giá vốn `costPrice` khiến `salePrice < costPrice + minMargin`, hệ thống tự động chuyển trạng thái Listing sang `PAUSED_PRICE_MISMATCH` và tạm ẩn trên gian hàng để bảo vệ Seller không bị lỗ. Seller nhận thông báo và phải cập nhật lại giá bán mới hợp lệ để kích hoạt lại Listing.
+- **Xử lý biến động giá vốn:** Khi Supplier tăng giá vốn `costPrice` khiến `salePrice < costPrice + minMargin`, hệ thống tự động chuyển trạng thái Listing sang `PAUSED_BY_POLICY` và tạm ẩn trên gian hàng để bảo vệ Seller không bị lỗ. Seller nhận thông báo và phải cập nhật lại giá bán mới hợp lệ để kích hoạt lại Listing.
 
 ---
 

@@ -18,7 +18,7 @@ flowchart TD
   subgraph PriceChange[Xử lý biến động giá vốn]
     K[Supplier cập nhật giá vốn mới] --> L{costPrice mới > salePrice\nhoặc vi phạm minMargin?}
     L -- Không --> M[Cập nhật giá vốn ngầm\nListing giữ nguyên]
-    L -- Có --> N[Listing chuyển PAUSED_PRICE_MISMATCH\nTạm ẩn khỏi gian hàng]
+    L -- Có --> N[Listing chuyển PAUSED_BY_POLICY\nTạm ẩn khỏi gian hàng]
     N --> O[Hệ thống cảnh báo Seller qua Notification]
     O --> P[Seller cập nhật giá bán mới]
     P --> I

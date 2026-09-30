@@ -39,7 +39,7 @@ Checkout chạy trong giao dịch dữ liệu hoặc dùng cơ chế outbox/even
 | Callback thành công | `CONFIRMED` | `PAID` | `HELD` đến khi đúng Supplier accept đơn con | Thông báo Supplier/Seller; chỉ accept mới commit tồn. |
 | Callback thất bại hoặc hết TTL | `PAYMENT_FAILED` / `CANCELED` | `FAILED` | `RELEASED` | Cho phép Customer thử lại nếu chưa hết TTL đơn. |
 | COD | `CONFIRMED` | `PENDING_COD` | `HELD` | Supplier nhận và xác nhận đơn. |
-| Supplier từ chối vì hết hàng | `PARTIALLY_CANCELED` hoặc `CANCELED` | Không đổi ngay | `RELEASED` cho các dòng bị từ chối | Hoàn tiền phần tương ứng nếu đã thu tiền. |
+| Supplier từ chối vì hết hàng | status giữ theo vòng đời checkout; fulfillmentSummary là PARTIALLY_CANCELED hoặc CANCELED | Không đổi ngay | `RELEASED` cho các dòng bị từ chối | Hoàn tiền phần tương ứng nếu đã thu tiền. |
 
 **TTL MVP đề xuất:** reservation 15 phút với Online chưa thanh toán; 24 giờ với COD chưa được Supplier xác nhận. Đây là tham số cấu hình, không hard-code trong client.
 
@@ -75,7 +75,7 @@ Không cho phép bỏ qua trạng thái: ví dụ `PENDING_ACCEPTANCE → SHIPPE
 | Payment webhook thiếu/chữ ký sai | Ghi audit, trả lỗi, không thay đổi Payment/Order. |
 | Payment webhook trùng `transactionRef` | Trả `200 OK`, không lặp side effect. |
 | Carrier gửi `DELIVERED` sau khi đơn đã `CANCELED` | Đưa vào hàng chờ exception và Admin xử lý, không tự hoàn tất đơn. |
-| Một đơn con bị từ chối | Customer Order là `PARTIALLY_CANCELED`; chỉ hoàn tiền phần item bị ảnh hưởng. |
+| Một đơn con bị từ chối | fulfillmentSummary của CustomerOrder là PARTIALLY_CANCELED; chỉ hoàn tiền phần item bị ảnh hưởng. |
 | Tranh chấp đổi trả | Đóng băng `Settlement` ở `HOLD`; Admin quyết định `APPROVED` hoặc `REJECTED`. |
 | Chi trả Supplier/Seller lỗi | `PAYOUT_FAILED`, có retry an toàn dựa trên idempotency key của payout. |
 

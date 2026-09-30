@@ -33,7 +33,7 @@ Mỗi yêu cầu bên dưới có sơ đồ tham chiếu và tiêu chí có th�
 2. Customer thêm L1 và L2 vào cùng giỏ, thanh toán Online hoặc COD.
 3. Hệ thống hiển thị một Customer Order và các Fulfillment Order đã tách.
 4. Supplier A nhận đơn, tạo tracking và giao thành công; Supplier B từ chối do hết hàng.
-5. Customer Order trở thành `PARTIALLY_CANCELED`; hệ thống release tồn và hoàn tiền phần của B.
+5. fulfillmentSummary của CustomerOrder trở thành `PARTIALLY_CANCELED`; hệ thống release tồn và hoàn tiền phần của B.
 6. Sau cửa sổ đổi trả của A, hệ thống tính Settlement cho Supplier A và Seller X.
 
 ## Bổ sung traceability cho các quyết định BA bắt buộc

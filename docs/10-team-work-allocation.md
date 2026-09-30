@@ -18,7 +18,7 @@ Mỗi thành viên sở hữu các mảng chức năng trọn vẹn theo Bounded
 |---|---|---|---|
 | **Người 1** *(Nền tảng & Quản trị)* | • `common`<br>• `identity`<br>• `admin`<br>• `notifications` | • `/admin/*`<br>• `/(public)/login`<br>• `/(public)/register`<br>• `/(public)/auth/*` | **Khung nền tảng, Xác thực & Quản trị hệ thống**<br>- Base framework, JWT, RBAC Guard, Password hashing.<br>- Admin portal: Quản lý user, duyệt/khóa hồ sơ Supplier & Seller, xem Audit log hệ thống.<br>- Hệ thống thông báo in-app / mock event. |
 | **Người 2** *(Nguồn hàng & Kho gốc)* | • `catalog`<br>• `listings`<br>• `inventory` *(Trọn gói)* | • `/supplier/products/*`<br>• `/supplier/inventory/*`<br>• `/seller/shops/*`<br>• `/seller/listings/*` | **Nguồn hàng, Kênh bán & Quản lý kho**<br>- Supplier: CRUD Product, upload ảnh S3/MinIO, giá vốn, trạng thái.<br>- Seller: Quản lý Shop, kéo Product tạo Listing, định giá và kiểm tra biên lợi nhuận (margin).<br>- Tồn kho: Quản lý tồn gốc và cung cấp service atomics (`hold`, `commit`, `release`) cho Người 3 & Người 4. |
-| **Người 3** *(Khách hàng & Bán hàng)* | • `cart`<br>• `orders` | • `/(public)/*` (Home, Category, Listing detail, Search)<br>• `/(customer)/cart`<br>• `/(customer)/checkout`<br>• `/(customer)/orders/*` | **Trải nghiệm mua sắm & Xử lý đơn hàng**<br>- Storefront công khai: Tìm kiếm, lọc, xem chi tiết listing.<br>- Giỏ hàng (Cart) & Luồng thanh toán (Checkout flow).<br>- Snapshot giá, kiểm tra idempotency.<br>- **Order Splitting**: Tách 1 đơn cha (`CustomerOrder`) thành $N$ đơn con (`FulfillmentOrder`) theo từng Supplier. |
+| **Người 3** *(Khách hàng & Bán hàng)* | • `cart`<br>• `orders` | • `/(public)/*` (Home, Category, Listing detail, Search)<br>• `/(customer)/cart`<br>• `/(customer)/checkout`<br>• `/(customer)/orders/*` | **Trải nghiệm mua sắm & Xử lý đơn hàng**<br>- Storefront công khai: Tìm kiếm, lọc, xem chi tiết listing.<br>- Giỏ hàng (Cart) & Luồng thanh toán (Checkout flow).<br>- Snapshot giá, kiểm tra idempotency.<br>- **Order Splitting**: Tách 1 đơn cha (`CustomerOrder`) thành $N$ đơn con (`FulfillmentOrder`) theo từng cặp Supplier – Seller. |
 | **Người 4** *(Vận hành & Tài chính)* | • `fulfillment`<br>• `payments`<br>• `settlements`<br>• `disputes` | • `/supplier/orders/*`<br>• `/supplier/finance/*`<br>• `/seller/finance/*`<br>• `/customer/disputes/*` | **Vận hành đơn hàng, Logistics & Sổ cái tài chính**<br>- Thanh toán: Online mock / COD, webhook idempotent.<br>- Fulfillment: Supplier accept/reject đơn con, cập nhật vận đơn & tracking giao hàng.<br>- Sổ cái kế toán kép (`FinancialEntry`): Tính tiền gốc NCC, lãi Seller, phí sàn.<br>- Khiếu nại & Hoàn tiền: Quản lý vòng đời Dispute, trigger refund và đảo ngược hạch toán. |
 
 ---
@@ -41,13 +41,13 @@ Mỗi thành viên sở hữu các mảng chức năng trọn vẹn theo Bounded
 
 ### Người 2 — Nguồn hàng, Kênh bán & Quản lý tồn kho
 1. **Catalog**: Supplier CRUD Product, ảnh sản phẩm (MinIO/S3), mô tả, thuộc tính, giá vốn.
-2. **Listings**: Seller CRUD Shop; chọn Product từ Catalog để tạo Listing; định giá bán lẻ; kiểm tra ràng buộc biên lợi nhuận `giá bán >= giá vốn * (1 + min_margin)`.
+2. **Listings**: Seller CRUD Shop; chọn Product từ Catalog để tạo Listing; định giá bán lẻ; kiểm tra ràng buộc biên lợi nhuận `giá bán >= giá vốn + minMargin`.
 3. **Inventory (Trọn gói)**:
    - Quản lý số lượng tồn gốc của Supplier.
    - Viết API/Service nội bộ phục vụ Checkout & Fulfillment:
-     - `holdStock(productId, quantity, orderId, ttl)`: Tạm giữ tồn kho khi checkout.
-     - `commitStock(reservationId)`: Trừ tồn kho chính thức khi Supplier duyệt đơn.
-     - `releaseStock(reservationId)`: Trả lại tồn kho khi hủy đơn hoặc hết hạn thanh toán.
+     - `holdStock(txContext, orderItemId, productId, quantity, expiresAt)`: Tạm giữ tồn kho khi checkout.
+     - `commitStock(reservationId, sourceRef)`: Trừ tồn kho chính thức khi Supplier duyệt đơn.
+     - `releaseStock(reservationId, sourceRef)`: Trả lại tồn kho khi hủy đơn hoặc hết hạn thanh toán.
 
 **Tiêu chí nghiệm thu:**
 - Supplier chỉ được sửa Product và tồn kho của chính mình.
@@ -66,19 +66,19 @@ Mỗi thành viên sở hữu các mảng chức năng trọn vẹn theo Bounded
    - Bảo đảm Idempotency (chống đặt trùng đơn khi double-click).
 4. **Order Management & Splitting**:
    - Tạo `CustomerOrder` (đơn tổng để khách thanh toán 1 lần).
-   - Tự động tách thành các `FulfillmentOrder` (đơn con) phân nhóm theo từng `supplierId`.
+   - Tự động tách thành các `FulfillmentOrder` (đơn con) phân nhóm theo cặp (supplierId, sellerId).
 
 **Tiêu chí nghiệm thu:**
 - Giỏ hàng gồm sản phẩm của 2 Supplier khác nhau tạo đúng 1 đơn cha và 2 đơn con riêng biệt.
 - Request trùng idempotency key không tạo ra đơn hàng thứ hai.
-- Quá thời gian thanh toán (TTL), tự động gọi nhả tồn kho.
+- Payments job xử lý Online hết hạn 15 phút; Fulfillment job xử lý Supplier chưa xác nhận sau 24 giờ. Cả hai gọi releaseStock idempotent qua port.
 
 ---
 
 ### Người 4 — Vận hành đơn, Thanh toán & Tài chính (Logistics & Finance)
 1. **Payments**: Cổng thanh toán mô phỏng (Online / COD), xử lý webhook idempotent, phân bổ `PaymentAllocation` về từng `FulfillmentOrder`.
 2. **Fulfillment**: Supplier xem danh sách đơn con của mình; bấm Chấp nhận (`commitStock`) hoặc Từ chối (`releaseStock` + kích hoạt hoàn tiền một phần).
-3. **Shipment & Tracking**: Cập nhật mã vận đơn, mô phỏng chuyển trạng thái (`PACKED` $\to$ `SHIPPED` $\to$ `DELIVERED`). Cập nhật trạng thái tổng của đơn cha khi các đơn con hoàn tất.
+3. **Shipment & Tracking**: Cập nhật mã vận đơn, mô phỏng chuyển trạng thái (`READY_TO_SHIP` $\to$ `SHIPPED` $\to$ `DELIVERED`). Phát event để orders cập nhật fulfillmentSummary từ trạng thái các đơn con.
 4. **Settlements & Ledger (Kế toán kép)**:
    - Ghi nhận `FinancialEntry` append-only: Tiền hàng gốc trả NCC, lợi nhuận chia Seller, phí hoa hồng sàn.
    - Giữ tiền trong thời hạn khiếu nại (Return Window - 7 ngày sau `DELIVERED`), sau đó chuyển sang `ELIGIBLE` để payout mock.

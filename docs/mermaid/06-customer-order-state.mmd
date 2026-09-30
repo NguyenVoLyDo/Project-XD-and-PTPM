@@ -5,7 +5,7 @@ stateDiagram-v2
   PENDING_PAYMENT --> PAYMENT_FAILED: payment failed
   PAYMENT_FAILED --> PENDING_PAYMENT: thử thanh toán lại
   PAYMENT_FAILED --> CANCELED: hết hạn thanh toán
-  CONFIRMED --> PROCESSING: tạo Fulfillment Order
+  CONFIRMED --> PROCESSING: Supplier bắt đầu xử lý đơn con
   CONFIRMED --> CANCELED: tất cả đơn con bị hủy trước khi giao
   PROCESSING --> CLOSED: mọi đơn con đã có kết quả cuối và không còn case mở
   PROCESSING --> CANCELED: tất cả đơn con bị từ chối/hủy

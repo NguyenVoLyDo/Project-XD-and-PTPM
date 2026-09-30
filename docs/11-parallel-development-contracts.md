@@ -51,9 +51,9 @@ Mỗi người hoàn thiện UI, service, validation, state transition và unit 
 
 ### Pha B — Tích hợp
 
-Chỉ sau khi bốn contract đã stable:
+Chỉ sau khi các contract module liên quan đã được chủ module và bên dùng review:
 
-1. Thay adapter mock bằng HTTP client/repository thật.
+1. Thay adapter mock bằng public service/port hoặc API client thật; repository vẫn thuộc module sở hữu.
 2. Ghép SQL theo thứ tự dependency.
 3. Chạy UAT đa Supplier và các test RBAC, idempotency, refund.
 4. Sửa lỗi tích hợp qua PR nhỏ; không mở rộng tính năng trong pha này.

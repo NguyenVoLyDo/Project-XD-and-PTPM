@@ -108,7 +108,7 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 3. Customer đặt một giỏ hàng gồm sản phẩm của A và B.
 4. Hệ thống tạo một Customer Order, đồng thời tách thành hai Fulfillment Order.
 5. Supplier A xác nhận, giao hàng thành công; Supplier B từ chối do hết hàng.
-6. Hệ thống thể hiện trạng thái `PARTIALLY_CANCELED`, giải phóng tồn kho phần B và hoàn tiền phần tương ứng.
+6. Hệ thống thể hiện fulfillmentSummary = `PARTIALLY_CANCELED`, giải phóng tồn kho phần B và hoàn tiền phần tương ứng.
 7. Sau cửa sổ đổi trả của phần A, hệ thống tạo Settlement cho Supplier A và Seller X.
 
 ## Quy ước và phạm vi MVP
@@ -119,7 +119,7 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 - Toàn bộ tiền Online/COD được đối soát về tài khoản trung gian của nền tảng; Supplier và Seller chỉ nhận payout sau khi kiện đã `DELIVERED`, khoản thu tương ứng đã được xác nhận và hết cửa sổ đổi trả.
 - Phí vận chuyển được tính theo từng Fulfillment Order; `grandTotal = sum(itemSalePrices) + sum(fulfillmentShippingFees) - discount`, và Checkout phải bóc tách phí của từng kiện.
 - Giá vốn tại thời điểm đặt hàng được snapshot vào từng dòng đơn; không dùng giá vốn hiện hành để tính lại lợi nhuận của đơn cũ.
-- `Customer Order.status` là trạng thái hiển thị/tổng hợp; `Fulfillment Order` là nguồn sự thật cho tiến trình giao hàng, hủy và trả hàng. Không dùng trạng thái đơn cha để bỏ qua kiểm tra trạng thái của đơn con.
+- CustomerOrder.status quản lý vòng đời checkout/payment; fulfillmentSummary là projection từ FulfillmentOrder cho tiến trình giao hàng, hủy và trả hàng. Không dùng trạng thái đơn cha để bỏ qua kiểm tra đơn con.
 - MVP dùng tiền tệ VND, truyền/lưu số tiền là số nguyên (không dùng `float`). Phí ship, giảm giá, khoản phải thu COD, hoàn tiền và bút toán điều chỉnh đều phải có snapshot tại thời điểm phát sinh.
 - MVP cho phép Nhà cung cấp tự cập nhật giao hàng hoặc nhận webhook mô phỏng từ hãng vận chuyển. Tích hợp hãng vận chuyển thật là phần mở rộng.
 ## Hợp đồng nghiệp vụ cần giữ nhất quán
@@ -145,6 +145,7 @@ Các mô-đun backend nên được tách theo trách nhiệm:
 | [09-technical-architecture-plan.md](09-technical-architecture-plan.md) | Kế hoạch kiến trúc kỹ thuật, stack và cấu trúc thư mục trước khi lập trình |
 | [10-team-work-allocation.md](10-team-work-allocation.md) | Phân công module, nghiệm thu và mốc tích hợp cho 4 thành viên |
 | [11-parallel-development-contracts.md](11-parallel-development-contracts.md) | Ranh giới code, mock contract và quy tắc làm song song cho 4 thành viên |
+| [contracts/README.md](contracts/README.md) | Contract module và quyết định baseline v1 cho nhóm 4 người |
 
 ## Thuật ngữ
 
