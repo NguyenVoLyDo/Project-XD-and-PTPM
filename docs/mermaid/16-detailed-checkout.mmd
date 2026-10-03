@@ -27,10 +27,10 @@ sequenceDiagram
       GW-->>UI: payment redirect URL
       GW->>Pay: signed callback(transactionRef, PAID)
       Pay->>Pay: Verify signature and idempotency
-      Pay->>Order: confirmPaid(orderId), fund allocations&#59; reservations remain HELD
+      Pay->>Order: confirmPaid(orderId), fund allocations while reservations remain HELD
       Order->>Notify: publish OrderConfirmed
     else COD
-      Order->>Order: mark PENDING_COD&#59; set amountToCollect per Fulfillment Order
+      Order->>Order: mark PENDING_COD and set amountToCollect per Fulfillment Order
       Order->>Notify: publish OrderConfirmed
       Order-->>UI: orderNo, PENDING_COD
     end

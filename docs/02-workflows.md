@@ -66,7 +66,8 @@ flowchart TD
   S --> T[Tracking và trạng thái giao hàng]
   T --> U{Các đơn con đã có kết quả?}
   U -- Chưa --> T
-  U -- Có --> V([Cập nhật trạng thái tổng hợp Customer Order])```
+  U -- Có --> V([Cập nhật trạng thái tổng hợp Customer Order])
+```
 
 **Quy tắc nghiệp vụ chính:**
 - **Thời điểm giữ tồn kho (Reservation):** Ngay khi qua bước kiểm tra giỏ hàng hợp lệ, hệ thống tạo bản ghi `StockReservation` ở trạng thái `HELD` kèm thời hạn (TTL 15 phút với Online, 24 giờ với COD). Việc này chặn đứng nguy cơ bán vượt tồn kho (Overselling) trong lúc khách đang thao tác thanh toán.
