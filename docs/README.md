@@ -1,6 +1,51 @@
-# Tài liệu thiết kế UML — DropConnect
+# DropConnect — Báo cáo hiểu biết về dự án và công việc
 
-Tài liệu này mô tả hệ thống **kết nối Nhà cung cấp, Người bán và Khách hàng theo mô hình dropshipping nội địa (B2B2C)**. Hệ thống không sở hữu hàng hoá: Nhà cung cấp giữ hàng và hoàn tất giao hàng; Người bán chịu trách nhiệm gian hàng, giá bán và chăm sóc khách; nền tảng điều phối dữ liệu, đơn hàng và đối soát.
+Tài liệu này tóm tắt cách hiểu về dự án **DropConnect**, phần việc của nhóm và trạng thái hiện có trong repository. Các mục phía dưới dẫn đến tài liệu nghiệp vụ, kiến trúc, UML và contract chi tiết. Hệ thống kết nối Nhà cung cấp, Người bán và Khách hàng theo mô hình dropshipping nội địa (B2B2C): Nhà cung cấp giữ hàng và giao hàng; Người bán vận hành gian hàng, đặt giá bán và chăm sóc khách; nền tảng điều phối đơn, thanh toán và đối soát.
+
+## Báo cáo tóm tắt
+
+### 1. Dự án giải quyết vấn đề gì?
+
+DropConnect giúp người bán kinh doanh mà không cần nhập và lưu kho, đồng thời giúp nhà cung cấp nhận đơn từ nhiều gian hàng qua một quy trình có cấu trúc. Điểm khó của bài toán là một lần mua có thể gồm hàng của nhiều nhà cung cấp và người bán: hệ thống phải biết ai sở hữu hàng, ai bán, ai giao, ai được nhận tiền và xử lý riêng từng phần khi giao thất bại hoặc khách yêu cầu hoàn trả.
+
+Phạm vi MVP là một nền tảng nội địa với bốn vai trò chính: **Customer** mua và theo dõi đơn; **Seller** tạo Shop/Listing và quyết định giá bán; **Supplier** quản lý Product, giá vốn, tồn kho và giao hàng; **Admin** duyệt hồ sơ, giám sát và giải quyết tranh chấp. Thanh toán trực tuyến, vận chuyển và payout có thể được mô phỏng trong MVP, nhưng trạng thái, callback và đối soát vẫn phải theo quy tắc có thể kiểm thử.
+
+### 2. Luồng nghiệp vụ cốt lõi tôi hiểu
+
+1. Supplier tạo Product, cập nhật giá vốn và tồn; Seller chọn Product để tạo Listing với giá bán riêng.
+2. Customer đưa nhiều Listing vào giỏ. Khi checkout, server kiểm tra lại giá và tồn, lưu snapshot giá/thông tin nhận hàng và giữ tồn.
+3. Một lần checkout tạo một **CustomerOrder** cho khách và các **FulfillmentOrder** tách theo từng cặp `(supplierId, sellerId)`. Mỗi đơn con được giao, hủy hoặc hoàn tiền độc lập; khoản thanh toán và phí giao hàng phải được phân bổ theo đơn con.
+4. Supplier chấp nhận hoặc từ chối phần đơn của mình; khi chấp nhận thì chốt tồn, khi từ chối hoặc quá hạn thì giải phóng tồn. Hệ thống cập nhật trạng thái giao hàng và trạng thái tổng hợp cho khách.
+5. Chỉ phần đơn đã giao, đã xác nhận thu tiền và qua thời hạn đổi trả mới đủ điều kiện đối soát cho Supplier, Seller và nền tảng. Hoàn tiền hoặc tranh chấp phải giữ được lịch sử tài chính để truy vết.
+
+Ví dụ trọng tâm để nghiệm thu: một giỏ có hàng của hai Supplier tạo một đơn mua và hai đơn thực hiện; Supplier A giao thành công, Supplier B từ chối. Phần B được giải phóng tồn và hoàn đúng số tiền tương ứng, còn phần A tiếp tục tới đối soát. Xem [bộ ca UAT](08-requirements-traceability.md) và [contract Orders](contracts/orders.md).
+
+### 3. Công việc của nhóm
+
+Nhóm chia theo module nghiệp vụ để bốn thành viên làm song song. Bảng này là **phân công theo tài liệu**, không phải xác nhận rằng các tính năng đã được lập trình.
+
+| Thành viên | Module sở hữu | Kết quả cần bàn giao |
+|---|---|---|
+| Người 1 | `common`, `identity`, `admin`, `notifications` | Nền tảng chung, định danh/phân quyền, quản trị và thông báo. |
+| Người 2 | `catalog`, `listings`, `inventory` | Product nguồn, Shop/Listing, giá và giữ/chốt/nhả tồn kho. |
+| Người 3 | `cart`, `orders` | Storefront, giỏ hàng, checkout, snapshot và tách đơn. |
+| Người 4 | `fulfillment`, `payments`, `settlements`, `disputes` | Xử lý đơn con, thanh toán/hoàn tiền, đối soát và tranh chấp. |
+
+Mỗi người phụ trách cả route giao diện liên quan, contract, mock/fixture, kiểm thử và thay đổi schema của module mình. Ranh giới route và tiêu chí nghiệm thu chi tiết nằm ở [phân công nhóm](10-team-work-allocation.md); quy tắc làm việc độc lập nằm ở [hướng dẫn phát triển song song](11-parallel-development-contracts.md).
+
+### 4. Cách triển khai và các mốc công việc
+
+Kiến trúc mục tiêu là **modular monolith**: giao diện Next.js, API NestJS theo module, PostgreSQL cho dữ liệu giao dịch và worker/hàng đợi cho tác vụ bất đồng bộ. Checkout cần một transaction chung cho đơn, giữ tồn, phân bổ thanh toán và outbox; lời gọi tới dịch vụ ngoài thực hiện sau commit. Module trao đổi qua port/DTO công khai, không truy cập repository hoặc entity nội bộ của nhau. Các quyết định kỹ thuật chi tiết nằm ở [kế hoạch kiến trúc](09-technical-architecture-plan.md) và [baseline contract v1](contracts/README.md).
+
+- **Pha A — làm độc lập:** mỗi người triển khai và kiểm thử trong module/route mình sở hữu với mock hoặc fixture theo contract đã công bố. Không cần chờ API hay bảng dữ liệu của người khác.
+- **Pha B — tích hợp:** chủ module và bên sử dụng cùng review giao diện; sau đó nối adapter thật, ghép migration/schema, kiểm thử quyền truy cập, checkout đồng thời, callback lặp, hủy/hoàn một phần và kịch bản nhiều Supplier.
+- **Hoàn thiện:** đối chiếu kết quả với quy tắc vận hành, traceability và UAT trước khi kết luận MVP đạt yêu cầu.
+
+### 5. Trạng thái repository và phần việc còn lại
+
+Theo nội dung repository khi viết báo cáo, đã có tài liệu nghiệp vụ/UML `01`–`08`, kế hoạch kiến trúc và phân công `09`–`11`, baseline contract cho các module, cấu trúc `frontend/` và `backend/`, manifest dependency cùng script SQL khởi tạo database local. Phần mã ứng dụng Next.js/NestJS, API chạy được, worker và kiểm thử nghiệp vụ chưa hiện diện; vì vậy các luồng ở trên là **thiết kế và tiêu chí cần triển khai**, chưa phải tính năng đã vận hành. Baseline contract có thể dùng để bắt đầu Pha A, nhưng chưa có xác nhận đầy đủ của cả bốn chủ module cho Pha B.
+
+Việc tiếp theo là dựng ứng dụng và môi trường chạy, hiện thực từng module theo contract bằng mock, bổ sung schema/migration đáp ứng các ràng buộc còn thiếu, rồi tích hợp và chạy UAT. Đặc biệt cần kiểm chứng không âm tồn kho, chống tạo đơn/callback trùng, phân quyền theo ownership, snapshot tiền/địa chỉ và đối soát sau thời hạn đổi trả. File [`backend/database/init.sql`](../backend/database/init.sql) là script **reset database local**, không phải migration an toàn cho cơ sở dữ liệu dùng chung.
 
 ## Ý tưởng đề tài
 
