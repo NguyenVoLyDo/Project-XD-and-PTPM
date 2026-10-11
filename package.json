@@ -7,6 +7,15 @@
   "engines": {
     "node": ">=20.9.0"
   },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @dropconnect/* dev",
+    "dev:backend": "pnpm --filter @dropconnect/backend dev",
+    "dev:frontend": "pnpm --filter @dropconnect/frontend dev",
+    "build": "pnpm --filter @dropconnect/* build",
+    "build:backend": "pnpm --filter @dropconnect/backend build",
+    "build:frontend": "pnpm --filter @dropconnect/frontend build",
+    "test": "pnpm --filter @dropconnect/backend test"
+  },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "eslint": "^9.39.5",
