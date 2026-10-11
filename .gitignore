@@ -36,3 +36,8 @@ storage/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Local backups
+_backup_mock/
+*.tsbuildinfo
+
