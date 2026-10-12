@@ -1,11 +1,18 @@
 export type PaymentMethod = "COD" | "ONLINE";
 
+export interface CheckoutCartItem {
+  readonly listingId: string;
+  readonly quantity: number;
+  /**
+   * Internal Cart baseline (price last shown in a CartView). Used only to
+   * detect PRICE_CHANGED; never used as the checkout price.
+   */
+  readonly lastViewedUnitSalePrice?: number;
+}
+
 export interface CheckoutCart {
   readonly cartId: string;
-  readonly items: readonly {
-    readonly listingId: string;
-    readonly quantity: number;
-  }[];
+  readonly items: readonly CheckoutCartItem[];
 }
 
 export interface CheckoutQuote {
@@ -19,6 +26,50 @@ export interface CheckoutQuote {
   readonly unitCostPrice: number;
   readonly currency: "VND";
   readonly status: "ACTIVE";
+}
+
+/** Item-level refusal reported by Listings (contracts/listings.md). */
+export type ListingRejectionCode =
+  | "LISTING_NOT_FOUND"
+  | "LISTING_UNAVAILABLE"
+  | "LISTING_PAUSED_BY_POLICY";
+
+export interface ListingQuoteRejection {
+  readonly listingId: string;
+  readonly code: ListingRejectionCode;
+}
+
+/** Result of `getCheckoutQuotes`: valid quotes plus item-level rejections. */
+export interface CheckoutQuoteBatch {
+  readonly quotes: readonly CheckoutQuote[];
+  readonly rejections: readonly ListingQuoteRejection[];
+}
+
+/** One server-verified cart line. Prices come from the quote, never the Cart. */
+export interface QuotedCheckoutLine {
+  /** Position of the item in the cart; matches `items[n]` in error details. */
+  readonly lineIndex: number;
+  readonly listingId: string;
+  readonly productId: string;
+  readonly supplierId: string;
+  readonly sellerId: string;
+  readonly productName: string;
+  readonly listingTitle: string;
+  readonly quantity: number;
+  readonly unitSalePrice: number;
+  readonly unitCostPrice: number;
+  readonly lineSaleTotal: number;
+  readonly lineCostTotal: number;
+  readonly currency: "VND";
+}
+
+/** Workflow 3 output; the only input Workflow 5 may snapshot and split. */
+export interface CheckoutQuotation {
+  readonly customerId: string;
+  readonly cartId: string;
+  readonly lines: readonly QuotedCheckoutLine[];
+  readonly merchandiseTotal: number;
+  readonly currency: "VND";
 }
 
 export interface ShippingAddressSnapshot {

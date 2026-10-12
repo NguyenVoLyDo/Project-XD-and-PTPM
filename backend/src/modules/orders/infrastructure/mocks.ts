@@ -19,7 +19,10 @@ import type {
   AllocationDraft,
   CheckoutCart,
   CheckoutQuote,
+  CheckoutQuoteBatch,
   FulfillmentDraftGroup,
+  ListingQuoteRejection,
+  ListingRejectionCode,
   OutboxEvent,
   PaymentMethod,
 } from "../domain/order";
@@ -52,12 +55,46 @@ export class MockTransaction implements TransactionPort {
 }
 
 export class MockListingsQuote implements ListingsQuotePort {
-  constructor(private readonly quotes: readonly CheckoutQuote[]) {}
+  private readonly quotes: Map<string, CheckoutQuote>;
+  private readonly rejections: Map<string, ListingRejectionCode>;
+  readonly contexts: CheckoutTransactionContext[] = [];
+
+  constructor(
+    quotes: readonly CheckoutQuote[],
+    rejections: readonly ListingQuoteRejection[] = [],
+  ) {
+    this.quotes = new Map(quotes.map((quote) => [quote.listingId, quote]));
+    this.rejections = new Map(
+      rejections.map((rejection) => [rejection.listingId, rejection.code]),
+    );
+  }
+
+  /** Simulates a Seller price change after the Customer viewed the Cart. */
+  setSalePrice(listingId: string, unitSalePrice: number): void {
+    const quote = this.quotes.get(listingId);
+    if (!quote) throw new Error(`No mock quote for ${listingId}`);
+    this.quotes.set(listingId, { ...quote, unitSalePrice });
+  }
+
+  reject(listingId: string, code: ListingRejectionCode): void {
+    this.rejections.set(listingId, code);
+  }
+
   async getCheckoutQuotes(
     listingIds: readonly string[],
-    _context: CheckoutTransactionContext,
-  ): Promise<readonly CheckoutQuote[]> {
-    return this.quotes.filter((quote) => listingIds.includes(quote.listingId));
+    context: CheckoutTransactionContext,
+  ): Promise<CheckoutQuoteBatch> {
+    this.contexts.push(context);
+    const quotes: CheckoutQuote[] = [];
+    const rejections: ListingQuoteRejection[] = [];
+    for (const listingId of listingIds) {
+      const rejected = this.rejections.get(listingId);
+      const quote = this.quotes.get(listingId);
+      if (rejected) rejections.push({ listingId, code: rejected });
+      else if (quote) quotes.push(quote);
+      else rejections.push({ listingId, code: "LISTING_NOT_FOUND" });
+    }
+    return { quotes, rejections };
   }
 }
 

@@ -176,10 +176,12 @@ describe("Orders v1 contract harness", () => {
     expect((await cart.getForCheckout(customerId))?.items).toHaveLength(2);
     await transaction.runInTransaction(async (context) => {
       expect(
-        await listings.getCheckoutQuotes(
-          quotes.map((quote) => quote.listingId),
-          context,
-        ),
+        (
+          await listings.getCheckoutQuotes(
+            quotes.map((quote) => quote.listingId),
+            context,
+          )
+        ).quotes,
       ).toHaveLength(2);
       expect(await inventory.getAvailability(quotes[0].productId)).toBe(2);
       const orderItemIds = [

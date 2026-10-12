@@ -1,12 +1,16 @@
 import type {
   AllocationDraft,
   CheckoutCart,
-  CheckoutQuote,
+  CheckoutQuoteBatch,
   FulfillmentDraftGroup,
   OutboxEvent,
   PaymentMethod,
 } from "../domain/order";
 import type { CheckoutResponse } from "../api/contracts";
+
+export const ORDERS_CART_READER = Symbol("ORDERS_CART_READER");
+export const ORDERS_LISTINGS_QUOTE = Symbol("ORDERS_LISTINGS_QUOTE");
+export const ORDERS_INVENTORY = Symbol("ORDERS_INVENTORY");
 
 export interface CurrentActor {
   readonly userId: string;
@@ -34,11 +38,16 @@ export interface TransactionPort {
   ): Promise<T>;
 }
 
+/**
+ * Listings verifies Listing/Product ACTIVE, Supplier/Seller APPROVED, Shop
+ * ACTIVE and margin. Every requested listingId is expected either in `quotes`
+ * or in `rejections`; Orders treats a silent omission as LISTING_UNAVAILABLE.
+ */
 export interface ListingsQuotePort {
   getCheckoutQuotes(
     listingIds: readonly string[],
     context: CheckoutTransactionContext,
-  ): Promise<readonly CheckoutQuote[]>;
+  ): Promise<CheckoutQuoteBatch>;
 }
 
 export interface StockHold {

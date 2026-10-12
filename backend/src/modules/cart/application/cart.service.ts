@@ -50,7 +50,7 @@ export class CartService {
   async getCart(): Promise<CartView> {
     const customerId = await this.requireCustomerId();
     const cart = await this.getOrCreateCart(customerId);
-    return this.toView(cart);
+    return this.render(cart, false);
   }
 
   async putItem(listingId: string, body: unknown): Promise<CartView> {
@@ -74,13 +74,11 @@ export class CartService {
     const cart = await this.getOrCreateCart(customerId);
     const items = cart.items.some((item) => item.listingId === listingId)
       ? cart.items.map((item) =>
-          item.listingId === listingId ? { listingId, quantity } : item,
+          item.listingId === listingId ? { ...item, quantity } : item,
         )
       : [...cart.items, { listingId, quantity }];
 
-    const updated: CartSnapshot = { ...cart, items };
-    await this.carts.save(updated);
-    return this.toView(updated);
+    return this.render({ ...cart, items }, true);
   }
 
   async deleteItem(listingId: string): Promise<CartView> {
@@ -92,8 +90,7 @@ export class CartService {
       items: cart.items.filter((item) => item.listingId !== listingId),
     };
 
-    await this.carts.save(updated);
-    return this.toView(updated);
+    return this.render(updated, true);
   }
 
   private async requireCustomerId(): Promise<string> {
@@ -158,7 +155,13 @@ export class CartService {
     return listing;
   }
 
-  private async toView(cart: CartSnapshot): Promise<CartView> {
+  /**
+   * Builds the CartView and records, per item, the unitSalePrice that is about
+   * to be shown (`lastViewedUnitSalePrice`). Workflow 3 compares this internal
+   * baseline with the server quote to raise PRICE_CHANGED. The cart is saved
+   * once, only when it was modified (`dirty`) or a baseline changed.
+   */
+  private async render(cart: CartSnapshot, dirty: boolean): Promise<CartView> {
     const projections = await this.listings.getForCart(
       cart.items.map((item) => item.listingId),
     );
@@ -166,9 +169,14 @@ export class CartService {
       projections.map((projection) => [projection.listingId, projection]),
     );
 
+    let baselineChanged = false;
+    const storedItems: CartItem[] = [];
     const items = cart.items.map((item: CartItem) => {
       const projection = projectionById.get(item.listingId);
       if (!projection) {
+        // No real price is shown, so no baseline may survive for this item.
+        if (item.lastViewedUnitSalePrice !== undefined) baselineChanged = true;
+        storedItems.push({ listingId: item.listingId, quantity: item.quantity });
         // Keep a removed Listing visible so GET never silently deletes cart data.
         return {
           listingId: item.listingId,
@@ -179,6 +187,14 @@ export class CartService {
           availability: "UNAVAILABLE" as const,
         };
       }
+      if (item.lastViewedUnitSalePrice !== projection.unitSalePrice) {
+        baselineChanged = true;
+      }
+      storedItems.push({
+        listingId: item.listingId,
+        quantity: item.quantity,
+        lastViewedUnitSalePrice: projection.unitSalePrice,
+      });
       return {
         listingId: item.listingId,
         quantity: item.quantity,
@@ -199,11 +215,17 @@ export class CartService {
       estimatedMerchandiseTotal = nextTotal;
     }
 
-    return cartViewSchema.parse({
+    const view = cartViewSchema.parse({
       cartId: cart.cartId,
       items,
       estimatedMerchandiseTotal,
       currency: "VND",
     });
+
+    // Only a view that is actually returned may become the price baseline.
+    if (dirty || baselineChanged) {
+      await this.carts.save({ ...cart, items: storedItems });
+    }
+    return view;
   }
 }
