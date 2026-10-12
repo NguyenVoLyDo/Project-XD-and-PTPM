@@ -1,5 +1,9 @@
-# Cart module — Workflow 1
+# Cart module — Workflow 2
 
-Contract: `docs/contracts/cart.md`. The module owns its DTO, ports, local mocks and fixtures. `CartReaderPort.getForCheckout` returns only `cartId`, `listingId` and `quantity`; displayed price is a projection, never a checkout price. `InMemoryCartStore` is a test adapter, not persistent storage.
+Contract: `docs/contracts/cart.md`. Customer identity comes from `CurrentActorPort`; the module never accepts a customer ID from a request. `GET /api/v1/cart`, `PUT /api/v1/cart/items/{listingId}` and `DELETE /api/v1/cart/items/{listingId}` use the module-owned ports and return the contract `CartView`.
 
-Run from repository root: `pnpm.cmd --dir backend exec vitest run src/modules/cart/tests`. Compile independently with `pnpm.cmd --dir backend exec tsc -p src/modules/cart/tsconfig.json`. Nest's `CartModule` is a shell; Workflow 2 adds behavior and HTTP routes.
+PUT sets the final quantity, rejects missing or unavailable listings, and updates an existing listing item in place. DELETE is idempotent. GET creates an empty cart for a first-time customer and projects current listing data; an item whose listing no longer has a projection remains visible as unavailable. Price and availability are display-only. `CartReaderPort.getForCheckout` still returns only `cartId`, `listingId` and `quantity`.
+
+`InMemoryCartStore` is a module-local Phase A adapter, not persistent storage. The composition root supplies the three port adapters through `CartModule.register({ currentActor, store, listingProjection })`; real database and identity/listing adapters remain Workflow 8 integration work.
+
+Run the existing contract harness from repository root with `pnpm.cmd --dir backend exec vitest run src/modules/cart/tests`. Compile independently with `pnpm.cmd --dir backend exec tsc -p src/modules/cart/tsconfig.json`.

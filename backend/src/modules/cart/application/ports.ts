@@ -1,6 +1,10 @@
 import type { CartForCheckout, CartSnapshot } from "../domain/cart";
 import type { CartAvailability } from "../domain/cart";
 
+export const CART_CURRENT_ACTOR = Symbol("CART_CURRENT_ACTOR");
+export const CART_STORE = Symbol("CART_STORE");
+export const CART_LISTING_PROJECTION = Symbol("CART_LISTING_PROJECTION");
+
 export interface CurrentActor {
   readonly userId: string;
   readonly activeRole: string;
@@ -22,6 +26,8 @@ export interface ListingProjection {
   readonly unitSalePrice: number;
   readonly currency: "VND";
   readonly availability: CartAvailability;
+  /** Set by the Listings adapter when an unavailable listing has a specific cause. */
+  readonly unavailableCode?: "LISTING_UNAVAILABLE" | "LISTING_PAUSED_BY_POLICY";
 }
 
 /** A CartView projection. It cannot authorize checkout or reserve stock. */
