@@ -1,0 +1,39 @@
+{
+  "request": {
+    "cartId": "11111111-1111-4111-8111-111111111111",
+    "shippingAddress": {
+      "recipientName": "Khách mẫu",
+      "phone": "0900000000",
+      "line1": "Địa chỉ mẫu",
+      "wardCode": "00001",
+      "provinceCode": "01"
+    },
+    "paymentMethod": "COD"
+  },
+  "response": {
+    "orderId": "33333333-3333-4333-8333-333333333333",
+    "orderNo": "DC-EXAMPLE-001",
+    "status": "CONFIRMED",
+    "fulfillmentSummary": "UNFULFILLED",
+    "paymentMethod": "COD",
+    "paymentStatus": "PENDING_COD",
+    "currency": "VND",
+    "totalPayable": 300000,
+    "fulfillmentOrders": [
+      {
+        "fulfillmentOrderId": "44444444-4444-4444-8444-444444444444",
+        "supplierId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "sellerId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "status": "PENDING_ACCEPTANCE",
+        "amountToCollect": 150000
+      },
+      {
+        "fulfillmentOrderId": "55555555-5555-4555-8555-555555555555",
+        "supplierId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "sellerId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "status": "PENDING_ACCEPTANCE",
+        "amountToCollect": 150000
+      }
+    ]
+  }
+}

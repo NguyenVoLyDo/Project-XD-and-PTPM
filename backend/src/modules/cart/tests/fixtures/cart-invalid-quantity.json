@@ -1,0 +1,10 @@
+{
+  "status": 400,
+  "body": {
+    "error": {
+      "code": "INVALID_QUANTITY",
+      "message": "Số lượng phải là số nguyên dương",
+      "details": [{ "field": "quantity", "code": "INVALID_QUANTITY" }]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "status": 409,
+  "body": {
+    "error": {
+      "code": "INSUFFICIENT_STOCK",
+      "message": "Sản phẩm không còn đủ số lượng",
+      "details": [
+        {
+          "field": "items[0]",
+          "code": "INSUFFICIENT_STOCK",
+          "listingId": "22222222-2222-4222-8222-222222222222",
+          "availableQuantity": 0
+        }
+      ]
+    }
+  }
+}
