@@ -12,6 +12,7 @@ import type {
   IdempotencyRecord,
   InventoryPort,
   ListingsQuotePort,
+  OrderRepositoryPort,
   OutboxPort,
   PaymentsPort,
   StockHold,
@@ -26,6 +27,7 @@ import type {
   FulfillmentDraftGroup,
   ListingQuoteRejection,
   ListingRejectionCode,
+  OrderAggregate,
   OutboxEvent,
   PaymentMethod,
 } from "../domain/order";
@@ -44,18 +46,42 @@ export class MockCartReader implements CartReaderPort {
   }
 }
 
+export interface MockTransactionContext extends CheckoutTransactionContext {
+  registerRollback(action: () => void): void;
+}
+
 export class MockTransaction implements TransactionPort {
-  readonly context: CheckoutTransactionContext = {
+  private readonly rollbacks: Array<() => void> = [];
+  readonly context: MockTransactionContext = {
     token: Symbol("mock-checkout-transaction"),
+    registerRollback: (action: () => void) => {
+      this.rollbacks.push(action);
+    },
   };
   calls = 0;
+
   async runInTransaction<T>(
     callback: (context: CheckoutTransactionContext) => Promise<T>,
   ): Promise<T> {
     this.calls += 1;
-    return callback(this.context);
+    const initialCount = this.rollbacks.length;
+
+    try {
+      return await callback(this.context);
+    } catch (error) {
+      const pending = this.rollbacks.splice(initialCount);
+      for (const action of pending.reverse()) {
+        try {
+          action();
+        } catch {
+          // ignore rollback error
+        }
+      }
+      throw error;
+    }
   }
 }
+
 
 export class MockListingsQuote implements ListingsQuotePort {
   private readonly quotes: Map<string, CheckoutQuote>;
@@ -109,11 +135,13 @@ export class MockInventory implements InventoryPort {
   constructor(available: ReadonlyMap<string, number>) {
     this.available = new Map(available);
   }
+
   async getAvailability(productId: string): Promise<number> {
     return this.available.get(productId) ?? 0;
   }
+
   async holdStock(
-    _context: CheckoutTransactionContext,
+    context: CheckoutTransactionContext,
     orderItemId: string,
     productId: string,
     quantity: number,
@@ -139,6 +167,15 @@ export class MockInventory implements InventoryPort {
     this.available.set(productId, remaining - quantity);
     this.heldByItem.set(orderItemId, hold);
     this.holds.push(hold);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      this.available.set(productId, remaining);
+      this.heldByItem.delete(orderItemId);
+      const idx = this.holds.indexOf(hold);
+      if (idx >= 0) this.holds.splice(idx, 1);
+    });
+
     return hold;
   }
 }
@@ -154,11 +191,22 @@ export class MockPortError extends Error {
 
 export class MockFulfillment implements FulfillmentPort {
   readonly groups: FulfillmentDraftGroup[] = [];
+  failNext = false;
+
   async createInitialInCheckout(
-    _context: CheckoutTransactionContext,
+    context: CheckoutTransactionContext,
     groups: readonly FulfillmentDraftGroup[],
   ): Promise<void> {
+    if (this.failNext) {
+      throw new MockPortError("FULFILLMENT_UNAVAILABLE", 500);
+    }
+    const startIdx = this.groups.length;
     this.groups.push(...groups);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      this.groups.splice(startIdx, groups.length);
+    });
   }
 }
 
@@ -168,47 +216,118 @@ export class MockPayments implements PaymentsPort {
     method: PaymentMethod;
     allocations: readonly AllocationDraft[];
   }[] = [];
+  failNext = false;
+
   constructor(
     private readonly obligations: Partial<
       Record<PaymentMethod, CheckoutObligation>
     >,
   ) {}
+
   async createCheckoutObligation(
-    _context: CheckoutTransactionContext,
+    context: CheckoutTransactionContext,
     orderId: string,
     method: PaymentMethod,
     allocations: readonly AllocationDraft[],
   ): Promise<CheckoutObligation> {
-    this.calls.push({ orderId, method, allocations });
+    if (this.failNext) {
+      throw new MockPortError("PAYMENT_SERVICE_UNAVAILABLE", 500);
+    }
+    const call = { orderId, method, allocations };
+    this.calls.push(call);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      const idx = this.calls.indexOf(call);
+      if (idx >= 0) this.calls.splice(idx, 1);
+    });
+
     const obligation = this.obligations[method];
     if (!obligation) throw new Error(`No mock obligation for ${method}`);
-    return obligation;
+
+    // If obligation has fewer allocationIds than allocations, supply unique IDs
+    const allocationIds = allocations.map(
+      (_, i) => obligation.allocationIds[i] ?? randomUUID(),
+    );
+    return { ...obligation, allocationIds };
   }
 }
 
 export class MockOutbox implements OutboxPort {
   readonly events: OutboxEvent[] = [];
+  failNext = false;
+
   async add(
-    _context: CheckoutTransactionContext,
+    context: CheckoutTransactionContext,
     event: OutboxEvent,
   ): Promise<void> {
+    if (this.failNext) {
+      throw new MockPortError("OUTBOX_ERROR", 500);
+    }
     this.events.push(event);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      const idx = this.events.indexOf(event);
+      if (idx >= 0) this.events.splice(idx, 1);
+    });
   }
 }
 
 export class MockIdempotencyStore implements IdempotencyPort {
   private readonly records = new Map<string, IdempotencyRecord>();
+  failNext = false;
+
   async find(
     customerId: string,
     key: string,
   ): Promise<IdempotencyRecord | null> {
     return this.records.get(`${customerId}\u0000${key}`) ?? null;
   }
+
   async save(
-    _context: CheckoutTransactionContext,
+    context: CheckoutTransactionContext,
     record: IdempotencyRecord,
   ): Promise<void> {
-    this.records.set(`${record.customerId}\u0000${record.key}`, record);
+    if (this.failNext) {
+      throw new MockPortError("IDEMPOTENCY_STORE_ERROR", 500);
+    }
+    const key = `${record.customerId}\u0000${record.key}`;
+    const previous = this.records.get(key);
+    this.records.set(key, record);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      if (previous) this.records.set(key, previous);
+      else this.records.delete(key);
+    });
+  }
+}
+
+export class MockOrderRepository implements OrderRepositoryPort {
+  readonly orders = new Map<string, OrderAggregate>();
+  failNext = false;
+
+  async save(
+    context: CheckoutTransactionContext,
+    aggregate: OrderAggregate,
+  ): Promise<void> {
+    if (this.failNext) {
+      throw new MockPortError("ORDER_REPOSITORY_ERROR", 500);
+    }
+    const orderId = aggregate.order.orderId;
+    const previous = this.orders.get(orderId);
+    this.orders.set(orderId, aggregate);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      if (previous) this.orders.set(orderId, previous);
+      else this.orders.delete(orderId);
+    });
+  }
+
+  async findById(orderId: string): Promise<OrderAggregate | null> {
+    return this.orders.get(orderId) ?? null;
   }
 }
 
@@ -237,4 +356,3 @@ export class MockCheckoutExecutor implements CheckoutExecutorPort {
     return response;
   }
 }
-

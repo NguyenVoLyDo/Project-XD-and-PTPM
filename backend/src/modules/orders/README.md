@@ -1,4 +1,4 @@
-# Orders module — Workflow 1–4
+# Orders module — Workflow 1–5
 
 Contract: `docs/contracts/orders.md`, with consumer ports shaped by Common, Cart, Listings, Inventory, Fulfillment and Payments v1. All mocks and fixtures live here. Checkout prices come from `ListingsQuotePort`, never from Cart. The two checkout fixtures use one Supplier and two Sellers. `CheckoutTransactionContext` is intentionally opaque; Common's adapter will replace the local mock in Phase B.
 
@@ -45,4 +45,20 @@ No public DTO changed. The only internal shape change is `ListingsQuotePort.getC
      - Cùng key + khác `requestHash` → **Conflict**: trả `409 IDEMPOTENCY_KEY_REUSED`.
 5. **Thực thi đơn mới**:
    - Chưa tồn tại bản ghi idempotency → chuyển cho `CheckoutExecutorPort.execute` (Workflow 5 sẽ thực thi transaction nguyên tử và lưu bản ghi idempotency cùng commit).
+
+## Workflow 5 — Checkout tạo CustomerOrder nguyên tử
+
+`AtomicCheckoutService.execute(context)` (trong `application/atomic-checkout.service.ts`, thực thi `CheckoutExecutorPort`):
+
+1. **Mở transaction**: Toàn bộ thao tác thực thi trong một `CheckoutTransactionContext` từ `TransactionPort.runInTransaction`.
+2. **Revalidate Cart & Quote**: Gọi `CheckoutQuoteService.quote(customerId, cartId, txContext)` để xác thực Listing, giá bán/vốn và tồn kho khả dụng.
+3. **Phân nhóm Fulfillment**: Gom các dòng giỏ hàng theo cặp `(supplierId, sellerId)`. Mỗi cặp sinh ra đúng 1 `FulfillmentOrder` và `AllocationDraft`.
+4. **Giữ tồn kho (Inventory Hold)**: Gọi `InventoryPort.holdStock` cho từng `OrderItem` với `expiresAt` (15 phút cho Online, 24 giờ cho COD). Nhận `reservationId` gắn vào `OrderItem`.
+5. **Nghĩa vụ thanh toán (Payment Obligation)**: Gọi `PaymentsPort.createCheckoutObligation` với các allocation tương ứng từng đơn con (shipping/discount v1 bằng 0, amountToCollect bằng merchandiseAmount).
+6. **Khởi tạo đơn con (Fulfillment Initial)**: Gọi `FulfillmentPort.createInitialInCheckout` với `FulfillmentDraftGroup` chứa đầy đủ `orderItemIds`, `reservationIds`, `paymentAllocationId` và địa chỉ giao hàng snapshot.
+7. **Lưu trữ Order Aggregate**: Ghi `CustomerOrder` (COD: `CONFIRMED`/`PENDING_COD`; Online: `PENDING_PAYMENT`/`PENDING`), `OrderItem` snapshot và `FulfillmentOrderSnapshot` qua `OrderRepositoryPort`.
+8. **Outbox Event**: Enqueue sự kiện `OrderCreated` vào `OutboxPort` chứa `orderId` và danh sách `fulfillmentOrderIds`.
+9. **Lưu Idempotency Record**: Lưu `CheckoutResponse` vào `IdempotencyPort.save` trong cùng transaction trước khi commit.
+10. **Nguyên tắc Atomicity & Rollback**: Lỗi ở bất kỳ port nào (Inventory, Payments, Fulfillment, Outbox, v.v.) sẽ rollback toàn bộ trong harness (hỗ trợ rollback simulation trên mocks in-memory; kiểm chứng PostgreSQL MVCC được bảo lưu cho Pha B).
+
 

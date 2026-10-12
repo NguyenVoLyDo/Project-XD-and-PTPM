@@ -3,6 +3,7 @@ import type {
   CheckoutCart,
   CheckoutQuoteBatch,
   FulfillmentDraftGroup,
+  OrderAggregate,
   OutboxEvent,
   PaymentMethod,
 } from "../domain/order";
@@ -14,6 +15,11 @@ export const ORDERS_INVENTORY = Symbol("ORDERS_INVENTORY");
 export const ORDERS_CURRENT_ACTOR = Symbol("ORDERS_CURRENT_ACTOR");
 export const ORDERS_IDEMPOTENCY = Symbol("ORDERS_IDEMPOTENCY");
 export const ORDERS_CHECKOUT_EXECUTOR = Symbol("ORDERS_CHECKOUT_EXECUTOR");
+export const ORDERS_TRANSACTION = Symbol("ORDERS_TRANSACTION");
+export const ORDERS_PAYMENTS = Symbol("ORDERS_PAYMENTS");
+export const ORDERS_FULFILLMENT = Symbol("ORDERS_FULFILLMENT");
+export const ORDERS_OUTBOX = Symbol("ORDERS_OUTBOX");
+export const ORDERS_ORDER_REPOSITORY = Symbol("ORDERS_ORDER_REPOSITORY");
 
 export interface CurrentActor {
   readonly userId: string;
@@ -124,4 +130,13 @@ export interface CheckoutExecutionContext {
 export interface CheckoutExecutorPort {
   execute(context: CheckoutExecutionContext): Promise<CheckoutResponse>;
 }
+
+export interface OrderRepositoryPort {
+  save(
+    context: CheckoutTransactionContext,
+    aggregate: OrderAggregate,
+  ): Promise<void>;
+  findById(orderId: string): Promise<OrderAggregate | null>;
+}
+
 

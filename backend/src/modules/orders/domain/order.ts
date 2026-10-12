@@ -109,3 +109,61 @@ export interface OutboxEvent {
   readonly correlationId: string;
   readonly payload: Readonly<Record<string, unknown>>;
 }
+
+export type CustomerOrderStatus = "CONFIRMED" | "PENDING_PAYMENT";
+export type FulfillmentSummaryStatus = "UNFULFILLED";
+export type PaymentObligationStatus = "PENDING_COD" | "PENDING";
+
+export interface OrderItem {
+  readonly orderItemId: string;
+  readonly customerOrderId: string;
+  readonly fulfillmentOrderId: string;
+  readonly lineIndex: number;
+  readonly listingId: string;
+  readonly productId: string;
+  readonly supplierId: string;
+  readonly sellerId: string;
+  readonly productName: string;
+  readonly listingTitle: string;
+  readonly quantity: number;
+  readonly unitSalePrice: number;
+  readonly unitCostPrice: number;
+  readonly lineSaleTotal: number;
+  readonly lineCostTotal: number;
+  readonly reservationId: string;
+  readonly currency: "VND";
+}
+
+export interface FulfillmentOrderSnapshot {
+  readonly fulfillmentOrderId: string;
+  readonly customerOrderId: string;
+  readonly supplierId: string;
+  readonly sellerId: string;
+  readonly status: "PENDING_ACCEPTANCE";
+  readonly amountToCollect: number;
+  readonly paymentAllocationId: string;
+  readonly orderItemIds: readonly string[];
+}
+
+export interface CustomerOrder {
+  readonly orderId: string;
+  readonly orderNo: string;
+  readonly customerId: string;
+  readonly status: CustomerOrderStatus;
+  readonly fulfillmentSummary: FulfillmentSummaryStatus;
+  readonly paymentMethod: PaymentMethod;
+  readonly paymentStatus: PaymentObligationStatus;
+  readonly currency: "VND";
+  readonly grandTotal: number;
+  readonly totalPayable: number;
+  readonly shippingAddress: ShippingAddressSnapshot;
+  readonly paymentIntentId?: string;
+  readonly createdAt: string;
+}
+
+export interface OrderAggregate {
+  readonly order: CustomerOrder;
+  readonly items: readonly OrderItem[];
+  readonly fulfillmentOrders: readonly FulfillmentOrderSnapshot[];
+}
+
