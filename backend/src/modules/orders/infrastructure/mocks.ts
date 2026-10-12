@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type {
   CartReaderPort,
+  CheckoutExecutionContext,
+  CheckoutExecutorPort,
   CheckoutObligation,
   CheckoutTransactionContext,
   CurrentActor,
@@ -15,6 +17,7 @@ import type {
   StockHold,
   TransactionPort,
 } from "../application/ports";
+import type { CheckoutResponse } from "../api/contracts";
 import type {
   AllocationDraft,
   CheckoutCart,
@@ -208,3 +211,30 @@ export class MockIdempotencyStore implements IdempotencyPort {
     this.records.set(`${record.customerId}\u0000${record.key}`, record);
   }
 }
+
+export class MockCheckoutExecutor implements CheckoutExecutorPort {
+  readonly calls: CheckoutExecutionContext[] = [];
+
+  constructor(
+    private readonly responseFactory: (
+      context: CheckoutExecutionContext,
+    ) => Promise<CheckoutResponse> | CheckoutResponse,
+    private readonly idempotencyStore: IdempotencyPort,
+    private readonly transaction: TransactionPort,
+  ) {}
+
+  async execute(context: CheckoutExecutionContext): Promise<CheckoutResponse> {
+    this.calls.push(context);
+    const response = await this.responseFactory(context);
+    await this.transaction.runInTransaction(async (txContext) => {
+      await this.idempotencyStore.save(txContext, {
+        customerId: context.customerId,
+        key: context.key,
+        requestHash: context.requestHash,
+        response,
+      });
+    });
+    return response;
+  }
+}
+

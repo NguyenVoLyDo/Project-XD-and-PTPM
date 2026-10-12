@@ -6,11 +6,14 @@ import type {
   OutboxEvent,
   PaymentMethod,
 } from "../domain/order";
-import type { CheckoutResponse } from "../api/contracts";
+import type { CheckoutRequest, CheckoutResponse } from "../api/contracts";
 
 export const ORDERS_CART_READER = Symbol("ORDERS_CART_READER");
 export const ORDERS_LISTINGS_QUOTE = Symbol("ORDERS_LISTINGS_QUOTE");
 export const ORDERS_INVENTORY = Symbol("ORDERS_INVENTORY");
+export const ORDERS_CURRENT_ACTOR = Symbol("ORDERS_CURRENT_ACTOR");
+export const ORDERS_IDEMPOTENCY = Symbol("ORDERS_IDEMPOTENCY");
+export const ORDERS_CHECKOUT_EXECUTOR = Symbol("ORDERS_CHECKOUT_EXECUTOR");
 
 export interface CurrentActor {
   readonly userId: string;
@@ -110,3 +113,15 @@ export interface IdempotencyPort {
     record: IdempotencyRecord,
   ): Promise<void>;
 }
+
+export interface CheckoutExecutionContext {
+  readonly customerId: string;
+  readonly key: string;
+  readonly requestHash: string;
+  readonly request: CheckoutRequest;
+}
+
+export interface CheckoutExecutorPort {
+  execute(context: CheckoutExecutionContext): Promise<CheckoutResponse>;
+}
+

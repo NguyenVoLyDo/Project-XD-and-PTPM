@@ -1,4 +1,4 @@
-# Orders module — Workflow 1–3
+# Orders module — Workflow 1–4
 
 Contract: `docs/contracts/orders.md`, with consumer ports shaped by Common, Cart, Listings, Inventory, Fulfillment and Payments v1. All mocks and fixtures live here. Checkout prices come from `ListingsQuotePort`, never from Cart. The two checkout fixtures use one Supplier and two Sellers. `CheckoutTransactionContext` is intentionally opaque; Common's adapter will replace the local mock in Phase B.
 
@@ -26,3 +26,23 @@ Cart v1 sends only `listingId`/`quantity`, so the server keeps an internal basel
 - **Old cart without baseline:** treated as `PRICE_CHANGED` (the Customer never saw a price). Viewing the cart again records the baseline; the Customer then confirms with a new checkout request.
 
 No public DTO changed. The only internal shape change is `ListingsQuotePort.getCheckoutQuotes` returning `CheckoutQuoteBatch` instead of a bare array, so item-level codes from `contracts/listings.md` can reach Orders; the Listings owner's adapter must map to it in Phase B.
+
+## Workflow 4 — Checkout request và chống lặp (Idempotency)
+
+`CheckoutService.checkout(idempotencyKey, body)` (trong `application/checkout.service.ts`, được gọi từ `CheckoutController` tại `POST /api/v1/checkout`):
+
+1. **Xác thực Actor**: Kiểm tra `CurrentActorPort`. Chưa đăng nhập → `401 UNAUTHORIZED`. Role khác `CUSTOMER` hoặc `activeProfileId !== null` → `403 FORBIDDEN`.
+2. **Kiểm tra Header & DTO**:
+   - `Idempotency-Key` (chuỗi không rỗng sau khi trim) → thiếu/rỗng trả `400 INVALID_REQUEST` (`detail: {field: "Idempotency-Key", code: "REQUIRED"}`).
+   - Request body tuân thủ `checkoutRequestSchema` (strict Zod schema: `cartId`, `shippingAddress`, `paymentMethod`). Dữ liệu sai hoặc thừa thuộc tính → `400 INVALID_REQUEST`.
+3. **Canonical Hash**:
+   - Chuẩn hóa payload bằng cách đệ quy sắp xếp key của các object (`canonicalJson`), sau đó băm SHA-256 (`computeCheckoutRequestHash`).
+   - Hai request body có thứ tự trường khác nhau nhưng nội dung giống nhau sẽ cho cùng một `requestHash`.
+4. **Idempotency Scope & Replay**:
+   - Khóa tra cứu scoped theo `(customerId, key)`. Khách hàng B dùng cùng key với khách hàng A hoàn toàn không bị xung đột.
+   - Kiểm tra `IdempotencyPort.find(customerId, key)` **trước khi đọc Cart hiện hành**:
+     - Cùng key + cùng `requestHash` → **Replay**: trả ngay `storedRecord.response` đã lưu, không đọc Cart, không gọi executor lần 2 (ngay cả khi Cart đã bị xóa hoặc sửa sau đó).
+     - Cùng key + khác `requestHash` → **Conflict**: trả `409 IDEMPOTENCY_KEY_REUSED`.
+5. **Thực thi đơn mới**:
+   - Chưa tồn tại bản ghi idempotency → chuyển cho `CheckoutExecutorPort.execute` (Workflow 5 sẽ thực thi transaction nguyên tử và lưu bản ghi idempotency cùng commit).
+
