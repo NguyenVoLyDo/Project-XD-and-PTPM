@@ -104,6 +104,47 @@ Các bảng nghiệp vụ sẽ được bổ sung sau theo module dưới dạng
 4. Không commit `.env`, khóa riêng, token, mật khẩu hoặc dữ liệu local.
 5. Đọc tài liệu liên quan trong `docs/` trước khi triển khai module nghiệp vụ.
 
-## Trạng thái hiện tại
+## Hướng dẫn chạy dự án
 
-Repository đang ở giai đoạn dựng nền tảng: cấu trúc thư mục, dependency và tài liệu đã sẵn sàng. Boilerplate Next.js/NestJS, file môi trường mẫu, Docker Compose và scripts chạy/lint/test sẽ được bổ sung ở bước tiếp theo. Vì vậy chưa có lệnh `pnpm dev` dùng chung ở root.
+### Chạy đồng thời cả Frontend và Backend
+
+Tại thư mục gốc của repository:
+
+```powershell
+# Chạy cả 2 ứng dụng song song
+pnpm dev
+
+# Hoặc chạy riêng từng ứng dụng trong 2 terminal:
+pnpm dev:backend   # API NestJS chạy tại http://localhost:4000 (Health: http://localhost:4000/health)
+pnpm dev:frontend  # Web Next.js chạy tại http://localhost:3000
+```
+
+### Chạy kiểm thử tự động (Unit / Business Rule Tests)
+
+```powershell
+pnpm test
+```
+
+## Tài khoản Demo có sẵn (Trải nghiệm nhanh bằng 1-Click)
+
+Hệ thống đã nạp sẵn dữ liệu mẫu thực tế và thanh công cụ đổi vai trò (Role Switcher) ở góc trên màn hình:
+
+1. **Khách hàng (Customer C):** `customer@gmail.com` (Mật khẩu: `123456`)
+   - Mua giỏ hàng đa nguồn từ nhiều NCC.
+   - Kiểm tra tách đơn con tự động, theo dõi mã vận đơn, hủy đơn hoặc gửi yêu cầu đổi trả / hoàn tiền.
+2. **Người bán (Seller X - TechStore):** `sellerx@techstore.vn` (Mật khẩu: `123456`)
+   - Mở gian hàng, kéo sản phẩm từ Catalog NCC để tạo Niêm yết bán lẻ (Listing).
+   - Kiểm tra ràng buộc biên lợi nhuận `>= 10%`. Xem cảnh báo khi NCC tăng giá vốn làm Listing tạm dừng (`PAUSED_PRICE_MISMATCH`).
+   - Theo dõi đơn hàng qua shop (dữ liệu PII của khách được làm mờ an toàn) và xem ví doanh thu.
+3. **Nhà cung cấp A (Phụ Kiện Việt):** `suppliera@phukienviet.vn` (Mật khẩu: `123456`)
+   - Quản lý sản phẩm nguồn, cập nhật giá vốn và tồn kho.
+   - Tiếp nhận đơn thực hiện (Fulfillment Order): Chấp nhận đơn (Commit trừ kho), Đóng gói, Điền mã vận đơn, Xác nhận giao thành công.
+4. **Nhà cung cấp B (Gia Dụng B&C):** `supplierb@giadungviet.vn` (Mật khẩu: `123456`)
+   - Thử nghiệm tình huống từ chối đơn do hết hàng -> Hệ thống tự động kích hoạt hoàn tiền một phần cho khách hàng.
+5. **Quản trị viên (Admin):** `admin@dropconnect.vn` (Mật khẩu: `123456`)
+   - Dashboard theo dõi GMV, phí sàn 5%, tổng đơn và số lượng đối tác.
+   - Phê duyệt hồ sơ KYC của Supplier và Seller.
+   - Thẩm định khiếu nại tranh chấp đổi trả (Disputes) và duyệt hoàn tiền.
+   - Quản lý sổ cái kế toán kép (`FinancialEntry`) và ra lệnh chi trả Payout.
+   - Tra cứu Audit Log bất biến của toàn hệ thống.
+
