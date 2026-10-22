@@ -36,3 +36,5 @@ storage/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+.agents
+docs
