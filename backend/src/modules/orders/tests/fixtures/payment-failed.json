@@ -1,0 +1,14 @@
+{
+  "eventId": "11111111-2222-4333-8444-555555555552",
+  "eventType": "PaymentFailed",
+  "eventVersion": 1,
+  "aggregateId": "33333333-3333-4333-8333-333333333333",
+  "occurredAt": "2026-10-01T10:05:00Z",
+  "correlationId": "cccccccc-1111-4111-8111-111111111112",
+  "payload": {
+    "orderId": "33333333-3333-4333-8333-333333333333",
+    "paymentId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "reasonCode": "INSUFFICIENT_FUNDS",
+    "sourceRef": "provider-attempt-001"
+  }
+}

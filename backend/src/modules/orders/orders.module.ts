@@ -3,10 +3,12 @@ import { CheckoutController } from "./api/checkout.controller";
 import { AtomicCheckoutService } from "./application/atomic-checkout.service";
 import { CheckoutQuoteService } from "./application/checkout-quote.service";
 import { CheckoutService } from "./application/checkout.service";
+import { OrderEventConsumerService } from "./application/order-event-consumer.service";
 import {
   ORDERS_CART_READER,
   ORDERS_CHECKOUT_EXECUTOR,
   ORDERS_CURRENT_ACTOR,
+  ORDERS_EVENT_CONSUMER,
   ORDERS_FULFILLMENT,
   ORDERS_IDEMPOTENCY,
   ORDERS_INVENTORY,
@@ -14,6 +16,7 @@ import {
   ORDERS_ORDER_REPOSITORY,
   ORDERS_OUTBOX,
   ORDERS_PAYMENTS,
+  ORDERS_PROCESSED_EVENTS,
   ORDERS_TRANSACTION,
   type CartReaderPort,
   type CheckoutExecutorPort,
@@ -25,6 +28,7 @@ import {
   type OrderRepositoryPort,
   type OutboxPort,
   type PaymentsPort,
+  type ProcessedEventPort,
   type TransactionPort,
 } from "./application/ports";
 
@@ -40,11 +44,13 @@ export interface OrdersModuleAdapters {
   readonly fulfillment?: FulfillmentPort;
   readonly outbox?: OutboxPort;
   readonly orderRepository?: OrderRepositoryPort;
+  readonly processedEvents?: ProcessedEventPort;
 }
 
 /**
- * Workflow 5: Atomic Order Creation & Idempotency.
- * Provides CheckoutController, CheckoutService, AtomicCheckoutService, and CheckoutQuoteService.
+ * Workflow 5 & 6: Atomic Order Creation, Idempotency, and Domain Event Processing.
+ * Provides CheckoutController, CheckoutService, AtomicCheckoutService, CheckoutQuoteService,
+ * and OrderEventConsumerService.
  */
 @Module({
   controllers: [CheckoutController],
@@ -52,12 +58,22 @@ export interface OrdersModuleAdapters {
     CheckoutQuoteService,
     AtomicCheckoutService,
     CheckoutService,
+    OrderEventConsumerService,
     {
       provide: ORDERS_CHECKOUT_EXECUTOR,
       useExisting: AtomicCheckoutService,
     },
+    {
+      provide: ORDERS_EVENT_CONSUMER,
+      useExisting: OrderEventConsumerService,
+    },
   ],
-  exports: [CheckoutQuoteService, AtomicCheckoutService, CheckoutService],
+  exports: [
+    CheckoutQuoteService,
+    AtomicCheckoutService,
+    CheckoutService,
+    OrderEventConsumerService,
+  ],
 })
 export class OrdersModule {
   static register(adapters: OrdersModuleAdapters): DynamicModule {
@@ -127,6 +143,12 @@ export class OrdersModule {
       providers.push({
         provide: ORDERS_ORDER_REPOSITORY,
         useValue: adapters.orderRepository,
+      });
+    }
+    if (adapters.processedEvents) {
+      providers.push({
+        provide: ORDERS_PROCESSED_EVENTS,
+        useValue: adapters.processedEvents,
       });
     }
 

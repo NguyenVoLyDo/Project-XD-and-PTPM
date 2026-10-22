@@ -1,0 +1,13 @@
+{
+  "eventId": "11111111-2222-4333-8444-555555555558",
+  "eventType": "FulfillmentDelivered",
+  "eventVersion": 1,
+  "aggregateId": "55555555-5555-4555-8555-555555555555",
+  "occurredAt": "2026-10-02T16:00:00Z",
+  "correlationId": "cccccccc-1111-4111-8111-111111111118",
+  "payload": {
+    "orderId": "33333333-3333-4333-8333-333333333333",
+    "fulfillmentOrderId": "55555555-5555-4555-8555-555555555555",
+    "deliveredAt": "2026-10-02T16:00:00Z"
+  }
+}

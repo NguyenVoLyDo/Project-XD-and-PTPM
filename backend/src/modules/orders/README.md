@@ -1,4 +1,4 @@
-# Orders module — Workflow 1–5
+# Orders module — Workflow 1–6
 
 Contract: `docs/contracts/orders.md`, with consumer ports shaped by Common, Cart, Listings, Inventory, Fulfillment and Payments v1. All mocks and fixtures live here. Checkout prices come from `ListingsQuotePort`, never from Cart. The two checkout fixtures use one Supplier and two Sellers. `CheckoutTransactionContext` is intentionally opaque; Common's adapter will replace the local mock in Phase B.
 
@@ -60,5 +60,29 @@ No public DTO changed. The only internal shape change is `ListingsQuotePort.getC
 8. **Outbox Event**: Enqueue sự kiện `OrderCreated` vào `OutboxPort` chứa `orderId` và danh sách `fulfillmentOrderIds`.
 9. **Lưu Idempotency Record**: Lưu `CheckoutResponse` vào `IdempotencyPort.save` trong cùng transaction trước khi commit.
 10. **Nguyên tắc Atomicity & Rollback**: Lỗi ở bất kỳ port nào (Inventory, Payments, Fulfillment, Outbox, v.v.) sẽ rollback toàn bộ trong harness (hỗ trợ rollback simulation trên mocks in-memory; kiểm chứng PostgreSQL MVCC được bảo lưu cho Pha B).
+
+## Workflow 6 — Nhận kết quả payment/fulfillment
+
+`OrderEventConsumerService.consume(event)` (trong `application/order-event-consumer.service.ts`, thực thi `OrderEventConsumerPort`):
+
+1. **Chống xử lý lặp (Deduplication)**:
+   - Kiểm tra `ProcessedEventPort.isProcessed(event.eventId)` trong transaction.
+   - Nếu event đã xử lý: trả kết quả `IGNORED_DUPLICATE` ngay lập tức, không thay đổi trạng thái và không phát outbox event lần 2.
+
+2. **Xử lý sự kiện từ Payments (`docs/contracts/payments.md`)**:
+   - `PaymentSucceeded`: Online `PENDING_PAYMENT` chuyển sang `CONFIRMED`, `paymentStatus` thành `PAID`. Phát duy nhất một lần sự kiện `OrderConfirmed` qua `OutboxPort`. Duplicate event không phát lại `OrderConfirmed`.
+   - `PaymentFailed`: Online `PENDING_PAYMENT` chuyển sang `PAYMENT_FAILED`, `paymentStatus` thành `FAILED`.
+   - `PaymentTimedOut`: Quá hạn thanh toán Online (15 phút) chuyển `status` và `fulfillmentSummary` sang `CANCELED`, `paymentStatus` sang `FAILED`, tất cả sub-orders chuyển `CANCELED` với lý do `ONLINE_PAYMENT_EXPIRED`, `totalPayable` về 0.
+   - `PaymentCollected`: COD carrier thu tiền thành công cập nhật `paymentStatus` thành `COLLECTED`.
+   - `RefundCompleted`: Cập nhật `paymentStatus` thành `REFUNDED` hoặc `PARTIALLY_REFUNDED`.
+
+3. **Xử lý sự kiện từ Fulfillment & Projection (`docs/contracts/fulfillment.md`, `docs/03-state-machines.md`)**:
+   - `computeFulfillmentSummary(fulfillmentOrders)` (trong `domain/fulfillment-projection.ts`): hàm thuần túy tính toán `fulfillmentSummary` từ trạng thái của các `FulfillmentOrder` snapshot theo đúng State Machine §3.1. Tuyệt đối không có API sửa trực tiếp summary này.
+   - `FulfillmentAccepted`: Cập nhật sub-order thành `ACCEPTED`. Nếu đơn cha đang `CONFIRMED`, chuyển sang `PROCESSING`.
+   - `FulfillmentRejected`: Cập nhật sub-order thành `REJECTED` kèm `reasonCode` và `sourceRef`. Đơn con còn lại giữ nguyên trạng thái. `fulfillmentSummary` trở thành `PARTIALLY_CANCELED` (hoặc `CANCELED` nếu toàn bộ đơn con bị từ chối). Cập nhật `totalPayable` trừ đi khoản phải thu của đơn con bị từ chối; `grandTotal` bất biến. Nếu toàn bộ đơn con bị từ chối, `CustomerOrder.status` chuyển `CANCELED` và COD chuyển `VOIDED`.
+   - `FulfillmentTimedOut`: Xử lý Supplier timeout (24 giờ), cập nhật sub-order `CANCELED` với lý do `SUPPLIER_TIMEOUT`, `fulfillmentSummary` thành `PARTIALLY_CANCELED`, cập nhật `totalPayable`.
+   - `FulfillmentShipped`: Cập nhật sub-order `SHIPPED` kèm `trackingNo` và `carrierCode`.
+   - `FulfillmentDelivered`: Cập nhật sub-order `DELIVERED`, tính lại summary (`PARTIALLY_FULFILLED` khi còn đơn khác đang giao, `FULFILLED` khi tất cả đã giao).
+
 
 

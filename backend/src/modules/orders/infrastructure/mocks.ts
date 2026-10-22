@@ -15,6 +15,8 @@ import type {
   OrderRepositoryPort,
   OutboxPort,
   PaymentsPort,
+  ProcessedEventPort,
+  ProcessedEventRecord,
   StockHold,
   TransactionPort,
 } from "../application/ports";
@@ -354,5 +356,31 @@ export class MockCheckoutExecutor implements CheckoutExecutorPort {
       });
     });
     return response;
+  }
+}
+
+export class MockProcessedEvents implements ProcessedEventPort {
+  readonly processed = new Map<string, ProcessedEventRecord>();
+  failNext = false;
+
+  async isProcessed(eventId: string): Promise<boolean> {
+    return this.processed.has(eventId);
+  }
+
+  async record(
+    context: CheckoutTransactionContext,
+    record: ProcessedEventRecord,
+  ): Promise<void> {
+    if (this.failNext) {
+      throw new MockPortError("PROCESSED_EVENTS_STORE_ERROR", 500);
+    }
+    const previous = this.processed.get(record.eventId);
+    this.processed.set(record.eventId, record);
+
+    const mockCtx = context as Partial<MockTransactionContext>;
+    mockCtx.registerRollback?.(() => {
+      if (previous) this.processed.set(record.eventId, previous);
+      else this.processed.delete(record.eventId);
+    });
   }
 }

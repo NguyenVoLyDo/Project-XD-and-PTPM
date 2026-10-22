@@ -110,9 +110,53 @@ export interface OutboxEvent {
   readonly payload: Readonly<Record<string, unknown>>;
 }
 
-export type CustomerOrderStatus = "CONFIRMED" | "PENDING_PAYMENT";
-export type FulfillmentSummaryStatus = "UNFULFILLED";
-export type PaymentObligationStatus = "PENDING_COD" | "PENDING";
+export type CustomerOrderStatus =
+  | "DRAFT"
+  | "PENDING_PAYMENT"
+  | "CONFIRMED"
+  | "PAYMENT_FAILED"
+  | "PROCESSING"
+  | "CANCELED"
+  | "CLOSED";
+
+export type FulfillmentSummaryStatus =
+  | "UNFULFILLED"
+  | "PARTIALLY_CANCELED"
+  | "PARTIALLY_FULFILLED"
+  | "PARTIALLY_COMPLETED"
+  | "FULFILLED"
+  | "RETURN_IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELED";
+
+export type PaymentStatus =
+  | "PENDING"
+  | "PENDING_COD"
+  | "PAID"
+  | "FAILED"
+  | "COLLECTED"
+  | "VOIDED"
+  | "REFUND_PENDING"
+  | "PARTIALLY_REFUNDED"
+  | "REFUNDED";
+
+export type PaymentObligationStatus = PaymentStatus;
+
+export type FulfillmentOrderStatus =
+  | "PENDING_ACCEPTANCE"
+  | "ACCEPTED"
+  | "PACKING"
+  | "READY_TO_SHIP"
+  | "SHIPPED"
+  | "IN_TRANSIT"
+  | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "RETURN_REQUESTED"
+  | "RETURNING"
+  | "RETURNED"
+  | "REFUNDED"
+  | "REJECTED"
+  | "CANCELED";
 
 export interface OrderItem {
   readonly orderItemId: string;
@@ -139,10 +183,15 @@ export interface FulfillmentOrderSnapshot {
   readonly customerOrderId: string;
   readonly supplierId: string;
   readonly sellerId: string;
-  readonly status: "PENDING_ACCEPTANCE";
+  readonly status: FulfillmentOrderStatus;
   readonly amountToCollect: number;
   readonly paymentAllocationId: string;
   readonly orderItemIds: readonly string[];
+  readonly reasonCode?: string;
+  readonly sourceRef?: string;
+  readonly trackingNo?: string;
+  readonly carrierCode?: string;
+  readonly updatedAt?: string;
 }
 
 export interface CustomerOrder {
@@ -152,13 +201,14 @@ export interface CustomerOrder {
   readonly status: CustomerOrderStatus;
   readonly fulfillmentSummary: FulfillmentSummaryStatus;
   readonly paymentMethod: PaymentMethod;
-  readonly paymentStatus: PaymentObligationStatus;
+  readonly paymentStatus: PaymentStatus;
   readonly currency: "VND";
   readonly grandTotal: number;
   readonly totalPayable: number;
   readonly shippingAddress: ShippingAddressSnapshot;
   readonly paymentIntentId?: string;
   readonly createdAt: string;
+  readonly updatedAt?: string;
 }
 
 export interface OrderAggregate {
@@ -166,4 +216,85 @@ export interface OrderAggregate {
   readonly items: readonly OrderItem[];
   readonly fulfillmentOrders: readonly FulfillmentOrderSnapshot[];
 }
+
+export interface DomainEventEnvelope<T = Record<string, unknown>> {
+  readonly eventId: string;
+  readonly eventType: string;
+  readonly eventVersion: 1;
+  readonly aggregateId: string;
+  readonly occurredAt: string;
+  readonly correlationId: string;
+  readonly payload: T;
+}
+
+export interface PaymentSucceededPayload {
+  readonly orderId: string;
+  readonly paymentId?: string;
+  readonly paymentIntentId?: string;
+  readonly paidAmount?: number;
+}
+
+export interface PaymentFailedPayload {
+  readonly orderId: string;
+  readonly paymentId?: string;
+  readonly reasonCode?: string;
+  readonly sourceRef?: string;
+}
+
+export interface PaymentTimedOutPayload {
+  readonly orderId: string;
+  readonly reasonCode?: string;
+  readonly sourceRef?: string;
+}
+
+export interface PaymentCollectedPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId?: string;
+  readonly paymentAllocationId?: string;
+  readonly amountCollected?: number;
+}
+
+export interface RefundCompletedPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId?: string;
+  readonly paymentAllocationId?: string;
+  readonly refundId?: string;
+  readonly amount?: number;
+  readonly reasonCode?: string;
+  readonly sourceRef?: string;
+}
+
+export interface FulfillmentAcceptedPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId: string;
+  readonly supplierId?: string;
+}
+
+export interface FulfillmentRejectedPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId: string;
+  readonly reasonCode: string;
+  readonly sourceRef?: string;
+}
+
+export interface FulfillmentTimedOutPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId: string;
+  readonly reasonCode?: string;
+  readonly sourceRef?: string;
+}
+
+export interface FulfillmentShippedPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId: string;
+  readonly trackingNo: string;
+  readonly carrierCode?: string;
+}
+
+export interface FulfillmentDeliveredPayload {
+  readonly orderId: string;
+  readonly fulfillmentOrderId: string;
+  readonly deliveredAt?: string;
+}
+
 

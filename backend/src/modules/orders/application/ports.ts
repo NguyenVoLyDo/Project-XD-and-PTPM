@@ -2,6 +2,8 @@ import type {
   AllocationDraft,
   CheckoutCart,
   CheckoutQuoteBatch,
+  CustomerOrder,
+  DomainEventEnvelope,
   FulfillmentDraftGroup,
   OrderAggregate,
   OutboxEvent,
@@ -20,6 +22,8 @@ export const ORDERS_PAYMENTS = Symbol("ORDERS_PAYMENTS");
 export const ORDERS_FULFILLMENT = Symbol("ORDERS_FULFILLMENT");
 export const ORDERS_OUTBOX = Symbol("ORDERS_OUTBOX");
 export const ORDERS_ORDER_REPOSITORY = Symbol("ORDERS_ORDER_REPOSITORY");
+export const ORDERS_PROCESSED_EVENTS = Symbol("ORDERS_PROCESSED_EVENTS");
+export const ORDERS_EVENT_CONSUMER = Symbol("ORDERS_EVENT_CONSUMER");
 
 export interface CurrentActor {
   readonly userId: string;
@@ -137,6 +141,35 @@ export interface OrderRepositoryPort {
     aggregate: OrderAggregate,
   ): Promise<void>;
   findById(orderId: string): Promise<OrderAggregate | null>;
+}
+
+export interface ProcessedEventRecord {
+  readonly eventId: string;
+  readonly eventType: string;
+  readonly aggregateId: string;
+  readonly processedAt: string;
+  readonly sourceRef?: string;
+  readonly reasonCode?: string;
+}
+
+export interface ProcessedEventPort {
+  isProcessed(eventId: string): Promise<boolean>;
+  record(
+    context: CheckoutTransactionContext,
+    record: ProcessedEventRecord,
+  ): Promise<void>;
+}
+
+export interface EventProcessingResult {
+  readonly status: "PROCESSED" | "IGNORED_DUPLICATE" | "ORDER_NOT_FOUND";
+  readonly order?: CustomerOrder;
+  readonly reason?: string;
+}
+
+export interface OrderEventConsumerPort {
+  consume(
+    event: DomainEventEnvelope<Record<string, unknown>>,
+  ): Promise<EventProcessingResult>;
 }
 
 
