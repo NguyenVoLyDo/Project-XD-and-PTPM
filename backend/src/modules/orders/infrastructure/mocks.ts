@@ -14,6 +14,8 @@ import type {
   ListingsQuotePort,
   OrderRepositoryPort,
   OutboxPort,
+  PaginatedResult,
+  PaginationQuery,
   PaymentsPort,
   ProcessedEventPort,
   ProcessedEventRecord,
@@ -330,6 +332,35 @@ export class MockOrderRepository implements OrderRepositoryPort {
 
   async findById(orderId: string): Promise<OrderAggregate | null> {
     return this.orders.get(orderId) ?? null;
+  }
+
+  async findByCustomerId(
+    customerId: string,
+    pagination?: PaginationQuery,
+  ): Promise<PaginatedResult<OrderAggregate>> {
+    const page = Math.max(1, pagination?.page ?? 1);
+    const limit = Math.max(1, Math.min(100, pagination?.limit ?? 20));
+
+    const customerOrders = Array.from(this.orders.values())
+      .filter((agg) => agg.order.customerId === customerId)
+      .sort(
+        (a, b) =>
+          new Date(b.order.createdAt).getTime() -
+          new Date(a.order.createdAt).getTime(),
+      );
+
+    const total = customerOrders.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const offset = (page - 1) * limit;
+    const items = customerOrders.slice(offset, offset + limit);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 }
 

@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "orderId": "33333333-3333-4333-8333-333333333333",
+      "orderNo": "DC-EXAMPLE-001",
+      "status": "CONFIRMED",
+      "fulfillmentSummary": "UNFULFILLED",
+      "paymentMethod": "COD",
+      "paymentStatus": "PENDING_COD",
+      "currency": "VND",
+      "grandTotal": 300000,
+      "totalPayable": 300000,
+      "itemCount": 2,
+      "createdAt": "2026-10-01T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1
+  }
+}

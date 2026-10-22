@@ -135,12 +135,29 @@ export interface CheckoutExecutorPort {
   execute(context: CheckoutExecutionContext): Promise<CheckoutResponse>;
 }
 
+export interface PaginationQuery {
+  readonly page?: number;
+  readonly limit?: number;
+}
+
+export interface PaginatedResult<T> {
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
+  readonly totalPages: number;
+}
+
 export interface OrderRepositoryPort {
   save(
     context: CheckoutTransactionContext,
     aggregate: OrderAggregate,
   ): Promise<void>;
   findById(orderId: string): Promise<OrderAggregate | null>;
+  findByCustomerId(
+    customerId: string,
+    pagination?: PaginationQuery,
+  ): Promise<PaginatedResult<OrderAggregate>>;
 }
 
 export interface ProcessedEventRecord {

@@ -1,0 +1,63 @@
+{
+  "orderId": "33333333-3333-4333-8333-333333333333",
+  "orderNo": "DC-EXAMPLE-001",
+  "status": "CONFIRMED",
+  "fulfillmentSummary": "UNFULFILLED",
+  "paymentMethod": "COD",
+  "paymentStatus": "PENDING_COD",
+  "currency": "VND",
+  "grandTotal": 300000,
+  "totalPayable": 300000,
+  "shippingAddress": {
+    "recipientName": "Khách mẫu",
+    "phone": "0900000000",
+    "line1": "Địa chỉ mẫu",
+    "wardCode": "00001",
+    "provinceCode": "01"
+  },
+  "createdAt": "2026-10-01T10:00:00Z",
+  "items": [
+    {
+      "orderItemId": "99999999-9999-4999-8999-999999999999",
+      "fulfillmentOrderId": "44444444-4444-4444-8444-444444444444",
+      "lineIndex": 0,
+      "listingId": "88888888-8888-4888-8888-888888888888",
+      "productId": "77777777-7777-4777-8777-777777777777",
+      "productName": "Sản phẩm A",
+      "listingTitle": "Listing của Seller 1",
+      "quantity": 1,
+      "unitSalePrice": 150000,
+      "lineSaleTotal": 150000,
+      "currency": "VND"
+    },
+    {
+      "orderItemId": "99999999-9999-4999-8999-999999999998",
+      "fulfillmentOrderId": "55555555-5555-4555-8555-555555555555",
+      "lineIndex": 1,
+      "listingId": "88888888-8888-4888-8888-888888888889",
+      "productId": "77777777-7777-4777-8777-777777777777",
+      "productName": "Sản phẩm A",
+      "listingTitle": "Listing của Seller 2",
+      "quantity": 1,
+      "unitSalePrice": 150000,
+      "lineSaleTotal": 150000,
+      "currency": "VND"
+    }
+  ],
+  "fulfillmentOrders": [
+    {
+      "fulfillmentOrderId": "44444444-4444-4444-8444-444444444444",
+      "supplierId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "sellerId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "status": "PENDING_ACCEPTANCE",
+      "amountToCollect": 150000
+    },
+    {
+      "fulfillmentOrderId": "55555555-5555-4555-8555-555555555555",
+      "supplierId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "sellerId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "status": "PENDING_ACCEPTANCE",
+      "amountToCollect": 150000
+    }
+  ]
+}

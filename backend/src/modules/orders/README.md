@@ -1,4 +1,4 @@
-# Orders module — Workflow 1–6
+# Orders module — Workflow 1–7
 
 Contract: `docs/contracts/orders.md`, with consumer ports shaped by Common, Cart, Listings, Inventory, Fulfillment and Payments v1. All mocks and fixtures live here. Checkout prices come from `ListingsQuotePort`, never from Cart. The two checkout fixtures use one Supplier and two Sellers. `CheckoutTransactionContext` is intentionally opaque; Common's adapter will replace the local mock in Phase B.
 
@@ -84,5 +84,27 @@ No public DTO changed. The only internal shape change is `ListingsQuotePort.getC
    - `FulfillmentShipped`: Cập nhật sub-order `SHIPPED` kèm `trackingNo` và `carrierCode`.
    - `FulfillmentDelivered`: Cập nhật sub-order `DELIVERED`, tính lại summary (`PARTIALLY_FULFILLED` khi còn đơn khác đang giao, `FULFILLED` khi tất cả đã giao).
 
+## Workflow 7 — Customer xem Order
 
+`OrderQueryService` (trong `application/order-query.service.ts`, được gọi từ `OrdersController` tại `GET /api/v1/orders` và `GET /api/v1/orders/{orderId}`):
 
+1. **Xác thực quyền sở hữu và bảo mật**:
+   - Yêu cầu `CurrentActorPort` hợp lệ với `activeRole === "CUSTOMER"` và `activeProfileId === null`.
+   - Nếu chưa đăng nhập $\to$ `401 UNAUTHORIZED`.
+   - Nếu là Supplier hoặc Seller (hoặc có activeProfileId) $\to$ `403 FORBIDDEN` (Supplier/Seller phải dùng DTO của Fulfillment, không dùng API Customer Order).
+   - Khách hàng B xem đơn của Khách hàng A $\to$ `403 FORBIDDEN`, tuyệt đối không rò rỉ dữ liệu hay PII trong lỗi (tuân thủ NFR-01 và contract Common).
+   - Đơn không tồn tại $\to$ `404 ORDER_NOT_FOUND`. `orderId` sai định dạng UUID $\to$ `400 INVALID_REQUEST`.
+
+2. **Bất biến lịch sử (Historical Snapshot Invariance)**:
+   - Dữ liệu chi tiết đơn hàng (`productName`, `listingTitle`, `unitSalePrice`, `lineSaleTotal`) được đọc trực tiếp từ snapshot `OrderItem` lưu trong `OrderAggregate`.
+   - Không gọi lại `ListingsQuotePort` hay `Cart` để tính lại giá hiện hành. Mọi thay đổi giá bán hoặc tiêu đề Listing sau thời điểm checkout hoàn toàn không ảnh hưởng đến đơn hàng lịch sử.
+   - Giá vốn `unitCostPrice` và `lineCostTotal` không bị lộ cho Customer.
+
+3. **Tính nhất quán tổng tiền**:
+   - `totalPayable` luôn khớp với tổng `amountToCollect` của các `FulfillmentOrder` đang hiệu lực.
+   - `grandTotal` là giá trị tổng ban đầu bất biến.
+
+4. **Danh sách phân trang (`GET /api/v1/orders`)**:
+   - Lọc chính xác theo `customerId` của actor hiện tại.
+   - Hỗ trợ tham số phân trang `page` (mặc định 1) và `limit` (mặc định 20, tối đa 100).
+   - Trả về danh sách tóm tắt `CustomerOrderSummary` sắp xếp theo thời gian tạo mới nhất (`createdAt DESC`) cùng metadata phân trang `PaginationMeta`.

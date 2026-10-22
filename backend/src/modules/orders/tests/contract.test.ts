@@ -6,6 +6,8 @@ import {
   checkoutQuoteSchema,
   checkoutRequestSchema,
   checkoutResponseSchema,
+  customerOrderDetailSchema,
+  customerOrderListResponseSchema,
   ordersErrorSchema,
 } from "../api/contracts";
 import {
@@ -266,5 +268,22 @@ describe("Orders v1 contract harness", () => {
     expect(
       (await idempotency.find(customerId, "sample-key"))?.response.orderId,
     ).toBe(response.orderId);
+  });
+
+  it("validates order-detail.json against customerOrderDetailSchema", () => {
+    const data = fixture("order-detail.json");
+    const parsed = customerOrderDetailSchema.parse(data);
+    expect(parsed.orderId).toBe("33333333-3333-4333-8333-333333333333");
+    expect(parsed.items).toHaveLength(2);
+    expect(parsed.fulfillmentOrders).toHaveLength(2);
+    expect(parsed.totalPayable).toBe(300000);
+  });
+
+  it("validates order-list.json against customerOrderListResponseSchema", () => {
+    const data = fixture("order-list.json");
+    const parsed = customerOrderListResponseSchema.parse(data);
+    expect(parsed.items).toHaveLength(1);
+    expect(parsed.pagination.total).toBe(1);
+    expect(parsed.pagination.page).toBe(1);
   });
 });

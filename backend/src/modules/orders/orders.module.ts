@@ -1,9 +1,11 @@
 import { DynamicModule, Module, type Provider } from "@nestjs/common";
 import { CheckoutController } from "./api/checkout.controller";
+import { OrdersController } from "./api/orders.controller";
 import { AtomicCheckoutService } from "./application/atomic-checkout.service";
 import { CheckoutQuoteService } from "./application/checkout-quote.service";
 import { CheckoutService } from "./application/checkout.service";
 import { OrderEventConsumerService } from "./application/order-event-consumer.service";
+import { OrderQueryService } from "./application/order-query.service";
 import {
   ORDERS_CART_READER,
   ORDERS_CHECKOUT_EXECUTOR,
@@ -48,17 +50,19 @@ export interface OrdersModuleAdapters {
 }
 
 /**
- * Workflow 5 & 6: Atomic Order Creation, Idempotency, and Domain Event Processing.
- * Provides CheckoutController, CheckoutService, AtomicCheckoutService, CheckoutQuoteService,
- * and OrderEventConsumerService.
+ * Workflow 5, 6 & 7: Atomic Order Creation, Idempotency, Domain Event Processing,
+ * and Customer Order Queries.
+ * Provides CheckoutController, OrdersController, CheckoutService, AtomicCheckoutService,
+ * CheckoutQuoteService, OrderEventConsumerService, and OrderQueryService.
  */
 @Module({
-  controllers: [CheckoutController],
+  controllers: [CheckoutController, OrdersController],
   providers: [
     CheckoutQuoteService,
     AtomicCheckoutService,
     CheckoutService,
     OrderEventConsumerService,
+    OrderQueryService,
     {
       provide: ORDERS_CHECKOUT_EXECUTOR,
       useExisting: AtomicCheckoutService,
@@ -73,6 +77,7 @@ export interface OrdersModuleAdapters {
     AtomicCheckoutService,
     CheckoutService,
     OrderEventConsumerService,
+    OrderQueryService,
   ],
 })
 export class OrdersModule {
