@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Inject } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -7,7 +7,7 @@ import { CurrentUser, CurrentActor } from '../../common/auth/current-user.decora
 
 @Controller('api/v1/listings')
 export class ListingsController {
-  constructor(private readonly listingsService: ListingsService) {}
+  constructor(@Inject(ListingsService) private readonly listingsService: ListingsService) {}
 
   @Get()
   async getPublicListings(@Query('shopId') shopId?: string, @Query('search') search?: string) {

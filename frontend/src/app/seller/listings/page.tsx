@@ -1,5 +1,7 @@
 'use client';
 
+import { Modal } from '../../../components/ui/modal';
+import { productImage } from '../../../lib/product-image';
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../../../lib/api';
 import { ListingItem } from '../../../lib/types';
@@ -93,24 +95,24 @@ export default function SellerListingsPage() {
   return (
     <div className="space-y-8">
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl text-sm font-semibold">
+        <div role="status" className="fixed bottom-6 right-6 z-50 bg-primary text-on-primary px-5 py-3 rounded-xl shadow-2xl text-sm font-semibold">
           {toast}
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Quản lý Niêm yết & Giá bán</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-3xl font-bold text-ink tracking-tight">Gian hàng & giá bán</h1>
+          <p className="text-xs text-subtle mt-1">
             Chọn sản phẩm từ Catalog của các Nhà cung cấp, thiết lập giá bán lẻ để phân phối trên gian hàng.
           </p>
         </div>
 
         <button
           onClick={() => setCreateModalOpen(true)}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-95 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 flex items-center gap-2 self-start"
+          className="px-5 py-2.5 rounded-xl bg-primary hover:opacity-95 text-ink font-bold text-xs shadow-lg flex items-center gap-2 self-start"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           <span>+ Niêm yết sản phẩm mới</span>
@@ -120,12 +122,12 @@ export default function SellerListingsPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2].map(i => (
-            <div key={i} className="h-28 rounded-2xl bg-slate-900/50 animate-pulse border border-slate-800"></div>
+            <div key={i} className="h-28 rounded-2xl bg-canvas animate-pulse border border-line"></div>
           ))}
         </div>
       ) : listings.length === 0 ? (
-        <div className="text-center py-20 glass-panel rounded-3xl border border-slate-800">
-          <p className="text-slate-400 text-sm">Chưa có niêm yết nào trên gian hàng.</p>
+        <div className="text-center py-20 glass-panel rounded-3xl border border-line">
+          <p className="text-subtle text-sm">Chưa có niêm yết nào trên gian hàng.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -138,34 +140,36 @@ export default function SellerListingsPage() {
               <div
                 key={item.id}
                 className={`glass-panel p-5 rounded-2xl border transition ${
-                  isPausedMismatch ? 'border-amber-500/50 bg-amber-950/20' : 'border-slate-800'
+                  isPausedMismatch ? 'border-amber-500/50 bg-amber-950/20' : 'border-line'
                 }`}
               >
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <img
-                      src={item.productImage}
+                      src={productImage(item.productImage)}
+                      width={96}
+                      height={96}
                       alt={item.productName}
-                      className="w-16 h-16 rounded-xl object-cover bg-slate-900 border border-slate-800 shrink-0"
+                      className="w-16 h-16 rounded-xl object-cover bg-canvas border border-line shrink-0"
                     />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-indigo-400 font-semibold uppercase">{item.sellerSku}</span>
+                        <span className="text-xs text-primary font-semibold uppercase">{item.sellerSku}</span>
                         {item.status === 'ACTIVE' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-700 border border-emerald-500/30">
                             Đang mở bán
                           </span>
                         )}
                         {isPausedMismatch && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30">
                             Tạm ẩn do vi phạm Margin
                           </span>
                         )}
                       </div>
 
-                      <h3 className="font-bold text-white text-base mt-0.5">{item.productName}</h3>
-                      <div className="text-xs text-slate-400">
-                        Kho: <strong className="text-slate-300">{item.supplierName}</strong> | Gian hàng: {item.shopName}
+                      <h3 className="font-bold text-ink text-base mt-0.5">{item.productName}</h3>
+                      <div className="text-xs text-subtle">
+                        Kho: <strong className="text-ink">{item.supplierName}</strong> | Gian hàng: {item.shopName}
                       </div>
                     </div>
                   </div>
@@ -173,29 +177,29 @@ export default function SellerListingsPage() {
                   {/* Financials & Action */}
                   <div className="flex flex-wrap items-center gap-6 self-end md:self-center">
                     <div>
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wider">Giá vốn NCC</div>
-                      <div className="text-sm font-bold text-slate-300">
+                      <div className="text-xs text-subtle ">Giá vốn NCC</div>
+                      <div className="text-sm font-bold text-ink">
                         {item.costPrice.toLocaleString('vi-VN')} đ
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wider">Giá bán lẻ</div>
-                      <div className="text-base font-extrabold text-pink-400">
+                      <div className="text-xs text-subtle ">Giá bán lẻ</div>
+                      <div className="text-base font-bold text-pink-700">
                         {item.salePrice.toLocaleString('vi-VN')} đ
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wider">Lợi nhuận gộp</div>
-                      <div className={`text-sm font-bold ${margin > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <div className="text-xs text-subtle ">Lợi nhuận gộp</div>
+                      <div className={`text-sm font-bold ${margin > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                         +{margin.toLocaleString('vi-VN')} đ ({marginPercent}%)
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleUpdatePrice(item.id, item.salePrice)}
-                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-700 transition"
+                      className="px-3.5 py-2 rounded-xl bg-muted hover:bg-muted text-xs font-semibold text-ink border border-line transition"
                     >
                       Sửa giá bán
                     </button>
@@ -203,7 +207,7 @@ export default function SellerListingsPage() {
                 </div>
 
                 {isPausedMismatch && (
-                  <div className="mt-4 pt-3 border-t border-amber-500/30 flex items-center justify-between text-xs text-amber-300 bg-amber-950/40 p-2.5 rounded-xl">
+                  <div className="mt-4 pt-3 border-t border-amber-500/30 flex items-center justify-between text-xs text-amber-700 bg-amber-950/40 p-2.5 rounded-xl">
                     <span>
                       ⚠️ <strong>Cảnh báo:</strong> NCC vừa tăng giá vốn. Giá bán lẻ hiện tại của bạn không đạt biên lợi nhuận tối thiểu 10%. Hãy tăng giá bán để tự động mở lại listing!
                     </span>
@@ -223,20 +227,13 @@ export default function SellerListingsPage() {
 
       {/* Create Listing Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-panel max-w-lg w-full p-6 rounded-2xl border border-slate-700 space-y-5">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Tạo niêm yết bán lẻ từ Catalog NCC</h3>
-              <button onClick={() => setCreateModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-
-            <form onSubmit={handleCreateListing} className="space-y-4 text-xs">
+        <Modal title="Tạo niêm yết" onClose={() => setCreateModalOpen(false)}>
+            <form onSubmit={handleCreateListing} className="space-y-4 text-sm">
               <div>
-                <label className="block text-slate-400 mb-1">Chọn gian hàng của bạn</label>
-                <select
-                  value={form.shopId}
+                <label htmlFor="partner-field-1" className="block text-subtle mb-1">Chọn gian hàng của bạn</label>
+                <select id="partner-field-1" name="partner-field-1" value={form.shopId}
                   onChange={e => setForm({ ...form, shopId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-canvas border border-line text-ink"
                 >
                   {shops.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
@@ -245,9 +242,8 @@ export default function SellerListingsPage() {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Chọn sản phẩm nguồn từ NCC</label>
-                <select
-                  value={form.productId}
+                <label htmlFor="partner-field-2" className="block text-subtle mb-1">Chọn sản phẩm nguồn từ NCC</label>
+                <select id="partner-field-2" name="partner-field-2" value={form.productId}
                   onChange={e => {
                     const prodId = e.target.value;
                     const prod = catalogProducts.find(p => p.id === prodId);
@@ -257,7 +253,7 @@ export default function SellerListingsPage() {
                       salePrice: prod ? Math.round(prod.costPrice * 1.25) : form.salePrice,
                     });
                   }}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-canvas border border-line text-ink"
                 >
                   {catalogProducts.map(p => (
                     <option key={p.id} value={p.id}>
@@ -268,36 +264,34 @@ export default function SellerListingsPage() {
               </div>
 
               {selectedProduct && (
-                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                  <div className="text-slate-400">Giá vốn nguồn NCC: <strong className="text-white">{selectedProduct.costPrice.toLocaleString()} đ</strong></div>
-                  <div className="text-slate-400">Biên lợi nhuận sàn yêu cầu (10%): <strong className="text-emerald-400">{minRequiredPrice.toLocaleString()} đ</strong></div>
+                <div className="p-3 rounded-xl bg-canvas border border-line space-y-1">
+                  <div className="text-subtle">Giá vốn nguồn NCC: <strong className="text-ink">{selectedProduct.costPrice.toLocaleString()} đ</strong></div>
+                  <div className="text-subtle">Biên lợi nhuận sàn yêu cầu (10%): <strong className="text-emerald-700">{minRequiredPrice.toLocaleString()} đ</strong></div>
                 </div>
               )}
 
               <div>
-                <label className="block text-slate-400 mb-1">Mã SKU riêng của gian hàng (Tùy chọn)</label>
-                <input
-                  type="text"
+                <label htmlFor="partner-field-3" className="block text-subtle mb-1">Mã SKU riêng của gian hàng (Tùy chọn)</label>
+                <input id="partner-field-3" name="partner-field-3" type="text"
                   placeholder="Ví dụ: TS-ANKER-01"
                   value={form.sellerSku}
                   onChange={e => setForm({ ...form, sellerSku: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-canvas border border-line text-ink font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Giá bán lẻ niêm yết (VND)</label>
-                <input
-                  type="number"
+                <label htmlFor="partner-field-4" className="block text-subtle mb-1">Giá bán lẻ niêm yết (VND)</label>
+                <input id="partner-field-4" name="partner-field-4" type="number"
                   required
                   value={form.salePrice}
                   onChange={e => setForm({ ...form, salePrice: parseInt(e.target.value, 10) || 0 })}
-                  className={`w-full px-3 py-2 rounded-xl bg-slate-900 border text-white font-bold text-sm ${
+                  className={`w-full px-3 py-2 rounded-xl bg-canvas border text-ink font-bold text-sm ${
                     isMarginValid ? 'border-emerald-500/50' : 'border-rose-500'
                   }`}
                 />
                 {!isMarginValid && (
-                  <p className="text-[11px] text-rose-400 mt-1">
+                  <p className="text-xs text-rose-700 mt-1">
                     Giá bán phải &gt;= {minRequiredPrice.toLocaleString()} đ (đảm bảo biên lợi nhuận tối thiểu 10%).
                   </p>
                 )}
@@ -307,7 +301,7 @@ export default function SellerListingsPage() {
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300"
+                  className="px-4 py-2 rounded-xl bg-muted text-ink"
                 >
                   Hủy
                 </button>
@@ -316,16 +310,15 @@ export default function SellerListingsPage() {
                   disabled={!isMarginValid}
                   className={`px-4 py-2 rounded-xl font-bold ${
                     isMarginValid
-                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      ? 'bg-primary hover:bg-primary-hover text-ink'
+                      : 'bg-muted text-subtle cursor-not-allowed'
                   }`}
                 >
                   Tạo niêm yết →
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

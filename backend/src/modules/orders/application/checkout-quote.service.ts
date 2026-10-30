@@ -46,7 +46,7 @@ interface CheckoutIssue {
 }
 
 const cartItemSchema = z.object({
-  listingId: z.uuid(),
+  listingId: z.string().min(1),
   quantity: z.int().positive().safe(),
   lastViewedUnitSalePrice: z.int().nonnegative().safe().optional(),
 });

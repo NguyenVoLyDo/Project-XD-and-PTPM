@@ -12,6 +12,7 @@ import type {
   OrderItem,
   QuotedCheckoutLine,
 } from "../domain/order";
+import { failOrders } from "./errors";
 import { CheckoutQuoteService } from "./checkout-quote.service";
 import {
   ORDERS_FULFILLMENT,
@@ -48,6 +49,7 @@ import {
 @Injectable()
 export class AtomicCheckoutService implements CheckoutExecutorPort {
   constructor(
+    @Inject(CheckoutQuoteService)
     private readonly quoteService: CheckoutQuoteService,
     @Inject(ORDERS_TRANSACTION)
     private readonly transaction: TransactionPort,
@@ -68,6 +70,14 @@ export class AtomicCheckoutService implements CheckoutExecutorPort {
 
   async execute(context: CheckoutExecutionContext): Promise<CheckoutResponse> {
     return this.transaction.runInTransaction(async (txContext) => {
+      // A concurrent request may have committed while this transaction waited.
+      const replay = await this.idempotency.find(context.customerId, context.key);
+      if (replay) {
+        if (replay.requestHash !== context.requestHash) {
+          failOrders(409, "IDEMPOTENCY_KEY_REUSED", "Idempotency key already used with different content");
+        }
+        return replay.response;
+      }
       // 1. Revalidate Cart and obtain verified server quote lines
       const quotation = await this.quoteService.quote(
         context.customerId,

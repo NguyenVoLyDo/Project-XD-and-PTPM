@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Inject } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -7,7 +7,7 @@ import { CurrentUser, CurrentActor } from '../../common/auth/current-user.decora
 
 @Controller('api/v1/catalog')
 export class CatalogController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(@Inject(CatalogService) private readonly catalogService: CatalogService) {}
 
   @Get('products')
   async getAllProducts(@Query('supplierId') supplierId?: string, @Query('search') search?: string) {

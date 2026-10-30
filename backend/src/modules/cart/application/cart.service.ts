@@ -17,7 +17,7 @@ import {
   type ListingProjection,
 } from "./ports";
 
-const listingIdSchema = z.uuid();
+const listingIdSchema = z.string().min(1);
 
 interface CartErrorDetail {
   readonly field?: string;

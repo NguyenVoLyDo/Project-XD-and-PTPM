@@ -1,10 +1,12 @@
-import { Body, Controller, Headers, Post } from "@nestjs/common";
+import { JwtAuthGuard } from "../../../common/auth/jwt-auth.guard";
+import { UseGuards, Body, Controller, Headers, Inject, Post } from "@nestjs/common";
 import { CheckoutService } from "../application/checkout.service";
 import type { CheckoutResponse } from "./contracts";
 
-@Controller("api/v1/checkout")
+@UseGuards(JwtAuthGuard)
+@Controller(["api/v1/checkout", "api/v1/orders/checkout"])
 export class CheckoutController {
-  constructor(private readonly checkoutService: CheckoutService) {}
+  constructor(@Inject(CheckoutService) private readonly checkoutService: CheckoutService) {}
 
   @Post()
   checkout(

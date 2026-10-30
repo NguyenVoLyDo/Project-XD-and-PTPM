@@ -11,7 +11,7 @@ export const cartViewSchema = z.strictObject({
   cartId: uuid,
   items: z.array(
     z.strictObject({
-      listingId: uuid,
+      listingId: z.string().min(1),
       quantity: z.int().positive().safe(),
       title: z.string(),
       unitSalePrice: vnd,

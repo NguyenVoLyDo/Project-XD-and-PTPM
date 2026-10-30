@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const uuid = z.uuid();
+const entityId = z.string().min(1);
 const vnd = z.int().nonnegative().safe();
 
 export const shippingAddressSchema = z.strictObject({
@@ -15,16 +16,17 @@ export const checkoutRequestSchema = z.strictObject({
   cartId: uuid,
   shippingAddress: shippingAddressSchema,
   paymentMethod: z.enum(["COD", "ONLINE"]),
+  note: z.string().optional(),
 });
 
 /** The controller supplies this from the Idempotency-Key header. */
 export const checkoutIdempotencyKeySchema = z.string().trim().min(1);
 
 export const checkoutQuoteSchema = z.strictObject({
-  listingId: uuid,
-  productId: uuid,
-  supplierId: uuid,
-  sellerId: uuid,
+  listingId: entityId,
+  productId: entityId,
+  supplierId: entityId,
+  sellerId: entityId,
   productName: z.string().min(1),
   listingTitle: z.string().min(1),
   unitSalePrice: vnd,
@@ -35,8 +37,8 @@ export const checkoutQuoteSchema = z.strictObject({
 
 const fulfillmentOrderSchema = z.strictObject({
   fulfillmentOrderId: uuid,
-  supplierId: uuid,
-  sellerId: uuid,
+  supplierId: entityId,
+  sellerId: entityId,
   status: z.literal("PENDING_ACCEPTANCE"),
   amountToCollect: vnd,
 });
@@ -60,7 +62,7 @@ export const checkoutResponseSchema = z.discriminatedUnion("paymentMethod", [
     paymentMethod: z.literal("ONLINE"),
     status: z.literal("PENDING_PAYMENT"),
     paymentStatus: z.literal("PENDING"),
-    paymentIntentId: uuid,
+    paymentIntentId: z.string().min(1),
   }),
 ]);
 
@@ -87,8 +89,8 @@ export const customerOrderItemViewSchema = z.strictObject({
   orderItemId: uuid,
   fulfillmentOrderId: uuid,
   lineIndex: z.number().int().nonnegative(),
-  listingId: uuid,
-  productId: uuid,
+  listingId: entityId,
+  productId: entityId,
   productName: z.string().min(1),
   listingTitle: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -99,8 +101,8 @@ export const customerOrderItemViewSchema = z.strictObject({
 
 export const customerFulfillmentOrderViewSchema = z.strictObject({
   fulfillmentOrderId: uuid,
-  supplierId: uuid,
-  sellerId: uuid,
+  supplierId: entityId,
+  sellerId: entityId,
   status: z.enum([
     "PENDING_ACCEPTANCE",
     "ACCEPTED",
@@ -160,7 +162,7 @@ export const customerOrderDetailSchema = z.strictObject({
   grandTotal: vnd,
   totalPayable: vnd,
   shippingAddress: shippingAddressSchema,
-  paymentIntentId: uuid.optional(),
+  paymentIntentId: z.string().min(1).optional(),
   createdAt: z.string().min(1),
   updatedAt: z.string().optional(),
   items: z.array(customerOrderItemViewSchema),

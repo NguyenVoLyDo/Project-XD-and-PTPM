@@ -1,10 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
 import { StoreService } from '../../common/database/store.service';
 import { Listing, Shop } from '../../common/database/types';
 
 @Injectable()
 export class ListingsService {
-  constructor(private readonly store: StoreService) {}
+  constructor(@Inject(StoreService) private readonly store: StoreService) {}
 
   async getPublicListings(shopId?: string, search?: string) {
     let list = this.store.listings.filter(l => l.status === 'ACTIVE' && l.visible);
@@ -12,7 +12,7 @@ export class ListingsService {
       list = list.filter(l => l.shopId === shopId);
     }
 
-    return list.map(l => this.enrichListing(l)).filter(item => {
+    return list.map(l => this.publicListing(l)).filter(item => {
       if (!search) return true;
       const q = search.toLowerCase();
       return (
@@ -26,7 +26,12 @@ export class ListingsService {
   async getListingById(id: string) {
     const listing = this.store.listings.find(l => l.id === id);
     if (!listing) throw new NotFoundException('Listing not found');
-    return this.enrichListing(listing);
+    return this.publicListing(listing);
+  }
+
+  private publicListing(listing: Listing) {
+    const { costPrice, ...view } = this.enrichListing(listing);
+    return view;
   }
 
   private enrichListing(l: Listing) {

@@ -7,14 +7,24 @@ export class ApiClient {
     };
     if (typeof window !== 'undefined') {
       const storedToken = localStorage.getItem('dc_token');
-      const storedUserId = userId || localStorage.getItem('dc_user_id');
-      const storedRole = role || localStorage.getItem('dc_active_role');
+      const storedUserId = userId || localStorage.getItem('dc_user_id') || 'u-customer-c';
+      const storedRole = role || localStorage.getItem('dc_active_role') || 'CUSTOMER';
 
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
       if (storedUserId) headers['x-user-id'] = storedUserId;
       if (storedRole) headers['x-role'] = storedRole;
     }
     return headers;
+  }
+
+  private static extractErrorMessage(json: any, fallback: string): string {
+    if (!json) return fallback;
+    if (typeof json.message === 'string') return json.message;
+    if (json.message && typeof json.message.message === 'string') return json.message.message;
+    if (json.errorCode && typeof json.errorCode.message === 'string') return json.errorCode.message;
+    if (json.error && typeof json.error.message === 'string') return json.error.message;
+    if (json.error && typeof json.error.code === 'string') return json.error.code;
+    return fallback;
   }
 
   static async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
@@ -32,7 +42,7 @@ export class ApiClient {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.message || `API error: ${res.statusText}`);
+        throw new Error(this.extractErrorMessage(json, `API error: ${res.statusText}`));
       }
       return json.data !== undefined ? json.data : json;
     } catch (err: any) {
@@ -52,7 +62,7 @@ export class ApiClient {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.message || `API error: ${res.statusText}`);
+        throw new Error(this.extractErrorMessage(json, `API error: ${res.statusText}`));
       }
       return json.data !== undefined ? json.data : json;
     } catch (err: any) {
@@ -71,7 +81,7 @@ export class ApiClient {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.message || `API error: ${res.statusText}`);
+        throw new Error(this.extractErrorMessage(json, `API error: ${res.statusText}`));
       }
       return json.data !== undefined ? json.data : json;
     } catch (err: any) {
@@ -90,7 +100,7 @@ export class ApiClient {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.message || `API error: ${res.statusText}`);
+        throw new Error(this.extractErrorMessage(json, `API error: ${res.statusText}`));
       }
       return json.data !== undefined ? json.data : json;
     } catch (err: any) {
@@ -108,7 +118,7 @@ export class ApiClient {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.message || `API error: ${res.statusText}`);
+        throw new Error(this.extractErrorMessage(json, `API error: ${res.statusText}`));
       }
       return json.data !== undefined ? json.data : json;
     } catch (err: any) {

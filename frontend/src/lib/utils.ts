@@ -1,0 +1,23 @@
+/**
+ * Utility function to conditionally join classNames together.
+ * Supports strings, undefined, null, booleans, and conditional object maps.
+ */
+export function cn(
+  ...inputs: (string | undefined | null | false | Record<string, boolean | undefined | null>)[]
+): string {
+  const classes: string[] = [];
+
+  for (const input of inputs) {
+    if (!input) continue;
+
+    if (typeof input === 'string') {
+      classes.push(input.trim());
+    } else if (typeof input === 'object') {
+      for (const [key, value] of Object.entries(input)) {
+        if (value) classes.push(key.trim());
+      }
+    }
+  }
+
+  return classes.join(' ');
+}

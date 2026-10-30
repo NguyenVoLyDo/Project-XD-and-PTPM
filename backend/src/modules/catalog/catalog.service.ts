@@ -1,10 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
 import { StoreService } from '../../common/database/store.service';
 import { Product } from '../../common/database/types';
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly store: StoreService) {}
+  constructor(@Inject(StoreService) private readonly store: StoreService) {}
 
   async getAllProducts(supplierId?: string, search?: string) {
     let list = this.store.products;

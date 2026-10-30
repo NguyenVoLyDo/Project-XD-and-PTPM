@@ -1,60 +1,22 @@
-import React from 'react';
 import Link from 'next/link';
-
+import { Icon } from './ui/icon';
 export function Footer() {
-  return (
-    <footer className="mt-auto border-t border-slate-800/80 bg-slate-950/60 text-slate-400 text-xs">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-white text-sm">
-                DC
-              </div>
-              <span className="font-bold text-white text-base">DropConnect</span>
-            </div>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Nền tảng Dropshipping B2B2C nội địa kết nối Nhà cung cấp, Người bán và Khách hàng với khả năng tách đơn tự động, snapshot giá và đối soát tài chính minh bạch.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-white uppercase tracking-wider mb-3 text-[11px]">Dành cho Khách hàng</h4>
-            <ul className="space-y-2">
-              <li><Link href="/catalog" className="hover:text-white transition">Tìm kiếm sản phẩm</Link></li>
-              <li><Link href="/cart" className="hover:text-white transition">Giỏ hàng</Link></li>
-              <li><Link href="/orders" className="hover:text-white transition">Theo dõi đơn hàng</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-white uppercase tracking-wider mb-3 text-[11px]">Dành cho Người bán & NCC</h4>
-            <ul className="space-y-2">
-              <li><Link href="/seller/listings" className="hover:text-white transition">Quản lý Listing & Biên lợi nhuận</Link></li>
-              <li><Link href="/supplier/products" className="hover:text-white transition">Quản lý kho & Giá vốn NCC</Link></li>
-              <li><Link href="/supplier/orders" className="hover:text-white transition">Thực hiện đơn (Fulfillment)</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-white uppercase tracking-wider mb-3 text-[11px]">Hệ thống & Báo cáo</h4>
-            <ul className="space-y-2">
-              <li><Link href="/admin/dashboard" className="hover:text-white transition">Bảng điều hành Admin</Link></li>
-              <li><Link href="/admin/disputes" className="hover:text-white transition">Quy trình xử lý tranh chấp</Link></li>
-              <li><Link href="/admin/audit-logs" className="hover:text-white transition">Lịch sử Audit Log</Link></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between text-slate-500">
-          <div>© 2026 DropConnect B2B2C Platform. Đồ án Xây dựng và PTPM.</div>
-          <div className="mt-2 sm:mt-0 flex gap-4">
-            <span>PostgreSQL</span>
-            <span>NestJS Modular Monolith</span>
-            <span>Next.js App Router</span>
-          </div>
-        </div>
+  return <footer className="mt-16 bg-surface border-t border-line">
+    <div className="page-shell py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+      <div className="max-w-sm">
+        <Link href="/" className="inline-flex items-center gap-2 font-bold text-lg"><Icon name="box" className="text-primary" />DropConnect</Link>
+        <p className="mt-3 text-sm text-subtle leading-7">Kết nối những gian hàng và nhà cung cấp trong nước. Tìm món đồ bạn cần, mua trong một giỏ hàng, theo dõi từng kiện giao đến.</p>
       </div>
-    </footer>
-  );
+      <div><h2 className="text-sm font-semibold mb-4">Mua sắm cùng DropConnect</h2><ul className="space-y-3 text-sm text-subtle">
+        <li><Link className="hover:text-primary" href="/catalog">Khám phá sản phẩm</Link></li>
+        <li><Link className="hover:text-primary" href="/cart">Giỏ hàng của bạn</Link></li>
+        <li><Link className="hover:text-primary" href="/orders">Theo dõi đơn hàng</Link></li>
+      </ul></div>
+      <div><h2 className="text-sm font-semibold mb-4">Dành cho đối tác</h2><ul className="space-y-3 text-sm text-subtle">
+        <li><Link className="hover:text-primary" href="/seller/listings">Quản lý gian hàng</Link></li>
+        <li><Link className="hover:text-primary" href="/supplier/products">Sản phẩm & tồn kho</Link></li>
+      </ul><p className="text-xs text-subtle mt-4">Chọn tài khoản demo ở đầu trang để trải nghiệm từng vai trò.</p></div>
+    </div>
+    <div className="page-shell border-t border-line py-5 text-xs text-subtle flex flex-wrap justify-between gap-2"><span>© 2026 DropConnect.</span><span>Phiên bản trải nghiệm của đồ án.</span></div>
+  </footer>;
 }

@@ -90,8 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (currentUser.role === 'CUSTOMER') {
       try {
         const cart: any = await ApiClient.get('/cart');
-        if (cart && cart.totalItems !== undefined) {
-          setCartCount(cart.totalItems);
+        if (cart && Array.isArray(cart.items)) {
+          setCartCount(cart.items.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0));
         }
       } catch {
         // fallback

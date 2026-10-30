@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, UseGuards, Inject } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -7,7 +7,7 @@ import { CurrentUser, CurrentActor } from '../../common/auth/current-user.decora
 
 @Controller('api/v1/inventory')
 export class InventoryController {
-  constructor(private readonly inventoryService: InventoryService) {}
+  constructor(@Inject(InventoryService) private readonly inventoryService: InventoryService) {}
 
   @Get('product/:productId')
   async getProductStock(@Param('productId') productId: string) {
