@@ -35,6 +35,15 @@ CREATE TABLE user_role_memberships (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, role)
 );
+CREATE TABLE user_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  refresh_token_hash text NOT NULL,
+  is_revoked boolean NOT NULL DEFAULT false,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE supplier_profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
