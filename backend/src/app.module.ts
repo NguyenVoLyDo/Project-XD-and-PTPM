@@ -1,6 +1,8 @@
 import { PostgresCommerceModule } from './integration/postgres/commerce.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { HealthController } from './health/health.controller';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -45,6 +47,8 @@ import { UploadController } from './common/upload/upload.controller.js';
     IdentityModule,
     AdminModule,
     NotificationsModule,
+    PaymentsModule,
+    FulfillmentModule,
   ],
   controllers: [HealthController, UploadController],
 })

@@ -78,6 +78,7 @@ export function Navbar() {
       : currentUser.role === 'SUPPLIER'
       ? [
           { href: '/supplier/products', label: 'Sản phẩm & Tồn kho' },
+          { href: '/supplier/orders', label: 'Đơn hàng cần xử lý' },
           { href: '/supplier/market', label: 'Thị trường bán lẻ' },
         ]
       : [
