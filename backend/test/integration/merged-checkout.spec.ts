@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NestFactory } from "@nestjs/core";
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
-import { AppModule } from "../../src/app.module";
+import { DemoAppModule as AppModule } from "../../src/demo-app.module";
 import { StoreService } from "../../src/common/database/store.service";
 import { GlobalExceptionFilter } from "../../src/common/errors/http-exception.filter";
 import { ResponseTransformInterceptor } from "../../src/common/http/response.interceptor";

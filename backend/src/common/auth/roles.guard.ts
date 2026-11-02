@@ -1,7 +1,8 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Inject } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from './roles.decorator';
-import { RoleType } from '../database/types';
+import { ROLES_KEY } from './roles.decorator.js';
+import { RoleType } from './current-actor.interface.js';
+import { ForbiddenAppException, UnauthorizedAppException } from '../errors/app-exception.js';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -18,18 +19,17 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    if (!user || !user.role) {
-      throw new ForbiddenException('Access denied: unauthenticated or no role');
+
+    if (!user) {
+      throw new UnauthorizedAppException('UNAUTHORIZED', 'Chưa đăng nhập');
     }
 
-    // Admin has access to everything
-    if (user.role === 'ADMIN') {
-      return true;
-    }
-
-    const hasRole = requiredRoles.includes(user.role);
+    const hasRole = requiredRoles.includes(user.activeRole);
     if (!hasRole) {
-      throw new ForbiddenException(`Access denied: required role in [${requiredRoles.join(', ')}] but user is [${user.role}]`);
+      throw new ForbiddenAppException(
+        'ACTIVE_ROLE_REQUIRED',
+        `Yêu cầu vai trò: ${requiredRoles.join(', ')}. Vai trò hiện tại: ${user.activeRole}`,
+      );
     }
 
     return true;

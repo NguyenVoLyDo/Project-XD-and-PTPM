@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+import { API_BASE } from './api-base';
 
 export class ApiClient {
   private static getHeaders(userId?: string, role?: string): HeadersInit {
@@ -6,13 +6,13 @@ export class ApiClient {
       'Content-Type': 'application/json',
     };
     if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('dc_token');
+      const storedToken = localStorage.getItem('dc_access_token');
       const storedUserId = userId || localStorage.getItem('dc_user_id') || 'u-customer-c';
       const storedRole = role || localStorage.getItem('dc_active_role') || 'CUSTOMER';
 
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      if (storedUserId) headers['x-user-id'] = storedUserId;
-      if (storedRole) headers['x-role'] = storedRole;
+      if (!storedToken && storedUserId) headers['x-user-id'] = storedUserId;
+      if (!storedToken && storedRole) headers['x-role'] = storedRole;
     }
     return headers;
   }

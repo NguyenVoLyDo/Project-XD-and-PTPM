@@ -1,39 +1,80 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Response } from 'express';
+import { ApiErrorResponse } from './api-error.response.js';
 
 @Catch()
-export class GlobalExceptionFilter implements ExceptionFilter {
+export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let errorCode = 'INTERNAL_ERROR';
+    let code = 'INTERNAL_SERVER_ERROR';
+    let message = 'Đã có lỗi xảy ra trên hệ thống';
+    let details: Array<{ field?: string; code?: string; message?: string }> = [];
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
-      if (typeof res === 'object' && res !== null && typeof (res as any).error?.code === 'string') {
-        response.status(status).json(res);
-        return;
-      }
-      if (typeof res === 'string') {
-        message = res;
+
+      if (typeof res === 'object' && res !== null && 'error' in res && typeof (res as any).error === 'object') {
+        const errorObj = (res as any).error;
+        code = errorObj.code || this.defaultCodeForStatus(status);
+        message = errorObj.message || exception.message;
+        details = Array.isArray(errorObj.details) ? errorObj.details : [];
       } else if (typeof res === 'object' && res !== null) {
-        message = (res as any).message || (res as any).error || message;
-        errorCode = (res as any).errorCode || (res as any).error || errorCode;
+        const anyRes = res as any;
+        code = anyRes.code || this.defaultCodeForStatus(status);
+        message = anyRes.message || exception.message;
+        if (Array.isArray(anyRes.message)) {
+          message = anyRes.message[0] || 'Dữ liệu không hợp lệ';
+          details = anyRes.message.map((msg: string) => ({ message: msg }));
+        }
+      } else if (typeof res === 'string') {
+        message = res;
+        code = this.defaultCodeForStatus(status);
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      this.logger.error(`Unhandled error: ${exception.message}`, exception.stack);
+      message = 'Đã có lỗi xảy ra trên hệ thống';
     }
 
-    response.status(status).json({
-      success: false,
-      statusCode: status,
-      errorCode,
-      message,
-      timestamp: new Date().toISOString(),
-    });
+    const payload: ApiErrorResponse = {
+      error: {
+        code,
+        message,
+        details,
+      },
+    };
+
+    response.status(status).json(payload);
+  }
+
+  private defaultCodeForStatus(status: number): string {
+    switch (status) {
+      case HttpStatus.BAD_REQUEST:
+        return 'VALIDATION_ERROR';
+      case HttpStatus.UNAUTHORIZED:
+        return 'UNAUTHORIZED';
+      case HttpStatus.FORBIDDEN:
+        return 'FORBIDDEN';
+      case HttpStatus.NOT_FOUND:
+        return 'NOT_FOUND';
+      case HttpStatus.CONFLICT:
+        return 'CONFLICT';
+      default:
+        return 'INTERNAL_SERVER_ERROR';
+    }
   }
 }
+
+export { HttpExceptionFilter as GlobalExceptionFilter };

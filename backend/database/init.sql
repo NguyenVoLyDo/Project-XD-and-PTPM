@@ -35,6 +35,15 @@ CREATE TABLE user_role_memberships (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, role)
 );
+CREATE TABLE user_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  refresh_token_hash text NOT NULL,
+  is_revoked boolean NOT NULL DEFAULT false,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE supplier_profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
@@ -286,3 +295,6 @@ CREATE INDEX idx_order_items_order_id ON order_items(customer_order_id);
 CREATE INDEX idx_fulfillment_orders_order_id ON fulfillment_orders(customer_order_id);
 CREATE INDEX idx_payment_intents_order_id ON payment_intents(customer_order_id);
 CREATE INDEX idx_outbox_events_unpublished ON outbox_events(published_at) WHERE published_at IS NULL;
+
+-- Identity-owned notification schema, applied after users and audit_logs.
+\ir schema/01-nguoi1-identity-sessions.sql

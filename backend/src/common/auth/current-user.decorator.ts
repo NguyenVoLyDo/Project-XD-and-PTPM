@@ -1,17 +1,15 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { RoleType } from '../database/types';
-
-export interface CurrentActor {
-  userId: string;
-  email: string;
-  role: RoleType;
+import { CurrentActor as IdentityActor } from './current-actor.interface.js';
+export interface CurrentActor extends IdentityActor {
+  role: IdentityActor['activeRole'];
+  email?: string;
   supplierProfileId?: string;
   sellerProfileId?: string;
 }
 
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): CurrentActor => {
+  (_data: unknown, ctx: ExecutionContext): CurrentActor | null => {
     const request = ctx.switchToHttp().getRequest();
-    return request.user;
+    return request.user || null;
   },
 );

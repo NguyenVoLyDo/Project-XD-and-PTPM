@@ -1,6 +1,3 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { DatabaseModule } from './common/database/database.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { ListingsModule } from './modules/listings/listings.module';
@@ -9,8 +6,20 @@ import { IntegrationModule } from './integration/integration.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { HealthController } from './health/health.controller';
-import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
-import { RolesGuard } from './common/auth/roles.guard';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CommonModule } from './common/common.module.js';
+import { IdentityModule } from './modules/identity/identity.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { User } from './modules/identity/domain/user.entity.js';
+import { UserRoleMembership } from './modules/identity/domain/user-role-membership.entity.js';
+import { SupplierProfile } from './modules/identity/domain/supplier-profile.entity.js';
+import { SellerProfile } from './modules/identity/domain/seller-profile.entity.js';
+import { UserSession } from './modules/identity/domain/user-session.entity.js';
+import { AuditLog } from './common/audit/audit-log.entity.js';
+import { Notification } from './modules/notifications/domain/notification.entity.js';
 
 @Module({
   imports: [
@@ -18,9 +27,19 @@ import { RolesGuard } from './common/auth/roles.guard';
       isGlobal: true,
       envFilePath: ['.env', '.env.example'],
     }),
-    JwtModule.register({
-      global: true,
-      secret: process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'dropconnect_demo_secret_2026' : undefined),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>(
+          'DATABASE_URL',
+          'postgres://dropconnect:change-me@localhost:5432/dropconnect',
+        ),
+        ssl: configService.get<string>('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+        entities: [User, UserRoleMembership, SupplierProfile, SellerProfile, UserSession, AuditLog, Notification],
+        synchronize: false,
+      }),
     }),
     DatabaseModule,
     CatalogModule,
@@ -29,8 +48,11 @@ import { RolesGuard } from './common/auth/roles.guard';
     IntegrationModule,
     CartModule,
     OrdersModule,
+    CommonModule,
+    IdentityModule,
+    AdminModule,
+    NotificationsModule,
   ],
-  providers: [JwtAuthGuard, RolesGuard],
   controllers: [HealthController],
 })
 export class AppModule {}

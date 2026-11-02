@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth, DEMO_ACCOUNTS } from '../lib/auth-context';
 import { Icon } from './ui/icon';
+import { useAuth as useIdentity } from '../features/auth/hooks/use-auth';
 
 export function Navbar() {
   const { currentUser, switchAccount, cartCount } = useAuth();
+  const identity = useIdentity();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const links = currentUser.role === 'SELLER'
@@ -22,13 +24,14 @@ export function Navbar() {
       <div className="page-shell flex items-center justify-between gap-3 py-1.5 text-xs text-primary">
         <span className="hidden sm:inline">Nhiều gian hàng. Một trải nghiệm mua sắm.</span>
         <div className="flex items-center gap-2 min-w-0 ml-auto">
-          <label htmlFor="demo-account" className="whitespace-nowrap">Bản demo</label>
+          {identity.isAuthenticated ? <><span>{currentUser.email}</span><button onClick={() => identity.logout()}>Đăng xuất</button></> : <><Link href="/login">Đăng nhập</Link><label htmlFor="demo-account" className="whitespace-nowrap">Bản demo</label>
           <select id="demo-account" value={currentUser.id} onChange={event => {
             const account = DEMO_ACCOUNTS.find(item => item.id === event.target.value);
             if (account) switchAccount(account);
           }} className="max-w-[230px] min-h-8 text-xs bg-surface rounded-md border border-line px-2">
             {DEMO_ACCOUNTS.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
           </select>
+          </>}
         </div>
       </div>
     </div>

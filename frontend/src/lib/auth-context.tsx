@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { RoleType, UserProfile } from './types';
 import { ApiClient } from './api';
+import { useAuth as useIdentity } from '../features/auth/hooks/use-auth';
 
 export interface DemoAccount {
   id: string;
@@ -67,7 +68,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<DemoAccount>(DEMO_ACCOUNTS[0]);
+  const identity = useIdentity();
+  const [demoUser, setCurrentUser] = useState<DemoAccount>(DEMO_ACCOUNTS[0]);
+  const currentUser: DemoAccount = identity.user && identity.actor ? {
+    id: identity.actor.userId,
+    email: identity.user.email,
+    role: identity.actor.activeRole,
+    name: identity.user.email,
+    badge: identity.actor.activeRole,
+    supplierProfileId: identity.actor.activeRole === 'SUPPLIER' ? identity.actor.activeProfileId ?? undefined : undefined,
+    sellerProfileId: identity.actor.activeRole === 'SELLER' ? identity.actor.activeProfileId ?? undefined : undefined,
+  } : demoUser;
   const [cartCount, setCartCount] = useState<number>(0);
 
   useEffect(() => {
@@ -79,11 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const switchAccount = (account: DemoAccount) => {
+    if (identity.isAuthenticated) return;
     setCurrentUser(account);
     localStorage.setItem('dc_user_id', account.id);
     localStorage.setItem('dc_active_role', account.role);
     localStorage.setItem('dc_user_email', account.email);
-    refreshCartCount();
   };
 
   const refreshCartCount = async () => {
@@ -94,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setCartCount(cart.items.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0));
         }
       } catch {
-        // fallback
+        setCartCount(0);
       }
     } else {
       setCartCount(0);
@@ -103,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshCartCount();
-  }, [currentUser]);
+  }, [currentUser.id, currentUser.role]);
 
   return (
     <AuthContext.Provider
