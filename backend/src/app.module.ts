@@ -8,6 +8,8 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { IntegrationModule } from './integration/integration.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { HealthController } from './health/health.controller';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
@@ -29,6 +31,8 @@ import { RolesGuard } from './common/auth/roles.guard';
     IntegrationModule,
     CartModule,
     OrdersModule,
+    PaymentsModule,
+    FulfillmentModule,
   ],
   providers: [JwtAuthGuard, RolesGuard],
   controllers: [HealthController],

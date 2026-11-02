@@ -63,6 +63,13 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const loadOrderDetail = async () => {
     if (!orderId) return;
@@ -82,6 +89,33 @@ export default function OrderDetailPage() {
   useEffect(() => {
     loadOrderDetail();
   }, [orderId]);
+
+  /**
+   * Giả lập thanh toán trực tuyến qua VietQR (gọi Webhook sang Payments module)
+   */
+  const handleSimulatePayment = async () => {
+    if (!order || paying) return;
+    try {
+      setPaying(true);
+      await ApiClient.post('/payments/webhooks/vietqr', {
+        provider: 'VIETQR',
+        providerEventId: `evt_${Date.now()}`,
+        providerTransactionRef: `VQR_${Date.now()}`,
+        orderId: order.orderId,
+        paymentId: order.orderId,
+        amount: order.totalPayable,
+        status: 'SUCCESS',
+        signature: 'valid_mock_signature',
+        timestamp: new Date().toISOString(),
+      });
+      showToast('Đã xác nhận thanh toán trực tuyến thành công!', 'success');
+      await loadOrderDetail();
+    } catch (err: any) {
+      showToast(err.message || 'Mô phỏng thanh toán thất bại', 'error');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   // Stepper calculations
   const steps: StepItem[] = React.useMemo(() => {
@@ -145,7 +179,7 @@ export default function OrderDetailPage() {
 
         <Link
           href="/orders"
-          className="text-xs text-subtle hover:text-ink flex items-center gap-1.5 transition self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 text-xs text-subtle hover:text-ink font-semibold transition"
         >
           <span>← Quay lại danh sách đơn hàng</span>
         </Link>
@@ -174,7 +208,7 @@ export default function OrderDetailPage() {
         <div className="space-y-8">
           {/* Stepper Card */}
           <Card className="p-6 space-y-4">
-            <h3 className="text-xs font-bold text-subtle ">
+            <h3 className="text-xs font-bold text-subtle">
               Tiến trình xử lý đơn hàng:
             </h3>
             <OrderStepper steps={steps} />
@@ -219,7 +253,7 @@ export default function OrderDetailPage() {
               )}
             </div>
 
-            {/* Right Col: Address & Payment Summary */}
+            {/* Right Col: Address & Payment Summary & VietQR */}
             <div className="space-y-6">
               {/* Shipping Address Card */}
               <Card className="p-5 space-y-4">
@@ -288,8 +322,100 @@ export default function OrderDetailPage() {
                   </div>
                 </div>
               </Card>
+
+              {/* VietQR Payment Card (Chỉ hiện khi khách chọn Thanh toán Online) */}
+              {order.paymentMethod !== 'COD' && (
+                order.paymentStatus === 'PENDING' || order.status === 'PENDING_PAYMENT' ? (
+                  <Card className="p-5 space-y-4 border-2 border-emerald-500/30 bg-emerald-50/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-ink text-sm">Quét Mã VietQR</span>
+                        <Badge variant="warning" className="text-[10px]">Chờ quét mã</Badge>
+                      </div>
+                      <span className="text-[10px] font-mono text-subtle">Hạn giữ kho: 15 phút</span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl border border-line">
+                      <div className="w-32 h-32 relative flex-shrink-0 bg-white p-1 border border-line rounded-lg shadow-sm flex items-center justify-center">
+                        <img
+                          src={`https://api.vietqr.io/image/970422-99998888-compact2.png?amount=${order.totalPayable}&addInfo=${order.orderNo}&accountName=DROPCONNECT%20ESCROW`}
+                          alt="Mã VietQR"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      <div className="text-xs space-y-1.5 flex-1 w-full">
+                        <div className="flex justify-between">
+                          <span className="text-subtle">Ngân hàng:</span>
+                          <span className="font-bold text-ink">MB Bank (Quân Đội)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-subtle">Số tài khoản:</span>
+                          <span className="font-mono font-bold text-primary">99998888</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-subtle">Chủ TK:</span>
+                          <span className="font-semibold text-ink">DROPCONNECT ESCROW</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-subtle">Số tiền:</span>
+                          <span className="font-bold text-emerald-700">
+                            {new Intl.NumberFormat('vi-VN').format(order.totalPayable)} đ
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-subtle">Nội dung CK:</span>
+                          <span className="font-mono font-bold text-ink bg-slate-100 px-1.5 py-0.5 rounded">
+                            {order.orderNo}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSimulatePayment}
+                      disabled={paying}
+                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                    >
+                      {paying ? (
+                        <span>Đang xử lý Webhook...</span>
+                      ) : (
+                        <>
+                          <span>⚡</span>
+                          <span>Xác nhận đã chuyển khoản (Mô phỏng thanh toán)</span>
+                        </>
+                      )}
+                    </button>
+                  </Card>
+                ) : (
+                  <Card className="p-4 border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      ✓
+                    </div>
+                    <div className="text-xs">
+                      <div className="font-bold text-emerald-900">Thanh toán Online thành công</div>
+                      <div className="text-emerald-700 text-[11px]">Đã xác nhận tiền về tài khoản ký quỹ VietQR</div>
+                    </div>
+                  </Card>
+                )
+              )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 ${
+            toast.type === 'error'
+              ? 'bg-rose-50 text-rose-800 border-rose-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          }`}
+        >
+          <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+          <span>{toast.message}</span>
         </div>
       )}
     </div>

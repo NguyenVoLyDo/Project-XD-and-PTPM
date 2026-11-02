@@ -12,7 +12,7 @@ export function Navbar() {
   const links = currentUser.role === 'SELLER'
     ? [{ href: '/seller/listings', label: 'Quản lý gian hàng' }, { href: '/catalog', label: 'Khám phá sản phẩm' }]
     : currentUser.role === 'SUPPLIER'
-      ? [{ href: '/supplier/products', label: 'Sản phẩm & tồn kho' }, { href: '/catalog', label: 'Danh mục sản phẩm' }]
+      ? [{ href: '/supplier/products', label: 'Sản phẩm & tồn kho' }, { href: '/supplier/orders', label: 'Đơn hàng cần xử lý' }, { href: '/catalog', label: 'Danh mục sản phẩm' }]
       : [{ href: '/', label: 'Trang chủ' }, { href: '/catalog', label: 'Khám phá' }, { href: '/orders', label: 'Đơn hàng' }];
   const renderLinks = () => links.map(link => <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
     aria-current={pathname === link.href ? 'page' : undefined}
