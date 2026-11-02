@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { adminApi } from '@/features/admin/admin.api';
 import { AdminUser } from '@/features/admin/types';
+import { Icon } from '@/components/ui/icon';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -13,7 +14,13 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [actionUser, setActionUser] = useState<AdminUser | null>(null);
   const [reason, setReason] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -45,55 +52,87 @@ export default function AdminUsersPage() {
         await adminApi.updateUserStatus(actionUser.id, newStatus, reason);
         setActionUser(null);
         setReason('');
+        showToast(`Đã ${newStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản thành công!`);
         await fetchUsers();
       } catch (err: any) {
-        alert(err.message || 'Không thể cập nhật trạng thái');
+        showToast(err.message || 'Không thể cập nhật trạng thái', 'error');
       }
     });
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {error && <p role="alert">{error} <button onClick={fetchUsers}>Thử lại</button></p>}
+      {toast && (
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          }`}
+        >
+          <Icon name={toast.type === 'success' ? 'check' : 'alert'} width={18} height={18} />
+          <span className="text-xs font-semibold">{toast.message}</span>
+        </div>
+      )}
+
+      {error && (
+        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between">
+          <span>{error}</span>
+          <button type="button" onClick={fetchUsers} className="underline font-bold">
+            Thử lại
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">
-            Quản Lý Người Dùng
+          <h1 className="text-xl font-extrabold text-ink tracking-tight">
+            Quản Lý Người Dùng & Phân Quyền
           </h1>
-          <p className="text-xs text-slate-400">
-            Xem danh sách tài khoản, kiểm tra vai trò và khóa/mở khóa tài khoản khi cần thiết.
+          <p className="text-xs text-subtle mt-0.5">
+            Xem danh sách tài khoản, kiểm tra vai trò hoạt động và khóa/mở khóa tài khoản khi có vi phạm.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={fetchUsers}
+          className="px-3.5 py-2 rounded-xl bg-surface border border-line hover:bg-muted text-ink text-xs font-semibold transition flex items-center gap-1.5 self-start shadow-xs"
+        >
+          <Icon name="refresh" width={14} height={14} />
+          <span>Làm mới danh sách</span>
+        </button>
       </div>
 
       {/* Filters */}
-      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row gap-3">
-        <div className="flex-1">
+      <div className="p-4 rounded-2xl bg-surface border border-line flex flex-col sm:flex-row gap-3 shadow-xs">
+        <div className="flex-1 relative">
           <input
             type="text"
-            placeholder="Tìm theo email người dùng..."
+            placeholder="Tìm kiếm theo email người dùng..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3.5 py-2 rounded-lg bg-slate-800/80 border border-slate-700 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            className="w-full h-10 pl-9 pr-4 rounded-xl bg-canvas border border-line text-ink placeholder:text-subtle/70 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle pointer-events-none">
+            <Icon name="search" width={14} height={14} />
+          </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3.5 py-2 rounded-lg bg-slate-800/80 border border-slate-700 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            className="h-10 px-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-            <option value="LOCKED">Bị khóa (LOCKED)</option>
+            <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
+            <option value="LOCKED">Đã khóa (LOCKED)</option>
           </select>
 
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3.5 py-2 rounded-lg bg-slate-800/80 border border-slate-700 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            className="h-10 px-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             <option value="">Tất cả vai trò</option>
             <option value="CUSTOMER">Khách hàng (CUSTOMER)</option>
@@ -105,10 +144,10 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-line bg-surface overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-800/60 text-slate-400 uppercase text-[11px] font-semibold tracking-wider border-b border-slate-800">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-canvas text-subtle uppercase text-[10px] font-bold tracking-wider border-b border-line">
               <tr>
                 <th className="px-5 py-3.5">Email người dùng</th>
                 <th className="px-5 py-3.5">Vai trò</th>
@@ -118,39 +157,39 @@ export default function AdminUsersPage() {
                 <th className="px-5 py-3.5 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-line text-ink">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-subtle">
                     Đang tải danh sách người dùng...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-subtle">
                     Không tìm thấy người dùng phù hợp.
                   </td>
                 </tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-800/30 transition">
+                  <tr key={u.id} className="hover:bg-muted/40 transition">
                     <td className="px-5 py-3.5">
-                      <div className="font-medium text-white">{u.email}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">ID: {u.id.slice(0, 8)}...</div>
+                      <div className="font-bold text-ink">{u.email}</div>
+                      <div className="text-[10px] text-subtle font-mono mt-0.5">ID: {u.id.slice(0, 8)}...</div>
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex flex-wrap gap-1">
                         {u.roles?.map((r) => (
                           <span
                             key={r}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                               r === 'ADMIN'
-                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
                                 : r === 'SUPPLIER'
-                                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
                                 : r === 'SELLER'
-                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                                : 'bg-slate-800 text-slate-300 border border-slate-700'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-canvas text-subtle border-line'
                             }`}
                           >
                             {r}
@@ -160,42 +199,43 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                           u.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            u.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-red-400'
+                            u.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
                           }`}
                         />
-                        {u.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}
+                        {u.status === 'ACTIVE' ? 'Hoạt động' : 'Bị khóa'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-400">
+                    <td className="px-5 py-3.5 text-subtle">
                       {u.supplierProfile && (
-                        <div>NCC: {u.supplierProfile.status}</div>
+                        <div className="text-[11px]">NCC: <strong className="text-ink">{u.supplierProfile.status}</strong></div>
                       )}
                       {u.sellerProfile && (
-                        <div>Seller: {u.sellerProfile.status}</div>
+                        <div className="text-[11px]">Seller: <strong className="text-ink">{u.sellerProfile.status}</strong></div>
                       )}
-                      {!u.supplierProfile && !u.sellerProfile && <span>—</span>}
+                      {!u.supplierProfile && !u.sellerProfile && <span className="text-subtle/60">—</span>}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-400">
+                    <td className="px-5 py-3.5 text-subtle">
                       {new Date(u.createdAt).toLocaleDateString('vi-VN')}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <button
+                        type="button"
                         onClick={() => {
                           setActionUser(u);
                           setReason('');
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                           u.status === 'ACTIVE'
-                            ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
                         }`}
                       >
                         {u.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa'}
@@ -209,39 +249,54 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Clean Minimalist */}
       {actionUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">
+        <div className="fixed inset-0 bg-ink/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="w-full max-w-md bg-surface border border-line rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  actionUser.status === 'ACTIVE'
+                    ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                    : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                }`}
+              >
+                <Icon name={actionUser.status === 'ACTIVE' ? 'lock' : 'unlock'} width={20} height={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-ink">
+                  {actionUser.status === 'ACTIVE'
+                    ? 'Xác nhận khóa tài khoản'
+                    : 'Xác nhận mở khóa tài khoản'}
+                </h3>
+                <p className="text-xs text-subtle truncate max-w-xs">{actionUser.email}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-subtle leading-relaxed">
               {actionUser.status === 'ACTIVE'
-                ? 'Xác nhận khóa tài khoản'
-                : 'Xác nhận mở khóa tài khoản'}
-            </h3>
-            <p className="text-xs text-slate-400">
-              Bạn đang thực hiện thao tác trên người dùng: <strong>{actionUser.email}</strong>.
-              {actionUser.status === 'ACTIVE' &&
-                ' Tài khoản bị khóa sẽ lập tức bị thu hồi toàn bộ phiên đăng nhập hiện tại.'}
+                ? 'Tài khoản sau khi bị khóa sẽ lập tức mất quyền truy cập và bị thu hồi toàn bộ phiên đăng nhập hiện tại.'
+                : 'Mở khóa tài khoản sẽ cho phép người dùng tiếp tục đăng nhập và thực hiện các giao dịch trên hệ thống.'}
             </p>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Lý do thực hiện (Audit Log)
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                Lý do thực hiện (Lưu vào Nhật ký kiểm toán)
               </label>
               <textarea
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Ví dụ: Gian lận đơn hàng, Vi phạm chính sách nền tảng..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                className="w-full px-3 py-2 rounded-xl bg-canvas border border-line text-ink placeholder:text-subtle/70 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setActionUser(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                className="px-4 py-2 rounded-xl bg-surface border border-line hover:bg-muted text-subtle hover:text-ink text-xs font-semibold transition"
               >
                 Hủy bỏ
               </button>
@@ -251,8 +306,8 @@ export default function AdminUsersPage() {
                 onClick={handleToggleStatus}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold text-white transition ${
                   actionUser.status === 'ACTIVE'
-                    ? 'bg-red-600 hover:bg-red-500'
-                    : 'bg-emerald-600 hover:bg-emerald-500'
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : 'bg-primary hover:bg-primary-hover text-on-primary'
                 }`}
               >
                 {isPending

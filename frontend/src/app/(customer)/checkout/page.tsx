@@ -12,6 +12,7 @@ import { EmptyState } from '../../../components/molecules/empty-state';
 import { ErrorFallback } from '../../../components/molecules/error-fallback';
 import { PurchaseSteps } from '../../../components/storefront/purchase-steps';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { LoginModal } from '../../../components/modals/login-modal';
 
 interface CartItemData {
   listingId: string;
@@ -37,6 +38,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [priceNotice, setPriceNotice] = useState(false);
   const checkoutAttempt = useRef<{ body: string; key: string } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -165,6 +167,17 @@ export default function CheckoutPage() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <PurchaseSteps current={2} />
+      {loginModalOpen && (
+        <LoginModal
+          actionMessage="Đăng nhập tài khoản để tiến hành thanh toán đơn mua"
+          redirectUrl="/checkout"
+          onClose={() => setLoginModalOpen(false)}
+          onSuccess={() => {
+            setLoginModalOpen(false);
+            fetchCart();
+          }}
+        />
+      )}
       {priceNotice && <p role="alert" className="rounded-xl border border-amber-400 bg-amber-50 p-4 text-amber-900">
         Giá sản phẩm đã thay đổi. Vui lòng kiểm tra giá mới bên dưới và bấm đặt hàng lần nữa để xác nhận.
       </p>}
@@ -211,6 +224,14 @@ export default function CheckoutPage() {
           </div>
           <Skeleton className="h-80 w-full rounded-2xl" />
         </div>
+      ) : !currentUser.id ? (
+        <EmptyState
+          title="Vui lòng đăng nhập để thanh toán"
+          description="Bạn cần đăng nhập tài khoản khách hàng để điền thông tin giao hàng và xác nhận đơn mua."
+          actionText="Đăng nhập ngay"
+          actionHref="/login?redirect=/checkout"
+          onAction={() => setLoginModalOpen(true)}
+        />
       ) : currentUser.role !== 'CUSTOMER' ? (
         <EmptyState
           title="Bạn đang ở vai trò khác"
@@ -218,7 +239,7 @@ export default function CheckoutPage() {
           actionText="Chuyển sang vai trò Khách hàng"
           onAction={() => {
             const customerAcc = DEMO_ACCOUNTS.find((a) => a.role === 'CUSTOMER') || DEMO_ACCOUNTS[0];
-            switchAccount(customerAcc).catch(error => window.alert(error.message));
+            switchAccount(customerAcc).catch(error => showToast(error.message, 'error'));
           }}
         />
       ) : error ? (

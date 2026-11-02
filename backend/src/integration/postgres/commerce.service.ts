@@ -15,15 +15,24 @@ export class CommerceService {
     return actor.activeProfileId;
   }
   margin() { return integer(Number(process.env.MIN_MARGIN_VND || 0), 'MIN_MARGIN_VND'); }
-  async productView(row: any, cost = false) {
-    const stock = await this.stock(row.id);
-    return { ...productView(row, cost), availableStock: stock.available };
+  async productView(row: any, cost = false, knownStock?: {onHand: number; reserved: number; available: number}) {
+    const stock = knownStock || await this.stock(row.id);
+    return { ...productView(row, cost), availableStock: stock.available, onHand: stock.onHand, reserved: stock.reserved, available: stock.available };
+  }
+  private async productViews(rows: any[], cost = false) {
+    if (!rows.length) return [];
+    const held = await this.db.query("SELECT product_id,SUM(quantity)::int AS reserved FROM stock_reservations WHERE product_id=ANY($1::uuid[]) AND status='HELD' AND expires_at>now() GROUP BY product_id", [rows.map(r => r.id)]);
+    const reservations = new Map(held.map(r => [r.product_id, r.reserved]));
+    return Promise.all(rows.map(r => {
+      const onHand = Number(r.available_stock), reserved = Number(reservations.get(r.id) || 0);
+      return this.productView(r, cost, { onHand, reserved, available: onHand - reserved });
+    }));
   }
   async products(supplierId?: string, search?: string, actor?: CurrentActor) {
     const own = actor ? await this.profile(actor, 'SUPPLIER') : null;
     const rows = await this.db.query(`SELECT * FROM products WHERE ($1::uuid IS NULL OR supplier_id=$1)
       AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%') ${own ? '' : "AND status='ACTIVE'"} ORDER BY created_at DESC`, [own || (supplierId ? uuid(supplierId) : null), search || null]);
-    return Promise.all(rows.map(row => this.productView(row, Boolean(own))));
+    return this.productViews(rows, Boolean(own));
   }
   async product(id: string) {
     const [row] = await this.db.query("SELECT * FROM products WHERE id=$1 AND status='ACTIVE'", [uuid(id)]);
@@ -33,7 +42,7 @@ export class CommerceService {
   async sourcing(actor: CurrentActor) {
     await this.profile(actor,'SELLER');
     const rows=await this.db.query("SELECT p.* FROM products p JOIN supplier_profiles s ON s.id=p.supplier_id JOIN users u ON u.id=s.user_id WHERE p.status='ACTIVE' AND s.approval_status='APPROVED' AND u.status='ACTIVE'");
-    return Promise.all(rows.map(async p=>({...await this.productView(p,true),minimumSalePrice:Number(p.cost_price)+this.margin()})));
+    return (await this.productViews(rows, true)).map(p => ({ ...p, minimumSalePrice: p.costPrice + this.margin() }));
   }
   async createProduct(actor: CurrentActor, data: any, legacy = false) {
     const supplierId = await this.profile(actor, 'SUPPLIER');
@@ -89,6 +98,9 @@ export class CommerceService {
         const [old] = await this.db.query('SELECT * FROM inventory_adjustments WHERE product_id=$1 AND source_ref=$2', [p.id, source]);
         if (old) { if (old.delta !== delta || old.reason_code !== data.reasonCode) fail(409, 'STOCK_ADJUSTMENT_CONFLICT'); return old.result; }
       }
+      if (data.expectedOnHand !== undefined && integer(data.expectedOnHand, 'expectedOnHand') !== state.onHand) {
+        fail(409, 'STOCK_ADJUSTMENT_CONFLICT', 'Tồn kho đã thay đổi. Vui lòng tải lại trước khi điều chỉnh.');
+      }
       const onHand = state.onHand + delta;
       if (!Number.isSafeInteger(onHand) || onHand < state.reserved || onHand > 2147483647) fail(409, 'STOCK_ADJUSTMENT_CONFLICT');
       await this.db.query('UPDATE products SET available_stock=$2,updated_at=now() WHERE id=$1', [p.id, onHand]);
@@ -129,18 +141,60 @@ export class CommerceService {
       await this.db.audit(actor.userId,'SHOP_UPDATED','SHOP',id); return row;
     });
   }
-  async listingRows(id?: string) {
-    return this.db.query(`SELECT l.*,p.name AS product_name,p.description,p.image_url,p.cost_price,p.available_stock,
+  private listingQuery(filters: { id?: string; ids?: readonly string[]; shopId?: string; sellerId?: string; supplierId?: string; search?: string; publicOnly?: boolean } = {}) {
+    const params: any[] = [];
+    const clauses: string[] = [];
+    const add = (sql: string, value: any) => { params.push(value); clauses.push(sql.replace('?', `$${params.length}`)); };
+    if (filters.id) add('l.id=?', uuid(filters.id));
+    if (filters.ids) add('l.id=ANY(?::uuid[])', filters.ids.map(uuid));
+    if (filters.shopId) add('l.shop_id=?', uuid(filters.shopId));
+    if (filters.sellerId) add('s.seller_id=?', uuid(filters.sellerId));
+    if (filters.supplierId) add('p.supplier_id=?', uuid(filters.supplierId));
+    if (filters.search) {
+      // Match the storefront's Vietnamese accent-insensitive search without an extension.
+      const accents = 'àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ';
+      const plain = 'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd';
+      add(`translate(lower(p.name || ' ' || s.name), '${accents + accents.toUpperCase()}', '${plain + plain}') LIKE ? ESCAPE '\\'`, '%' + filters.search.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[\\%_]/g, '\\$&') + '%');
+    }
+    if (filters.publicOnly) {
+      clauses.push("l.status='ACTIVE' AND l.visible AND p.status='ACTIVE' AND s.status='ACTIVE' AND sp.approval_status='APPROVED' AND sl.approval_status='APPROVED' AND su.status='ACTIVE' AND se.status='ACTIVE'");
+      add('l.sale_price >= p.cost_price + ?', this.margin());
+    }
+    const sql = `SELECT l.*,p.name AS product_name,p.description,p.image_url,p.cost_price,p.available_stock,
+      COALESCE(held.quantity,0)::int AS reserved,
       p.status AS product_status,p.supplier_id,s.seller_id,s.name AS shop_name,s.status AS shop_status,
       sp.approval_status AS supplier_status,sl.approval_status AS seller_status,sp.legal_name,sl.display_name,
       su.status AS supplier_user_status,se.status AS seller_user_status
       FROM listings l JOIN products p ON p.id=l.product_id JOIN shops s ON s.id=l.shop_id
       JOIN supplier_profiles sp ON sp.id=p.supplier_id JOIN seller_profiles sl ON sl.id=s.seller_id
-      JOIN users su ON su.id=sp.user_id JOIN users se ON se.id=sl.user_id WHERE ($1::uuid IS NULL OR l.id=$1) ORDER BY l.created_at`, [id ? uuid(id) : null]);
+      JOIN users su ON su.id=sp.user_id JOIN users se ON se.id=sl.user_id
+      LEFT JOIN (SELECT product_id,SUM(quantity) AS quantity FROM stock_reservations WHERE status='HELD' AND expires_at>now() GROUP BY product_id) held ON held.product_id=p.id
+      WHERE ${clauses.length ? clauses.join(' AND ') : 'true'}`;
+    return { sql, params };
+  }
+  async listingRows(id?: string, ids?: readonly string[]) {
+    const { sql, params } = this.listingQuery({ id, ids });
+    return this.db.query(sql + ' ORDER BY l.created_at,l.id', params);
+  }
+  async listingPage(query: { page?: string; limit?: string; supplierId?: string; search?: string; sort?: string }) {
+    for (const key of ['page', 'limit', 'supplierId', 'search', 'sort']) {
+      if (query[key] !== undefined && typeof query[key] !== 'string') fail(400, 'INVALID_QUERY');
+    }
+    const page = integer(Number(query.page ?? 1), 'page', 1);
+    const limit = integer(Number(query.limit ?? 24), 'limit', 1);
+    if (limit > 100 || (page - 1) * limit > 2147483647) fail(400, 'INVALID_PAGINATION');
+    if (query.sort && !['price-asc', 'price-desc'].includes(query.sort)) fail(400, 'INVALID_SORT');
+    const { sql, params } = this.listingQuery({ publicOnly: true, supplierId: query.supplierId, search: query.search });
+    const order = query.sort === 'price-asc' ? 'sale_price ASC,id' : query.sort === 'price-desc' ? 'sale_price DESC,id' : 'created_at,id';
+    const rows = await this.db.query(`SELECT * FROM (${sql}) listing_page ORDER BY ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`, [...params, limit, (page - 1) * limit]);
+    const [count] = await this.db.query(`SELECT count(*)::int AS total FROM (${sql}) listing_count`, params);
+    const facets = this.listingQuery({ publicOnly: true });
+    const suppliers = await this.db.query(`SELECT DISTINCT supplier_id AS id,legal_name AS name FROM (${facets.sql}) supplier_options ORDER BY name,id`, facets.params);
+    return { items: await Promise.all(rows.map(r => this.listingView(r))), total: count.total, page, limit, totalPages: Math.max(1, Math.ceil(count.total / limit)), suppliers };
   }
   eligible(r: any) { return r.status === 'ACTIVE' && r.visible && r.product_status === 'ACTIVE' && r.shop_status === 'ACTIVE' && r.supplier_status === 'APPROVED' && r.seller_status === 'APPROVED' && r.supplier_user_status === 'ACTIVE' && r.seller_user_status === 'ACTIVE' && Number(r.sale_price) >= Number(r.cost_price) + this.margin(); }
   async listingView(r: any) {
-    const stock = await this.stock(r.product_id);
+    const stock = { available: Number(r.available_stock) - Number(r.reserved) };
     return { id:r.id,listingId:r.id,productId:r.product_id,shopId:r.shop_id,sellerId:r.seller_id,supplierId:r.supplier_id,
       sellerSku:r.seller_sku || '',title:r.product_name,productName:r.product_name,productDescription:r.description,
       productImage:r.image_url,shopName:r.shop_name,supplierName:r.legal_name,sellerName:r.display_name,
@@ -148,7 +202,8 @@ export class CommerceService {
   }
   async listings(shopId?: string, search?: string, actor?: CurrentActor, id?: string) {
     const sellerId = actor ? await this.profile(actor, 'SELLER') : null;
-    const rows = (await this.listingRows(id)).filter(r => (!sellerId ? this.eligible(r) : r.seller_id === sellerId) && (!shopId || r.shop_id === uuid(shopId)) && (!id || r.id === uuid(id)) && (!search || (r.product_name+' '+r.shop_name).toLowerCase().includes(search.toLowerCase())));
+    const { sql, params } = this.listingQuery({ id, shopId, search, sellerId, publicOnly: !sellerId });
+    const rows = await this.db.query(sql + ' ORDER BY l.created_at,l.id', params);
     if (id && !rows.length) fail(404,'LISTING_NOT_FOUND');
     const views = await Promise.all(rows.map(async r => ({...await this.listingView(r),...(sellerId?{costPrice:Number(r.cost_price),minimumSalePrice:Number(r.cost_price)+this.margin()}:{})}))); return id ? views[0] : views;
   }

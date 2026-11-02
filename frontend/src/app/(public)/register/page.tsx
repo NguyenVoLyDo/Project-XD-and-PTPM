@@ -9,12 +9,8 @@ export const metadata = {
 
 export default function RegisterPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 relative overflow-hidden">
-      {/* Background glowing orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md z-10 py-8">
+    <div className="py-4 sm:py-8 flex justify-center items-center">
+      <div className="w-full max-w-md">
         <AuthCard
           title="Tạo tài khoản mới"
           subtitle="Gia nhập hệ sinh thái Dropshipping kết nối Supplier, Seller và Khách hàng"
@@ -22,6 +18,6 @@ export default function RegisterPage() {
           <RegisterForm />
         </AuthCard>
       </div>
-    </main>
+    </div>
   );
 }

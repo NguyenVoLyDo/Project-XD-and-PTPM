@@ -1,30 +1,29 @@
 @import "tailwindcss";
 @theme {
-  --color-canvas: #f5f7f5;
+  --color-canvas: #f9fafb;
   --color-surface: #ffffff;
-  --color-muted: #edf1ed;
-  --color-ink: #172c24;
-  --color-subtle: #5d6e65;
-  --color-line: #dce4dd;
-  --color-primary: #176448;
-  --color-primary-hover: #104c36;
-  --color-primary-soft: #e7f2eb;
+  --color-muted: #f3f4f6;
+  --color-ink: #111827;
+  --color-subtle: #6b7280;
+  --color-line: #e5e7eb;
+  --color-primary: #166534;
+  --color-primary-hover: #14532d;
+  --color-primary-soft: #f0fdf4;
   --color-on-primary: #ffffff;
-  --color-lime-soft: #e9f0c8;
 }
 @layer base {
-  :root { color-scheme: light; --radius: 0.875rem; }
+  :root { color-scheme: light; --radius: 0.75rem; }
   body { background: var(--color-canvas); color: var(--color-ink); line-height: 1.6; }
   h1, h2, h3 { text-wrap: balance; line-height: 1.25; }
   h1 { letter-spacing: -0.035em; }
   button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   button, a { touch-action: manipulation; }
   button:not(:disabled), select { cursor: pointer; }
-  :focus-visible { outline: 3px solid var(--color-primary); outline-offset: 4px; }
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
   input, textarea, select { font-size: 1rem; accent-color: var(--color-primary); }
   select { background-color: var(--color-surface); color: var(--color-ink); }
   [id] { scroll-margin-top: 8rem; }
-  ::selection { background: #d6e8b7; color: #172c24; }
+  ::selection { background: #dcfce7; color: #14532d; }
 }
 @layer components {
   .page-shell { width: min(100% - 3rem, 1200px); margin-inline: auto; }

@@ -42,7 +42,7 @@ const next = require(path.join(root, 'frontend/node_modules/next'));
     let failListings = false;
     await page.route('http://localhost:4000/api/v1/**', async route => {
       const url = new URL(route.request().url());
-      if (failListings && url.pathname === '/api/v1/listings') {
+      if (failListings && url.pathname === '/api/v1/listings/page') {
         await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Temporarily unavailable' }) });
         return;
       }

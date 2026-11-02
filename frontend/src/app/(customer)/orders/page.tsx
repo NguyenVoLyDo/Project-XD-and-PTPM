@@ -9,6 +9,7 @@ import { EmptyState } from '../../../components/molecules/empty-state';
 import { ErrorFallback } from '../../../components/molecules/error-fallback';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Button } from '../../../components/ui/button';
+import { LoginModal } from '../../../components/modals/login-modal';
 
 interface OrderSummary {
   orderId: string;
@@ -36,7 +37,14 @@ export default function CustomerOrdersPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('ALL');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const requestId = useRef(0);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const fetchOrders = useCallback(async () => {
     const request = ++requestId.current;
@@ -96,41 +104,60 @@ export default function CustomerOrdersPage() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
+      {toast && (
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-on-primary transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          }`}
+        >
+          <span className="text-sm font-semibold">{toast.message}</span>
+        </div>
+      )}
+      {loginModalOpen && (
+        <LoginModal
+          actionMessage="Đăng nhập tài khoản để xem và theo dõi đơn mua của bạn"
+          redirectUrl="/orders"
+          onClose={() => setLoginModalOpen(false)}
+          onSuccess={() => {
+            setLoginModalOpen(false);
+            fetchOrders();
+          }}
+        />
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
         <div>
-          <div className="text-xs text-primary font-semibold  mb-1">
-            Lịch sử giao dịch & Đơn hàng
-          </div>
-          <h1 className="text-3xl font-bold text-ink tracking-tight flex items-center gap-3">
-            <span>Đơn Hàng Của Bạn</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight flex items-center gap-2.5">
+            <span>Đơn hàng của bạn</span>
             {orders.length > 0 && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-primary-soft text-primary border border-primary/25 font-medium">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary-soft text-primary font-semibold">
                 {pagination.total} đơn
               </span>
             )}
           </h1>
+          <p className="text-xs text-subtle mt-1">Tra cứu trạng thái xử lý và vận chuyển từng kiện hàng</p>
         </div>
 
         <Link href="/catalog">
-          <Button variant="secondary" size="sm" className="font-semibold">
-            <span>+ Đặt thêm sản phẩm</span>
+          <Button variant="outline" size="sm" className="font-semibold text-xs">
+            <span>Khám phá thêm sản phẩm</span>
           </Button>
         </Link>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-line">
+      {/* Tabs - Modern Clean Underline Tabs */}
+      <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-0.5 scrollbar-none border-b border-line">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
+              className={`px-3.5 py-2.5 text-xs sm:text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
                 isActive
-                  ? 'bg-primary text-ink shadow-md'
-                  : 'bg-canvas text-subtle hover:text-ink hover:bg-muted'
+                  ? 'border-primary text-primary font-bold'
+                  : 'border-transparent text-subtle hover:text-ink hover:border-line'
               }`}
             >
               {tab.label}
@@ -156,6 +183,14 @@ export default function CustomerOrdersPage() {
           <Skeleton className="h-44 w-full rounded-2xl" />
           <Skeleton className="h-44 w-full rounded-2xl" />
         </div>
+      ) : !currentUser.id ? (
+        <EmptyState
+          title="Vui lòng đăng nhập để xem đơn hàng"
+          description="Đăng nhập tài khoản khách hàng để tra cứu lịch sử mua sắm và theo dõi tình trạng giao hàng các kiện hàng của bạn."
+          actionText="Đăng nhập ngay"
+          actionHref="/login?redirect=/orders"
+          onAction={() => setLoginModalOpen(true)}
+        />
       ) : currentUser.role !== 'CUSTOMER' ? (
         <EmptyState
           title="Bạn đang ở vai trò khác"
@@ -163,7 +198,7 @@ export default function CustomerOrdersPage() {
           actionText="Chuyển sang vai trò Khách hàng"
           onAction={() => {
             const customerAcc = DEMO_ACCOUNTS.find((a) => a.role === 'CUSTOMER') || DEMO_ACCOUNTS[0];
-            switchAccount(customerAcc).catch(error => window.alert(error.message));
+            switchAccount(customerAcc).catch(error => showToast(error.message, 'error'));
           }}
         />
       ) : error ? (

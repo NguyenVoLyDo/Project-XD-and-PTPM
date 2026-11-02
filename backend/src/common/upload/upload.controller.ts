@@ -7,9 +7,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, resolve } from 'node:path';
+import { memoryStorage } from 'multer';
+import { resolve } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 
@@ -25,36 +27,36 @@ export class UploadController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          cb(null, uploadsDir);
-        },
-        filename: (_req, file, cb) => {
-          const uniqueSuffix = `${Date.now()}-${randomUUID()}`;
-          const ext = extname(file.originalname).toLowerCase() || '.png';
-          cb(null, `${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB limit
       },
       fileFilter: (_req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|gif|svg\+xml)$/i)) {
-          return cb(new BadRequestException('Chỉ chấp nhận file ảnh (JPG, PNG, WEBP, GIF, SVG)'), false);
+        if (!/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
+          return cb(new BadRequestException('Chỉ chấp nhận file ảnh JPG, PNG, WEBP, GIF'), false);
         }
         cb(null, true);
       },
     }),
   )
-  uploadFile(@UploadedFile() file?: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('Vui lòng chọn file ảnh để tải lên');
     }
-    return {
-      url: `/uploads/${file.filename}`,
-      filename: file.filename,
-      size: file.size,
-      mimetype: file.mimetype,
-    };
+    let encoded: Buffer;
+    try {
+      const decoder = sharp(file.buffer, { limitInputPixels: 25_000_000, failOn: 'warning' });
+      const metadata = await decoder.metadata();
+      if (!['jpeg', 'png', 'webp', 'gif'].includes(metadata.format) || (metadata.pages || 1) > 1) {
+        throw new Error('Unsupported image');
+      }
+      // Decode and re-encode: never publish the untrusted original bytes or suffix.
+      encoded = await decoder.rotate().webp({ quality: 85 }).toBuffer();
+    } catch {
+      throw new BadRequestException('Ảnh không hợp lệ, bị hỏng, là ảnh động hoặc vượt quá 25 triệu điểm ảnh.');
+    }
+    const filename = `${randomUUID()}.webp`;
+    await writeFile(resolve(uploadsDir, filename), encoded, { flag: 'wx' });
+    return { url: `/uploads/${filename}`, filename, size: encoded.length, mimetype: 'image/webp' };
   }
 }

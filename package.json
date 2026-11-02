@@ -14,7 +14,9 @@
     "build": "pnpm --filter @dropconnect/* build",
     "build:backend": "pnpm --filter @dropconnect/backend build",
     "build:frontend": "pnpm --filter @dropconnect/frontend build",
-    "test": "pnpm --filter @dropconnect/backend test"
+    "test": "pnpm --filter @dropconnect/backend test",
+    "test:postgres": "pnpm build:backend && node backend/test/integration/postgres-regression.cjs",
+    "test:browser": "pnpm build && node backend/test/integration/postgres-regression.cjs --browser"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

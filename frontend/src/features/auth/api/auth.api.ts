@@ -202,9 +202,15 @@ class AuthApiClient {
   }
 
   async logout(): Promise<void> {
-    const request = this.request('/api/v1/auth/logout', { method: 'POST' }, false);
+    // Finish any rotation, then allow a stale access token to recover before revocation.
+    if (this.pendingRefresh) await this.pendingRefresh.catch(() => {});
+    try {
+      await this.request('/api/v1/auth/logout', { method: 'POST' });
+    } catch (error) {
+      if ((error as { status?: number }).status !== 401) throw error;
+      // A rejected refresh means the server session is already invalid.
+    }
     this.setAccessToken(null);
-    await request;
   }
 
   async getMe(): Promise<UserProfile> {

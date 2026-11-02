@@ -25,6 +25,7 @@ export class CommerceController {
   @Patch('seller/shops/:id') @UseGuards(JwtAuthGuard) patchShop(@CurrentUser() a:CurrentActor,@Param('id') id:string,@Body() b:any) { return this.service.updateShop(a,id,b); }
   @Get(['listings/seller/mine','seller/listings']) @UseGuards(JwtAuthGuard) mine(@CurrentUser() a:CurrentActor) { return this.service.listings(undefined,undefined,a); }
   @Get('listings') listings(@Query('shopId') id?:string,@Query('search') search?:string) { return this.service.listings(id,search); }
+  @Get('listings/page') listingPage(@Query() query: { page?: string; limit?: string; supplierId?: string; search?: string; sort?: string }) { return this.service.listingPage(query); }
   @Get('listings/:id') listing(@Param('id') id:string) { return this.service.listings(undefined,undefined,undefined,id); }
   @Post('seller/listings') @UseGuards(JwtAuthGuard) createListing(@CurrentUser() a:CurrentActor,@Body() b:any) { return this.service.createListing(a,b); }
   @Post('listings') @UseGuards(JwtAuthGuard) legacyListing(@CurrentUser() a:CurrentActor,@Body() b:any) { return this.service.createListing(a,b,true); }

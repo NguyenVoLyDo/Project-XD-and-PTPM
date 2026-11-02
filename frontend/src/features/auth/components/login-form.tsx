@@ -4,15 +4,28 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { loginSchema, LoginFormData } from '../schemas/auth.schema';
 import { useAuth } from '../hooks/use-auth';
 
-export function LoginForm() {
+interface LoginFormProps {
+  onSuccess?: () => void;
+  redirectPath?: string;
+}
+
+export function LoginForm({ onSuccess, redirectPath }: LoginFormProps = {}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const rawRedirect = searchParams.get('redirect');
+  const redirectTarget = (rawRedirect && rawRedirect.startsWith('/'))
+    ? rawRedirect
+    : (redirectPath && redirectPath.startsWith('/'))
+    ? redirectPath
+    : '/';
 
   const {
     register,
@@ -31,21 +44,25 @@ export function LoginForm() {
     try {
       setErrorMessage(null);
       await login(data);
-      router.push('/');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(redirectTarget);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Đăng nhập không thành công. Vui lòng thử lại.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="login-form">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" id="login-form">
       {errorMessage && (
         <div
           id="login-error-alert"
-          className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm flex items-start gap-2.5 animate-in fade-in"
+          className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2 animate-in fade-in"
         >
           <svg
-            className="w-5 h-5 shrink-0 mt-0.5 text-red-500"
+            className="w-4 h-4 shrink-0 mt-0.5 text-rose-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -65,7 +82,7 @@ export function LoginForm() {
       <div>
         <label
           htmlFor="login-email-input"
-          className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
+          className="block text-xs font-semibold text-ink mb-1.5"
         >
           Địa chỉ Email
         </label>
@@ -76,15 +93,15 @@ export function LoginForm() {
             placeholder="ban@example.com"
             autoComplete="email"
             {...register('email')}
-            className={`w-full px-4 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+            className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
               errors.email
-                ? 'border-red-500 focus:ring-red-500/30'
-                : 'border-slate-300 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-500'
+                ? 'border-rose-500 focus:ring-rose-500/20'
+                : 'border-line focus:ring-primary/20 focus:border-primary'
             }`}
           />
         </div>
         {errors.email && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.email.message}</p>
+          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.email.message}</p>
         )}
       </div>
 
@@ -93,13 +110,13 @@ export function LoginForm() {
         <div className="flex items-center justify-between mb-1.5">
           <label
             htmlFor="login-password-input"
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300"
+            className="block text-xs font-semibold text-ink"
           >
             Mật khẩu
           </label>
           <Link
             href="/auth/forgot-password"
-            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="text-xs text-primary hover:underline font-semibold"
           >
             Quên mật khẩu?
           </Link>
@@ -111,17 +128,17 @@ export function LoginForm() {
             placeholder="••••••••"
             autoComplete="current-password"
             {...register('password')}
-            className={`w-full px-4 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+            className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
               errors.password
-                ? 'border-red-500 focus:ring-red-500/30'
-                : 'border-slate-300 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-500'
+                ? 'border-rose-500 focus:ring-rose-500/20'
+                : 'border-line focus:ring-primary/20 focus:border-primary'
             }`}
           />
           <button
             type="button"
             id="toggle-password-visibility-btn"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-subtle hover:text-ink"
           >
             {showPassword ? (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,7 +153,7 @@ export function LoginForm() {
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.password.message}</p>
+          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.password.message}</p>
         )}
       </div>
 
@@ -146,11 +163,11 @@ export function LoginForm() {
           id="login-remember-me-checkbox"
           type="checkbox"
           {...register('rememberMe')}
-          className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+          className="w-4 h-4 rounded border-line text-primary focus:ring-primary accent-primary"
         />
         <label
           htmlFor="login-remember-me-checkbox"
-          className="ml-2 text-xs text-slate-600 dark:text-slate-400"
+          className="ml-2 text-xs text-subtle"
         >
           Ghi nhớ phiên đăng nhập trên thiết bị này
         </label>
@@ -161,7 +178,7 @@ export function LoginForm() {
         id="login-submit-button"
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/25 transition-all duration-200 transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-hover text-on-primary font-semibold text-sm shadow-xs transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isSubmitting ? (
           <>
@@ -176,7 +193,7 @@ export function LoginForm() {
                 cy="12"
                 r="10"
                 stroke="currentColor"
-                strokeWidth="4"
+                strokeWidth={4}
               />
               <path
                 className="opacity-75"
@@ -193,12 +210,12 @@ export function LoginForm() {
 
       {/* Register redirect */}
       <div className="text-center pt-2">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-xs text-subtle">
           Chưa có tài khoản?{' '}
           <Link
             href="/register"
             id="link-to-register"
-            className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="font-semibold text-primary hover:underline"
           >
             Đăng ký ngay
           </Link>

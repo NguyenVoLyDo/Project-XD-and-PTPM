@@ -11,7 +11,7 @@ export class PostgresCheckoutAdapter {
   async runInTransaction<T>(work:(ctx:CheckoutTransactionContext)=>Promise<T>):Promise<T> { return this.db.transaction(()=>work({token:this.db})); }
   async getCheckoutQuotes(ids:readonly string[]):Promise<CheckoutQuoteBatch> {
     ids.forEach(uuid);
-    const rows=await this.commerce.listingRows(); const quotes:any[]=[],rejections:any[]=[];
+    const rows=await this.commerce.listingRows(undefined, ids); const quotes:any[]=[],rejections:any[]=[];
     for(const id of ids) {
       const r=rows.find(r=>r.id===id);
       if(!r) {rejections.push({listingId:id,code:'LISTING_NOT_FOUND'});continue;}

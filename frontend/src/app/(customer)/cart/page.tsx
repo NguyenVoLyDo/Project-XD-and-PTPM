@@ -13,6 +13,7 @@ import { PurchaseSteps } from '../../../components/storefront/purchase-steps';
 import { Modal } from '../../../components/ui/modal';
 import { Button } from '../../../components/ui/button';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { LoginModal } from '../../../components/modals/login-modal';
 
 interface CartItemData {
   listingId: string;
@@ -39,6 +40,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const loadCart = async () => {
@@ -118,6 +120,17 @@ export default function CartPage() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <PurchaseSteps current={1} />
+      {loginModalOpen && (
+        <LoginModal
+          actionMessage="Đăng nhập tài khoản để xem và quản lý giỏ hàng của bạn"
+          redirectUrl="/cart"
+          onClose={() => setLoginModalOpen(false)}
+          onSuccess={() => {
+            setLoginModalOpen(false);
+            loadCart();
+          }}
+        />
+      )}
       {pendingRemoval && <Modal title="Xóa sản phẩm khỏi giỏ?" onClose={() => setPendingRemoval(null)}>
         <p className="text-subtle text-sm mb-6">Bạn có thể thêm lại sản phẩm từ trang khám phá.</p>
         <div className="flex justify-end gap-3"><Button variant="outline" onClick={() => setPendingRemoval(null)}>Giữ lại</Button><Button variant="destructive" onClick={() => { handleDeleteItem(pendingRemoval); setPendingRemoval(null); }}>Xóa sản phẩm</Button></div>
@@ -166,6 +179,14 @@ export default function CartPage() {
           </div>
           <Skeleton className="h-72 w-full rounded-2xl" />
         </div>
+      ) : !currentUser.id ? (
+        <EmptyState
+          title="Vui lòng đăng nhập để xem giỏ hàng"
+          description="Đăng nhập tài khoản khách hàng để lưu giữ, quản lý các sản phẩm bạn muốn mua và tiến hành đặt hàng."
+          actionText="Đăng nhập ngay"
+          actionHref="/login?redirect=/cart"
+          onAction={() => setLoginModalOpen(true)}
+        />
       ) : currentUser.role !== 'CUSTOMER' ? (
         <EmptyState
           title="Bạn đang ở vai trò khác"
@@ -173,7 +194,7 @@ export default function CartPage() {
           actionText="Chuyển sang vai trò Khách hàng"
           onAction={() => {
             const customerAcc = DEMO_ACCOUNTS.find((a) => a.role === 'CUSTOMER') || DEMO_ACCOUNTS[0];
-            switchAccount(customerAcc).catch(error => window.alert(error.message));
+            switchAccount(customerAcc).catch(error => showToast(error.message, 'error'));
           }}
         />
       ) : error ? (

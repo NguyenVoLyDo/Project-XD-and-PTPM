@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { adminApi } from '@/features/admin/admin.api';
 import { AdminProfile } from '@/features/admin/types';
+import { Icon } from '@/components/ui/icon';
 
 export default function AdminProfilesPage() {
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
@@ -13,7 +14,13 @@ export default function AdminProfilesPage() {
   const [selectedProfile, setSelectedProfile] = useState<AdminProfile | null>(null);
   const [decision, setDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
   const [reasonCode, setReasonCode] = useState('KYC_VERIFIED');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const fetchProfiles = async () => {
     try {
@@ -45,43 +52,76 @@ export default function AdminProfilesPage() {
           reasonCode,
           selectedProfile.role,
         );
+        const actionLabel = decision === 'APPROVED' ? 'Phê duyệt' : 'Từ chối';
         setSelectedProfile(null);
+        showToast(`${actionLabel} hồ sơ của ${selectedProfile.name} thành công!`);
         await fetchProfiles();
       } catch (err: any) {
-        alert(err.message || 'Không thể ghi nhận quyết định');
+        showToast(err.message || 'Không thể ghi nhận quyết định', 'error');
       }
     });
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {error && <p role="alert">{error} <button onClick={fetchProfiles}>Thử lại</button></p>}
+      {toast && (
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          }`}
+        >
+          <Icon name={toast.type === 'success' ? 'check' : 'alert'} width={18} height={18} />
+          <span className="text-xs font-semibold">{toast.message}</span>
+        </div>
+      )}
+
+      {error && (
+        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between">
+          <span>{error}</span>
+          <button type="button" onClick={fetchProfiles} className="underline font-bold">
+            Thử lại
+          </button>
+        </div>
+      )}
+
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-white tracking-tight">
-          Xét Duyệt Hồ Sơ Supplier & Seller
-        </h1>
-        <p className="text-xs text-slate-400">
-          Phê duyệt hoặc từ chối hồ sơ đăng ký kinh doanh trước khi đối tác được tạo Sản phẩm/Listing.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-ink tracking-tight">
+            Xét Duyệt Hồ Sơ Đối Tác (Supplier & Seller)
+          </h1>
+          <p className="text-xs text-subtle mt-0.5">
+            Xác minh thông tin doanh nghiệp, giấy phép kinh doanh trước khi đối tác được phép cấp nguồn hoặc mở gian hàng.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchProfiles}
+          className="px-3.5 py-2 rounded-xl bg-surface border border-line hover:bg-muted text-ink text-xs font-semibold transition flex items-center gap-1.5 self-start shadow-xs"
+        >
+          <Icon name="refresh" width={14} height={14} />
+          <span>Làm mới hồ sơ</span>
+        </button>
       </div>
 
       {/* Tabs & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 bg-slate-900 border border-slate-800 rounded-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 bg-surface border border-line rounded-2xl shadow-xs">
         <div className="flex flex-wrap gap-1">
           {[
-            { id: 'PENDING' as const, label: 'Chờ duyệt (PENDING)' },
-            { id: 'APPROVED' as const, label: 'Đã duyệt (APPROVED)' },
-            { id: 'REJECTED' as const, label: 'Bị từ chối (REJECTED)' },
+            { id: 'PENDING' as const, label: 'Chờ duyệt' },
+            { id: 'APPROVED' as const, label: 'Đã duyệt' },
+            { id: 'REJECTED' as const, label: 'Bị từ chối' },
             { id: 'ALL' as const, label: 'Tất cả hồ sơ' },
           ].map((item) => (
             <button
               key={item.id}
+              type="button"
               onClick={() => setTab(item.id)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
                 tab === item.id
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-primary text-on-primary shadow-xs'
+                  : 'text-subtle hover:text-ink hover:bg-muted'
               }`}
             >
               {item.label}
@@ -93,7 +133,7 @@ export default function AdminProfilesPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as any)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-300 focus:outline-none"
+            className="h-9 px-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             <option value="ALL">Tất cả vai trò</option>
             <option value="SUPPLIER">Nhà cung cấp (SUPPLIER)</option>
@@ -103,10 +143,10 @@ export default function AdminProfilesPage() {
       </div>
 
       {/* Profiles Table */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-line bg-surface overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-800/60 text-slate-400 uppercase text-[11px] font-semibold tracking-wider border-b border-slate-800">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-canvas text-subtle uppercase text-[10px] font-bold tracking-wider border-b border-line">
               <tr>
                 <th className="px-5 py-3.5">Tên đơn vị / Gian hàng</th>
                 <th className="px-5 py-3.5">Vai trò</th>
@@ -116,91 +156,93 @@ export default function AdminProfilesPage() {
                 <th className="px-5 py-3.5 text-right">Hành động</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-line text-ink">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-subtle">
                     Đang tải danh sách hồ sơ...
                   </td>
                 </tr>
               ) : profiles.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-subtle">
                     Không có hồ sơ nào trong mục này.
                   </td>
                 </tr>
               ) : (
                 profiles.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-800/30 transition">
+                  <tr key={p.id} className="hover:bg-muted/40 transition">
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-white">{p.name}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">
+                      <div className="font-bold text-ink">{p.name}</div>
+                      <div className="text-[10px] text-subtle font-mono mt-0.5">
                         ProfileID: {p.id.slice(0, 8)}...
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                           p.role === 'SUPPLIER'
-                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                            : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         }`}
                       >
                         {p.role}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-400">{p.email}</td>
+                    <td className="px-5 py-3.5 text-subtle">{p.email}</td>
                     <td className="px-5 py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                           p.status === 'APPROVED'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : p.status === 'REJECTED'
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             p.status === 'APPROVED'
-                              ? 'bg-emerald-400'
+                              ? 'bg-emerald-500'
                               : p.status === 'REJECTED'
-                              ? 'bg-red-400'
-                              : 'bg-amber-400 animate-pulse'
+                              ? 'bg-rose-500'
+                              : 'bg-amber-500 animate-pulse'
                           }`}
                         />
                         {p.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-400">
+                    <td className="px-5 py-3.5 text-subtle">
                       {new Date(p.createdAt).toLocaleDateString('vi-VN')}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       {p.status === 'PENDING' ? (
                         <div className="flex justify-end gap-2">
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedProfile(p);
                               setDecision('APPROVED');
                               setReasonCode('KYC_VERIFIED');
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-semibold transition"
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition"
                           >
-                            Duyệt
+                            Phê duyệt
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedProfile(p);
                               setDecision('REJECTED');
                               setReasonCode('INCOMPLETE_DOCS');
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold transition"
+                            className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
                           >
                             Từ chối
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-500">Đã quyết định</span>
+                        <span className="text-subtle/70 text-xs italic">Đã xử lý</span>
                       )}
                     </td>
                   </tr>
@@ -213,47 +255,63 @@ export default function AdminProfilesPage() {
 
       {/* Decision Modal */}
       {selectedProfile && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">
-              {decision === 'APPROVED' ? 'Phê duyệt hồ sơ' : 'Từ chối hồ sơ'}
-            </h3>
-            <p className="text-xs text-slate-400">
-              Đơn vị: <strong>{selectedProfile.name}</strong> ({selectedProfile.role})
+        <div className="fixed inset-0 bg-ink/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="w-full max-w-md bg-surface border border-line rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  decision === 'APPROVED'
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-600 border border-rose-200'
+                }`}
+              >
+                <Icon name={decision === 'APPROVED' ? 'check' : 'alert'} width={20} height={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-ink">
+                  {decision === 'APPROVED' ? 'Xác nhận Phê duyệt hồ sơ' : 'Xác nhận Từ chối hồ sơ'}
+                </h3>
+                <p className="text-xs text-subtle truncate max-w-xs">{selectedProfile.name}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-subtle leading-relaxed">
+              Bạn đang quyết định hồ sơ vai trò{' '}
+              <strong className="text-ink">{selectedProfile.role}</strong> của{' '}
+              <strong className="text-ink">{selectedProfile.email}</strong>.
             </p>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Mã lý do (reasonCode per admin.md)
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                Mã lý do / Căn cứ quyết định
               </label>
               <select
                 value={reasonCode}
                 onChange={(e) => setReasonCode(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                className="w-full h-10 px-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 {decision === 'APPROVED' ? (
                   <>
-                    <option value="KYC_VERIFIED">KYC_VERIFIED (Đầy đủ giấy tờ pháp lý)</option>
-                    <option value="BUSINESS_VERIFIED">BUSINESS_VERIFIED (Kho/Gian hàng đạt chuẩn)</option>
-                    <option value="SPECIAL_APPROVAL">SPECIAL_APPROVAL (Đối tác ưu tiên)</option>
+                    <option value="KYC_VERIFIED">KYC_VERIFIED — Đầy đủ giấy phép & tài khoản định danh</option>
+                    <option value="FAST_TRACK">FAST_TRACK — Đối tác ưu tiên từ chương trình vườn ươm</option>
                   </>
                 ) : (
                   <>
-                    <option value="INCOMPLETE_DOCS">INCOMPLETE_DOCS (Hồ sơ thiếu thông tin)</option>
-                    <option value="SUSPICIOUS_IDENTITY">SUSPICIOUS_IDENTITY (Nghi vấn thông tin giả mạo)</option>
-                    <option value="POLICY_VIOLATION">POLICY_VIOLATION (Không đáp ứng tiêu chuẩn sàn)</option>
+                    <option value="INCOMPLETE_DOCS">INCOMPLETE_DOCS — Thiếu giấy phép hoặc thông tin mờ</option>
+                    <option value="SUSPICIOUS_IDENTITY">SUSPICIOUS_IDENTITY — Nghi vấn thông tin giả mạo</option>
+                    <option value="POLICY_VIOLATION">POLICY_VIOLATION — Vi phạm danh mục ngành hàng cấm</option>
                   </>
                 )}
               </select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setSelectedProfile(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                className="px-4 py-2 rounded-xl bg-surface border border-line hover:bg-muted text-subtle hover:text-ink text-xs font-semibold transition"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 type="button"
@@ -261,11 +319,15 @@ export default function AdminProfilesPage() {
                 onClick={handleDecision}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold text-white transition ${
                   decision === 'APPROVED'
-                    ? 'bg-emerald-600 hover:bg-emerald-500'
-                    : 'bg-red-600 hover:bg-red-500'
+                    ? 'bg-primary hover:bg-primary-hover text-on-primary'
+                    : 'bg-rose-600 hover:bg-rose-700'
                 }`}
               >
-                {isPending ? 'Đang lưu...' : decision === 'APPROVED' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
+                {isPending
+                  ? 'Đang lưu...'
+                  : decision === 'APPROVED'
+                  ? 'Xác nhận Phê duyệt'
+                  : 'Xác nhận Từ chối'}
               </button>
             </div>
           </div>

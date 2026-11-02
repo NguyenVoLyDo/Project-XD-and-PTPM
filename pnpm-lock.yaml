@@ -104,6 +104,9 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      sharp:
+        specifier: 0.35.4
+        version: 0.35.4(@types/node@26.5.1)
       typeorm:
         specifier: ^1.1.1
         version: 1.1.1(ioredis@5.11.1)(pg@8.23.0)(ts-node@10.9.2(@types/node@26.5.1)(typescript@5.9.3))
@@ -4953,8 +4956,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.4':
     optionalDependencies:
@@ -8379,7 +8381,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.4
       '@img/sharp-win32-x64': 0.35.4
       '@types/node': 26.5.1
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:

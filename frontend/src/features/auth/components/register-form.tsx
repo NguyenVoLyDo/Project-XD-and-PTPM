@@ -44,14 +44,14 @@ export function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="register-form">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" id="register-form">
       {errorMessage && (
         <div
           id="register-error-alert"
-          className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm flex items-start gap-2.5 animate-in fade-in"
+          className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2 animate-in fade-in"
         >
           <svg
-            className="w-5 h-5 shrink-0 mt-0.5 text-red-500"
+            className="w-4 h-4 shrink-0 mt-0.5 text-rose-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -69,7 +69,7 @@ export function RegisterForm() {
 
       {/* Role Selection */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
+        <label className="block text-xs font-semibold text-ink mb-1.5">
           Chọn vai trò tài khoản
         </label>
         <div className="grid grid-cols-3 gap-2">
@@ -78,7 +78,7 @@ export function RegisterForm() {
               id: 'role-customer',
               value: 'CUSTOMER' as const,
               label: 'Khách mua',
-              desc: 'Mua sắm online',
+              desc: 'Mua sắm',
             },
             {
               id: 'role-seller',
@@ -90,7 +90,7 @@ export function RegisterForm() {
               id: 'role-supplier',
               value: 'SUPPLIER' as const,
               label: 'Nhà cung cấp',
-              desc: 'Quản lý nguồn hàng',
+              desc: 'Kho nguồn hàng',
             },
           ].map((item) => {
             const isSelected = selectedRole === item.value;
@@ -100,10 +100,10 @@ export function RegisterForm() {
                 id={item.id}
                 type="button"
                 onClick={() => setValue('role', item.value)}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 ${
+                className={`p-2.5 rounded-xl border text-left transition-all ${
                   isSelected
-                    ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 ring-2 ring-indigo-500/20 shadow-sm'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                    ? 'border-primary bg-primary-soft text-primary font-bold ring-1 ring-primary/30'
+                    : 'border-line bg-canvas text-subtle hover:text-ink hover:bg-muted'
                 }`}
               >
                 <div className="text-xs font-bold leading-tight">{item.label}</div>
@@ -113,7 +113,7 @@ export function RegisterForm() {
           })}
         </div>
         {selectedRole !== 'CUSTOMER' && (
-          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+          <p className="mt-2 text-xs text-primary bg-primary-soft p-2 rounded-lg border border-primary/20">
             ℹ️ Lưu ý: Hồ sơ {selectedRole === 'SELLER' ? 'Người bán' : 'Nhà cung cấp'} sẽ ở trạng thái chờ Admin xét duyệt trước khi được tạo Listing/Sản phẩm.
           </p>
         )}
@@ -123,7 +123,7 @@ export function RegisterForm() {
       <div>
         <label
           htmlFor="register-email-input"
-          className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
+          className="block text-xs font-semibold text-ink mb-1.5"
         >
           Địa chỉ Email
         </label>
@@ -133,14 +133,14 @@ export function RegisterForm() {
           placeholder="ban@example.com"
           autoComplete="email"
           {...register('email')}
-          className={`w-full px-4 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+          className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
             errors.email
-              ? 'border-red-500 focus:ring-red-500/30'
-              : 'border-slate-300 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-500'
+              ? 'border-rose-500 focus:ring-rose-500/20'
+              : 'border-line focus:ring-primary/20 focus:border-primary'
           }`}
         />
         {errors.email && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.email.message}</p>
+          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.email.message}</p>
         )}
       </div>
 
@@ -148,7 +148,7 @@ export function RegisterForm() {
       <div>
         <label
           htmlFor="register-password-input"
-          className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
+          className="block text-xs font-semibold text-ink mb-1.5"
         >
           Mật khẩu
         </label>
@@ -159,16 +159,16 @@ export function RegisterForm() {
             placeholder="Tối thiểu 8 ký tự, có chữ hoa và số"
             autoComplete="new-password"
             {...register('password')}
-            className={`w-full px-4 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+            className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
               errors.password
-                ? 'border-red-500 focus:ring-red-500/30'
-                : 'border-slate-300 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-500'
+                ? 'border-rose-500 focus:ring-rose-500/20'
+                : 'border-line focus:ring-primary/20 focus:border-primary'
             }`}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-subtle hover:text-ink"
           >
             {showPassword ? (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,7 +183,7 @@ export function RegisterForm() {
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.password.message}</p>
+          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.password.message}</p>
         )}
       </div>
 
@@ -191,7 +191,7 @@ export function RegisterForm() {
       <div>
         <label
           htmlFor="register-confirm-password-input"
-          className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
+          className="block text-xs font-semibold text-ink mb-1.5"
         >
           Xác nhận mật khẩu
         </label>
@@ -201,14 +201,14 @@ export function RegisterForm() {
           placeholder="Nhập lại mật khẩu"
           autoComplete="new-password"
           {...register('confirmPassword')}
-          className={`w-full px-4 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+          className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
             errors.confirmPassword
-              ? 'border-red-500 focus:ring-red-500/30'
-              : 'border-slate-300 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-500'
+              ? 'border-rose-500 focus:ring-rose-500/20'
+              : 'border-line focus:ring-primary/20 focus:border-primary'
           }`}
         />
         {errors.confirmPassword && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.confirmPassword.message}</p>
+          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.confirmPassword.message}</p>
         )}
       </div>
 
@@ -219,25 +219,25 @@ export function RegisterForm() {
             id="register-agree-terms-checkbox"
             type="checkbox"
             {...register('agreeTerms')}
-            className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+            className="mt-0.5 w-4 h-4 rounded border-line text-primary focus:ring-primary accent-primary"
           />
           <label
             htmlFor="register-agree-terms-checkbox"
-            className="ml-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed"
+            className="ml-2 text-xs text-subtle leading-relaxed"
           >
             Tôi đồng ý với{' '}
-            <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+            <a href="#" className="text-primary hover:underline font-semibold">
               Điều khoản dịch vụ
             </a>{' '}
             và{' '}
-            <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+            <a href="#" className="text-primary hover:underline font-semibold">
               Chính sách bảo mật
             </a>{' '}
             của DropConnect.
           </label>
         </div>
         {errors.agreeTerms && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.agreeTerms.message}</p>
+          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.agreeTerms.message}</p>
         )}
       </div>
 
@@ -246,7 +246,7 @@ export function RegisterForm() {
         id="register-submit-button"
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/25 transition-all duration-200 transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-hover text-on-primary font-semibold text-sm shadow-xs transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isSubmitting ? (
           <>
@@ -261,7 +261,7 @@ export function RegisterForm() {
                 cy="12"
                 r="10"
                 stroke="currentColor"
-                strokeWidth="4"
+                strokeWidth={4}
               />
               <path
                 className="opacity-75"
@@ -278,12 +278,12 @@ export function RegisterForm() {
 
       {/* Login redirect */}
       <div className="text-center pt-2">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-xs text-subtle">
           Đã có tài khoản?{' '}
           <Link
             href="/login"
             id="link-to-login"
-            className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="font-semibold text-primary hover:underline"
           >
             Đăng nhập
           </Link>

@@ -111,11 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      localStorage.removeItem('dc_has_session');
       await authApi.logout();
-    } finally {
+      localStorage.removeItem('dc_has_session');
       setUser(null);
       setActor(null);
+    } finally {
       setIsLoading(false);
     }
   };

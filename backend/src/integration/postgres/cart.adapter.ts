@@ -24,9 +24,9 @@ export class PostgresCartAdapter implements CartStorePort, CartListingProjection
   async getForCheckout(customerId:string) { return this.getByCustomerId(customerId); }
   async getForCart(ids:readonly string[]):Promise<readonly ListingProjection[]> {
     ids.forEach(uuid);
-    const rows=(await this.commerce.listingRows()).filter(r=>ids.includes(r.id));
+    const rows=await this.commerce.listingRows(undefined, ids);
     return Promise.all(rows.map(async r=>({listingId:r.id,title:r.product_name,unitSalePrice:Number(r.sale_price),currency:'VND' as const,
-      availability: this.commerce.eligible(r) && (await this.commerce.stock(r.product_id)).available>0?'AVAILABLE' as const:'UNAVAILABLE' as const,
+      availability: this.commerce.eligible(r) && Number(r.available_stock)-Number(r.reserved)>0?'AVAILABLE' as const:'UNAVAILABLE' as const,
       unavailableCode:r.status==='PAUSED_BY_POLICY'?'LISTING_PAUSED_BY_POLICY' as const:'LISTING_UNAVAILABLE' as const})));
   }
 }
