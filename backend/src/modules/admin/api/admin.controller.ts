@@ -12,6 +12,7 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  NotImplementedException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/auth/jwt-auth.guard.js';
 import { RolesGuard } from '../../../common/auth/roles.guard.js';
@@ -23,18 +24,14 @@ import { AdminProfileDecisionDto } from './dtos/admin-profile-decision.dto.js';
 import { AdminDisputeDecisionDto } from './dtos/admin-dispute-decision.dto.js';
 import { AdminUserStatusDto } from './dtos/admin-user-status.dto.js';
 import { AuditService } from '../../../common/audit/audit.service.js';
-import { ConflictAppException } from '../../../common/errors/app-exception.js';
+
+import { positiveInteger } from '../../../common/http/positive-integer';
 
 @Controller('api/v1/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class AdminController {
-  // Ephemeral decision cache for disputes until Disputes module implements port (Phase A)
-  private readonly disputeDecisions = new Map<
-    string,
-    { decision: 'APPROVED' | 'REJECTED'; decidedAt: string; reasonCode?: string }
-  >();
 
   constructor(
     private readonly identityPort: IdentityPort,
@@ -75,42 +72,7 @@ export class AdminController {
     @Body() dto: AdminDisputeDecisionDto,
     @CurrentUser() actor: CurrentActor,
   ) {
-    const existing = this.disputeDecisions.get(returnRequestId);
-    if (existing) {
-      if (existing.decision === dto.decision) {
-        // Idempotent repeated decision
-        return {
-          returnRequestId,
-          decision: existing.decision,
-          decidedAt: existing.decidedAt,
-        };
-      }
-      throw new ConflictAppException(
-        'DECISION_CONFLICT',
-        'Yêu cầu trả hàng đã có quyết định khác trước đó',
-      );
-    }
-
-    const decidedAt = new Date().toISOString();
-    this.disputeDecisions.set(returnRequestId, {
-      decision: dto.decision,
-      decidedAt,
-      reasonCode: dto.reasonCode,
-    });
-
-    await this.auditService.record({
-      actorId: actor?.userId,
-      action: dto.decision === 'APPROVED' ? 'DISPUTE_APPROVED' : 'DISPUTE_REJECTED',
-      entityType: 'RETURN_REQUEST',
-      entityId: returnRequestId,
-      reason: dto.reasonCode || null,
-    });
-
-    return {
-      returnRequestId,
-      decision: dto.decision,
-      decidedAt,
-    };
+    throw new NotImplementedException('Disputes module is not integrated; no decision has been recorded');
   }
 
   /**
@@ -125,8 +87,8 @@ export class AdminController {
     @Query('role') role?: string,
   ) {
     return this.identityPort.listUsers(
-      Number(page) || 1,
-      Number(limit) || 20,
+      positiveInteger(page, 1, 1000000),
+      positiveInteger(limit, 20),
       search,
       status,
       role,
@@ -164,6 +126,6 @@ export class AdminController {
     @Query('limit') limit = 50,
     @Query('cursor') cursor?: string,
   ) {
-    return this.auditService.findRecent(Number(limit) || 50, cursor);
+    return this.auditService.findRecent(positiveInteger(limit, 50), cursor);
   }
 }

@@ -56,8 +56,15 @@ export class NotificationService implements NotificationPort {
       readAt: null,
     });
 
-    const saved = await this.notificationRepo.save(notification);
-    return { notificationId: saved.id, deduplicated: false };
+    try {
+      const saved = await this.notificationRepo.save(notification);
+      return { notificationId: saved.id, deduplicated: false };
+    } catch (error) {
+      if (error.code !== '23505') throw error;
+      const duplicate = await this.notificationRepo.findOne({where: {eventId: event.eventId, recipientUserId: event.recipientUserId, templateKey}});
+      if (!duplicate) throw error;
+      return {notificationId: duplicate.id, deduplicated: true};
+    }
   }
 
   /**

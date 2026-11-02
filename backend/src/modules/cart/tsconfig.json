@@ -1,6 +1,12 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": { "noEmit": true },
-  "include": ["./**/*.ts"],
-  "exclude": ["../../../node_modules"]
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "./**/*.ts"
+  ],
+  "exclude": [
+    "../../../node_modules"
+  ]
 }

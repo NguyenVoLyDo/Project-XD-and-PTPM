@@ -15,7 +15,7 @@ export function Footer() {
       <div><h2 className="text-sm font-semibold mb-4">Dành cho đối tác</h2><ul className="space-y-3 text-sm text-subtle">
         <li><Link className="hover:text-primary" href="/seller/listings">Quản lý gian hàng</Link></li>
         <li><Link className="hover:text-primary" href="/supplier/products">Sản phẩm & tồn kho</Link></li>
-      </ul><p className="text-xs text-subtle mt-4">Chọn tài khoản demo ở đầu trang để trải nghiệm từng vai trò.</p></div>
+      </ul><p className="text-xs text-subtle mt-4">Đăng nhập và chọn vai trò đã được duyệt để quản lý hoạt động của bạn.</p></div>
     </div>
     <div className="page-shell border-t border-line py-5 text-xs text-subtle flex flex-wrap justify-between gap-2"><span>© 2026 DropConnect.</span><span>Phiên bản trải nghiệm của đồ án.</span></div>
   </footer>;

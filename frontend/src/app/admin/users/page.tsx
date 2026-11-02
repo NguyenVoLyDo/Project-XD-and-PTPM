@@ -7,6 +7,7 @@ import { AdminUser } from '@/features/admin/types';
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -17,6 +18,7 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError('');
       const res = await adminApi.getUsers({
         search: search || undefined,
         status: statusFilter || undefined,
@@ -25,6 +27,7 @@ export default function AdminUsersPage() {
       setUsers(res.items);
     } catch (err) {
       console.error('Failed to fetch users', err);
+      setError('Không tải được danh sách người dùng. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +54,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {error && <p role="alert">{error} <button onClick={fetchUsers}>Thử lại</button></p>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

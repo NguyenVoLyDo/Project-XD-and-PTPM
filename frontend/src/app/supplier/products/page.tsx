@@ -19,15 +19,58 @@ export default function SupplierProductsPage() {
     description: '',
     costPrice: 150000,
     availableStock: 50,
-    imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&auto=format&fit=crop&q=80',
+    imageUrl: '',
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const openCreateModal = () => {
+    setForm({
+      supplierSku: '',
+      name: '',
+      description: '',
+      costPrice: 150000,
+      availableStock: 50,
+      imageUrl: '',
+    });
+    setImageFile(null);
+    setCreateModalOpen(true);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn một file ảnh hợp lệ');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Dung lượng ảnh không được vượt quá 10MB');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const res = await ApiClient.uploadFile(file);
+      setForm(prev => ({ ...prev, imageUrl: res.url }));
+      setImageFile(file);
+      setToast('Tải ảnh lên máy chủ thành công!');
+      setTimeout(() => setToast(null), 3000);
+    } catch (err: any) {
+      alert(`Không thể tải ảnh lên: ${err.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const loadProducts = async () => {
     try {
-      const data: any = await ApiClient.get('/catalog/products', { supplierId: currentUser.supplierProfileId });
+      const data: any = await ApiClient.get('/supplier/products');
       if (Array.isArray(data)) setProducts(data);
-    } catch {
-      // demo fallback
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Không tải được sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -35,7 +78,7 @@ export default function SupplierProductsPage() {
 
   useEffect(() => {
     loadProducts();
-  }, [currentUser]);
+  }, [currentUser.id, currentUser.supplierProfileId]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +145,7 @@ export default function SupplierProductsPage() {
         </div>
 
         <button
-          onClick={() => setCreateModalOpen(true)}
+          onClick={openCreateModal}
           className="px-5 py-2.5 rounded-xl bg-primary hover:opacity-95 text-ink font-bold text-xs shadow-lg flex items-center gap-2 self-start"
         >
           <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,12 +286,77 @@ export default function SupplierProductsPage() {
               </div>
 
               <div>
-                <label htmlFor="partner-field-6" className="block text-subtle mb-1">URL hình ảnh sản phẩm</label>
-                <input id="partner-field-6" name="partner-field-6" type="url"
-                  value={form.imageUrl}
-                  onChange={e => setForm({ ...form, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-canvas border border-line text-ink font-mono text-xs"
-                />
+                <label className="block text-subtle mb-1 font-medium">Hình ảnh sản phẩm (Tải lên máy chủ)</label>
+                {form.imageUrl ? (
+                  <div className="flex items-center gap-4 p-3 rounded-xl border border-line bg-canvas">
+                    <img
+                      src={productImage(form.imageUrl)}
+                      alt="Xem trước hình ảnh"
+                      className="w-20 h-20 rounded-lg object-cover bg-muted border border-line shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Đã lưu trên máy chủ</span>
+                      </div>
+                      <p className="text-xs text-subtle font-mono truncate mt-0.5" title={form.imageUrl}>
+                        Đường dẫn: {form.imageUrl}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm({ ...form, imageUrl: '' });
+                          setImageFile(null);
+                        }}
+                        className="mt-2 text-xs text-rose-500 hover:text-rose-600 font-medium inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Xóa và chọn ảnh khác
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <label
+                      htmlFor="product-image-upload"
+                      className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-2xl cursor-pointer transition ${
+                        uploadingImage
+                          ? 'border-primary/50 bg-primary-soft/10 cursor-not-allowed'
+                          : 'border-line hover:border-primary/60 bg-canvas/60 hover:bg-canvas'
+                      }`}
+                    >
+                      {uploadingImage ? (
+                        <div className="flex flex-col items-center py-2 text-center">
+                          <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                          <span className="text-xs font-semibold text-primary">Đang tải ảnh lên máy chủ...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center text-center">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-bold text-ink">Bấm để tải ảnh từ máy lên</span>
+                          <span className="text-[11px] text-subtle mt-0.5">Định dạng JPG, PNG, WEBP, GIF (Tối đa 10MB)</span>
+                        </div>
+                      )}
+                      <input
+                        id="product-image-upload"
+                        name="product-image-upload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                        disabled={uploadingImage}
+                        onChange={handleFileChange}
+                        className="sr-only"
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex justify-end gap-3">
@@ -261,9 +369,12 @@ export default function SupplierProductsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-ink font-bold"
+                  disabled={uploadingImage}
+                  className={`px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-ink font-bold transition ${
+                    uploadingImage ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  Thêm sản phẩm →
+                  {uploadingImage ? 'Đang tải ảnh...' : 'Thêm sản phẩm →'}
                 </button>
               </div>
             </form>

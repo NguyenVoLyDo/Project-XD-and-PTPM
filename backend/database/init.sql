@@ -298,3 +298,4 @@ CREATE INDEX idx_outbox_events_unpublished ON outbox_events(published_at) WHERE 
 
 -- Identity-owned notification schema, applied after users and audit_logs.
 \ir schema/01-nguoi1-identity-sessions.sql
+\ir schema/05-integration-commerce.sql

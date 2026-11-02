@@ -180,7 +180,7 @@ export class CheckoutQuoteService {
     let merchandiseTotal = 0;
     for (const line of lines) {
       merchandiseTotal += line.lineSaleTotal;
-      if (!Number.isSafeInteger(merchandiseTotal)) this.overflow();
+      if (!Number.isSafeInteger(merchandiseTotal) || merchandiseTotal > 999999999999) this.overflow();
     }
 
     return {
@@ -232,7 +232,7 @@ export class CheckoutQuoteService {
   ): QuotedCheckoutLine {
     const lineSaleTotal = quote.unitSalePrice * item.quantity;
     const lineCostTotal = quote.unitCostPrice * item.quantity;
-    if (!Number.isSafeInteger(lineSaleTotal) || !Number.isSafeInteger(lineCostTotal)) {
+    if (!Number.isSafeInteger(lineSaleTotal) || !Number.isSafeInteger(lineCostTotal) || lineSaleTotal > 999999999999 || lineCostTotal > 999999999999) {
       this.overflow();
     }
     return {
@@ -254,7 +254,7 @@ export class CheckoutQuoteService {
 
   private overflow(): never {
     failOrders(
-      500,
+      409,
       "CHECKOUT_TOTAL_OVERFLOW",
       "Tổng đơn hàng vượt giới hạn an toàn",
     );

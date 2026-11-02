@@ -255,7 +255,8 @@ describe('Identity & Authentication Module', () => {
       const res = await service.refresh('raw-token');
       expect(res.accessToken).toBe('new-access-token');
       expect(res.refreshToken).toBe('raw-refresh-token');
-      expect(sessionRepo.save).toHaveBeenCalledTimes(2); // Invalidate old + save new
+      expect(sessionRepo.update).toHaveBeenCalledWith({ id: 'session-1', isRevoked: false }, { isRevoked: true });
+      expect(sessionRepo.save).toHaveBeenCalledTimes(1); // New session after atomic revocation
     });
 
     it('switches active role to SELLER only if profile is APPROVED', async () => {
@@ -453,40 +454,11 @@ describe('Identity & Authentication Module', () => {
       );
     });
 
-    it('decides dispute and enforces idempotency and DECISION_CONFLICT', async () => {
-      const mockIdentityPort: any = {};
-      const mockAuditService: any = { record: vi.fn() };
-      const adminCtrl = new AdminController(mockIdentityPort, mockAuditService);
-
-      const reqId = '11111111-1111-4111-8111-111111111111';
-
-      // First decision
-      const first = await adminCtrl.decideDispute(
-        reqId,
-        { decision: 'APPROVED', reasonCode: 'DAMAGED_ITEM' },
-        MOCK_ADMIN_ACTOR,
-      );
-      expect(first.decision).toBe('APPROVED');
-      expect(first.returnRequestId).toBe(reqId);
-      expect(mockAuditService.record).toHaveBeenCalledTimes(1);
-
-      // Repeated decision is idempotent
-      const repeated = await adminCtrl.decideDispute(
-        reqId,
-        { decision: 'APPROVED', reasonCode: 'DAMAGED_ITEM' },
-        MOCK_ADMIN_ACTOR,
-      );
-      expect(repeated.decision).toBe('APPROVED');
-      expect(mockAuditService.record).toHaveBeenCalledTimes(1); // not called again
-
-      // Conflicting decision throws 409 DECISION_CONFLICT
-      await expect(
-        adminCtrl.decideDispute(
-          reqId,
-          { decision: 'REJECTED', reasonCode: 'FRAUD' },
-          MOCK_ADMIN_ACTOR,
-        ),
-      ).rejects.toThrow(ConflictAppException);
+    it('does not acknowledge disputes before the persistent module exists', async () => {
+      const audit: any = { record: vi.fn() };
+      const controller = new AdminController({} as any, audit);
+      await expect(controller.decideDispute('11111111-1111-4111-8111-111111111111', {decision:'APPROVED'}, MOCK_ADMIN_ACTOR)).rejects.toMatchObject({status:501});
+      expect(audit.record).not.toHaveBeenCalled();
     });
 
     it('updates user status and records audit', async () => {

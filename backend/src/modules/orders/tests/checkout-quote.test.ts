@@ -73,6 +73,26 @@ async function captureError(promise: Promise<unknown>) {
   };
 }
 
+describe('Persistable VND totals', () => {
+  it.each([['line total', [2]], ['order total', [1, 1]]] as const)('rejects overflow in %s', async (_name, quantities) => {
+    const price = 600000000000;
+    const { quote, listings } = harness({ cart: { cartId, items: quantities.map((quantity, index) => ({
+      listingId: quotes[index].listingId, quantity, lastViewedUnitSalePrice: price,
+    })) } });
+    quantities.forEach((_, index) => listings.setSalePrice(quotes[index].listingId, price));
+    const error = await captureError(quote());
+    expect(error.status).toBe(409);
+    expect(error.body.error.code).toBe('CHECKOUT_TOTAL_OVERFLOW');
+  });
+
+  it('accepts the maximum integral numeric(14,2) amount', async () => {
+    const price = 999999999999;
+    const { quote, listings } = harness({ cart: { cartId, items: [{ listingId: listingA.listingId, quantity: 1, lastViewedUnitSalePrice: price }] } });
+    listings.setSalePrice(listingA.listingId, price);
+    expect((await quote()).merchandiseTotal).toBe(price);
+  });
+});
+
 describe("Workflow 3 — revalidate Cart and checkout quote", () => {
   it("builds a server quote with integer VND totals and quote-owned data", async () => {
     const { quote, listings, transaction } = harness();

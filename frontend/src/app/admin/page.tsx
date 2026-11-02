@@ -10,21 +10,28 @@ export default function AdminDashboardPage() {
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [lockedCount, setLockedCount] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [usersRes, profilesRes, auditRes] = await Promise.all([
+        const [usersRes, profilesRes, auditRes, lockedRes] = await Promise.all([
           adminApi.getUsers({ limit: 10 }),
           adminApi.getProfiles(),
           adminApi.getAuditLogs(10),
+          adminApi.getUsers({status:'LOCKED',limit:1}),
         ]);
         setUsers(usersRes.items);
+        setTotalUsers(usersRes.total);
+        setLockedCount(lockedRes.total);
         setProfiles(profilesRes);
         setAuditLogs(auditRes);
       } catch (err) {
         console.error('Failed to load admin dashboard data', err);
+        setError('Không tải được dữ liệu quản trị. Vui lòng tải lại trang.');
       } finally {
         setLoading(false);
       }
@@ -33,10 +40,10 @@ export default function AdminDashboardPage() {
   }, []);
 
   const pendingCount = profiles.filter((p) => p.status === 'PENDING').length;
-  const lockedCount = users.filter((u) => u.status === 'LOCKED').length;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
+      {error && <p role="alert">{error}</p>}
       {/* Welcome Banner */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 border border-indigo-900/40 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -55,7 +62,7 @@ export default function AdminDashboardPage() {
         {[
           {
             title: 'Tổng người dùng',
-            value: users.length,
+            value: totalUsers,
             desc: 'Tài khoản trên hệ thống',
             icon: '👥',
             color: 'from-blue-600 to-indigo-600',

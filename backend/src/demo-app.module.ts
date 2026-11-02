@@ -11,12 +11,13 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { HealthController } from './health/health.controller';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
+import { UploadController } from './common/upload/upload.controller.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '.env.example'],
+      envFilePath: ['.env', 'backend/.env', '.env.example', 'backend/.env.example'],
     }),
     JwtModule.register({
       global: true,
@@ -31,6 +32,6 @@ import { RolesGuard } from './common/auth/roles.guard';
     OrdersModule,
   ],
   providers: [JwtAuthGuard, RolesGuard],
-  controllers: [HealthController],
+  controllers: [HealthController, UploadController],
 })
 export class DemoAppModule {}

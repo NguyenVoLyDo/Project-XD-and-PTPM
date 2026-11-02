@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,6 +23,8 @@ import {
 import { ApproveProfileResult, IdentityPort } from './ports/identity.port.js';
 import { UserStatusValidator } from '../../../common/auth/user-status-validator.js';
 import { AuditService } from '../../../common/audit/audit.service.js';
+import { AuditLog } from '../../../common/audit/audit-log.entity.js';
+import { Notification } from '../../notifications/domain/notification.entity.js';
 
 @Injectable()
 export class IdentityService implements IdentityPort, UserStatusValidator {
@@ -42,10 +45,56 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     private readonly auditService?: AuditService,
   ) {}
 
+  private get needsTransaction() {
+    return this.userRepo.manager && !this.userRepo.manager.queryRunner?.isTransactionActive;
+  }
+
+  private async atomic<T>(work: (service: IdentityService) => Promise<T>): Promise<T> {
+    return this.userRepo.manager.transaction(async manager => {
+      // Shares the commerce lock so approval/locking cannot interleave with checkout.
+      await manager.query('SELECT pg_advisory_xact_lock(82731)');
+      const service = new IdentityService(manager.getRepository(User), manager.getRepository(UserRoleMembership), manager.getRepository(SupplierProfile), manager.getRepository(SellerProfile), manager.getRepository(UserSession), this.passwordHasher, this.tokenService, new AuditService(manager.getRepository(AuditLog)));
+      return work(service);
+    });
+  }
+
+  private async notifyProfileDecision(userId: string, profileId: string, role: 'SUPPLIER' | 'SELLER', decision: 'APPROVED' | 'REJECTED', reasonCode?: string) {
+    if (!this.userRepo.manager) return; // Unit fixtures without a database manager.
+    const eventType = decision === 'APPROVED' ? 'ProfileApproved' : 'ProfileRejected';
+    const title = decision === 'APPROVED' ? 'Hồ sơ đã được phê duyệt' : 'Hồ sơ bị từ chối';
+    const content = decision === 'APPROVED'
+      ? `Hồ sơ ${role} của bạn đã được phê duyệt.`
+      : `Hồ sơ ${role} bị từ chối. Lý do: ${reasonCode || 'Thông tin chưa đầy đủ'}.`;
+    await this.userRepo.manager.getRepository(Notification).save({
+      eventId: randomUUID(), recipientUserId: userId, templateKey: eventType,
+      eventType, title, content, payload: { profileId, role, reasonCode: reasonCode || null }, isRead: false,
+    });
+  }
+
   /**
    * Registers a new user account with hashed password and initial role memberships
    */
   async register(dto: RegisterDto): Promise<{ userId: string; email: string; status: string; roles: RoleType[] }> {
+    if (dto.role && !['CUSTOMER', 'SUPPLIER', 'SELLER'].includes(dto.role)) throw new ForbiddenAppException('INVALID_ROLE', 'Public registration cannot grant this role');
+    return this.registerTransaction(dto);
+  }
+
+  private async registerTransaction(dto: RegisterDto) {
+    if (this.userRepo.manager) {
+      try {
+        return await this.userRepo.manager.transaction(async manager => {
+          const service = new IdentityService(manager.getRepository(User), manager.getRepository(UserRoleMembership), manager.getRepository(SupplierProfile), manager.getRepository(SellerProfile), manager.getRepository(UserSession), this.passwordHasher, this.tokenService, this.auditService);
+          return service.registerRows(dto);
+        });
+      } catch (error) {
+        if (error.code === '23505') throw new ConflictAppException('EMAIL_IN_USE', 'Email already registered');
+        throw error;
+      }
+    }
+    return this.registerRows(dto);
+  }
+
+  private async registerRows(dto: RegisterDto) {
     const existing = await this.userRepo.findOne({
       where: { email: dto.email.toLowerCase().trim() },
     });
@@ -132,7 +181,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
       throw new ForbiddenAppException('ACCOUNT_LOCKED', 'Tài khoản của bạn đã bị khóa');
     }
 
-    const roles = user.roleMemberships?.map((m) => m.role) || ['CUSTOMER'];
+    const roles = user.roleMemberships?.filter(m => !m.status || m.status === 'ACTIVE').map((m) => m.role) || ['CUSTOMER'];
 
     // Rule: "Login không tự chọn quyền Supplier/Seller chưa APPROVED."
     let activeRole: RoleType = 'CUSTOMER';
@@ -152,7 +201,9 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
       activeProfileId = user.supplierProfile.id;
     }
 
+    const sessionId = randomUUID();
     const accessToken = await this.tokenService.generateAccessToken({
+      sessionId: sessionId,
       userId: user.id,
       email: user.email,
       roles,
@@ -167,6 +218,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     await this.sessionRepo.save(
       this.sessionRepo.create({
         userId: user.id,
+        id: sessionId,
         refreshTokenHash: tokenHash,
         isRevoked: false,
         expiresAt,
@@ -189,7 +241,17 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
   /**
    * Refreshes access token with Refresh Token Rotation
    */
-  async refresh(rawRefreshToken: string): Promise<{
+  async refresh(rawRefreshToken: string) {
+    if (this.sessionRepo.manager && !this.sessionRepo.manager.queryRunner?.isTransactionActive) {
+      return this.sessionRepo.manager.transaction(manager => {
+        const service = new IdentityService(manager.getRepository(User), manager.getRepository(UserRoleMembership), manager.getRepository(SupplierProfile), manager.getRepository(SellerProfile), manager.getRepository(UserSession), this.passwordHasher, this.tokenService, this.auditService);
+        return service.refreshRows(rawRefreshToken);
+      });
+    }
+    return this.refreshRows(rawRefreshToken);
+  }
+
+  private async refreshRows(rawRefreshToken: string): Promise<{
     accessToken: string;
     refreshToken: string;
     activeRole: RoleType;
@@ -219,10 +281,11 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     }
 
     // Invalidate old session
-    session.isRevoked = true;
-    await this.sessionRepo.save(session);
+    const revoked = await this.sessionRepo.update({ id: session.id, isRevoked: false }, { isRevoked: true });
+    if (revoked?.affected === 0) throw new UnauthorizedAppException('SESSION_EXPIRED', 'Refresh token already consumed');
 
     // Issue new refresh token (Rotation)
+    const newSessionId = randomUUID();
     const newRefreshToken = this.tokenService.generateRefreshToken();
     const newHash = this.tokenService.hashRefreshToken(newRefreshToken);
     const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -230,13 +293,14 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     await this.sessionRepo.save(
       this.sessionRepo.create({
         userId: user.id,
+        id: newSessionId,
         refreshTokenHash: newHash,
         isRevoked: false,
         expiresAt: newExpiresAt,
       }),
     );
 
-    const roles = user.roleMemberships?.map((m) => m.role) || ['CUSTOMER'];
+    const roles = user.roleMemberships?.filter(m => !m.status || m.status === 'ACTIVE').map((m) => m.role) || ['CUSTOMER'];
     let activeRole: RoleType = 'CUSTOMER';
     let activeProfileId: string | null = null;
 
@@ -255,6 +319,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     }
 
     const accessToken = await this.tokenService.generateAccessToken({
+      sessionId: newSessionId,
       userId: user.id,
       email: user.email,
       roles,
@@ -277,7 +342,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     if (rawRefreshToken) {
       const tokenHash = this.tokenService.hashRefreshToken(rawRefreshToken);
       const session = await this.sessionRepo.findOne({
-        where: { refreshTokenHash: tokenHash },
+        where: { refreshTokenHash: tokenHash, userId },
       });
       if (session) {
         session.isRevoked = true;
@@ -316,7 +381,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
       userId: user.id,
       email: user.email,
       status: user.status,
-      roles: user.roleMemberships?.map((m) => m.role) || [],
+      roles: user.roleMemberships?.filter(m => !m.status || m.status === 'ACTIVE').map((m) => m.role) || [],
       activeRole: actor.activeRole,
       activeProfileId: actor.activeProfileId,
       profiles: {
@@ -344,6 +409,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
   async switchActiveRole(
     userId: string,
     dto: SwitchActiveRoleDto,
+    sessionId?: string,
   ): Promise<{ accessToken: string; userId: string; activeRole: RoleType; activeProfileId: string | null }> {
     const user = await this.userRepo.findOne({
       where: { id: userId },
@@ -354,7 +420,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
       throw new NotFoundAppException('USER_NOT_FOUND', 'Người dùng không tồn tại');
     }
 
-    const roles = user.roleMemberships?.map((m) => m.role) || [];
+    const roles = user.roleMemberships?.filter(m => !m.status || m.status === 'ACTIVE').map((m) => m.role) || [];
     if (!roles.includes(dto.role)) {
       throw new ForbiddenAppException('FORBIDDEN', 'Bạn không sở hữu vai trò này');
     }
@@ -374,6 +440,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     }
 
     const accessToken = await this.tokenService.generateAccessToken({
+      sessionId,
       userId: user.id,
       email: user.email,
       roles,
@@ -396,6 +463,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     userId: string,
     dto: ApplyProfileDto,
   ): Promise<{ profileId: string; role: RoleType; approvalStatus: ApprovalStatus }> {
+    if (this.needsTransaction) return this.atomic(service => service.applyProfile(userId, dto));
     const user = await this.userRepo.findOne({
       where: { id: userId },
       relations: { supplierProfile: true, sellerProfile: true, roleMemberships: true },
@@ -468,6 +536,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     actorId?: string,
     _txContext?: any,
   ): Promise<ApproveProfileResult> {
+    if (this.needsTransaction) return this.atomic(service => service.approveProfile(profileId, decision, reasonCode, actorId));
     const decidedAt = new Date().toISOString();
 
     // 1. Try SupplierProfile
@@ -495,6 +564,8 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
         });
       }
 
+      await this.notifyProfileDecision(supplier.userId, profileId, 'SUPPLIER', decision, reasonCode);
+
       return { profileId, role: 'SUPPLIER', status: decision, decidedAt };
     }
 
@@ -521,10 +592,25 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
         });
       }
 
+      await this.notifyProfileDecision(seller.userId, profileId, 'SELLER', decision, reasonCode);
+
       return { profileId, role: 'SELLER', status: decision, decidedAt };
     }
 
     throw new NotFoundAppException('PROFILE_NOT_FOUND', 'Không tìm thấy hồ sơ tương ứng');
+  }
+
+  async assertSession(payload: import('../../../common/auth/current-actor.interface').JwtPayload): Promise<void> {
+    if (!payload.sessionId) throw new UnauthorizedAppException('SESSION_EXPIRED', 'Session required');
+    const session = await this.sessionRepo.findOne({ where: { id: payload.sessionId, userId: payload.sub, isRevoked: false } });
+    if (!session || session.expiresAt.getTime() <= Date.now()) throw new UnauthorizedAppException('SESSION_EXPIRED', 'Session expired');
+    const role = await this.roleRepo.findOne({ where: { userId: payload.sub, role: payload.activeRole, status: 'ACTIVE' } });
+    if (!role) throw new ForbiddenAppException('ACTIVE_ROLE_REQUIRED', 'Role is no longer active');
+    if (payload.activeRole === 'SUPPLIER' || payload.activeRole === 'SELLER') {
+      const repository = payload.activeRole === 'SUPPLIER' ? this.supplierRepo : this.sellerRepo;
+      const profile = await repository.findOne({ where: { id: payload.activeProfileId, userId: payload.sub, approvalStatus: 'APPROVED' } });
+      if (!payload.activeProfileId || !profile) throw new ForbiddenAppException('PROFILE_NOT_APPROVED', 'Approved profile required');
+    }
   }
 
   async assertUserActive(userId: string): Promise<void> {
@@ -545,7 +631,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     });
     if (!user) return null;
 
-    const roles = user.roleMemberships?.map((m) => m.role) || ['CUSTOMER'];
+    const roles = user.roleMemberships?.filter(m => !m.status || m.status === 'ACTIVE').map((m) => m.role) || ['CUSTOMER'];
     return {
       userId: user.id,
       activeRole: roles[0] || 'CUSTOMER',
@@ -614,6 +700,7 @@ export class IdentityService implements IdentityPort, UserStatusValidator {
     actorId?: string,
     reason?: string,
   ): Promise<{ userId: string; status: string }> {
+    if (this.needsTransaction) return this.atomic(service => service.setUserStatus(userId, status, actorId, reason));
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundAppException('USER_NOT_FOUND', 'Người dùng không tồn tại');

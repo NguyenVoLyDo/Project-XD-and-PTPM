@@ -25,7 +25,7 @@ export default function SellerListingsPage() {
   });
 
   const selectedProduct = catalogProducts.find(p => p.id === form.productId);
-  const minRequiredPrice = selectedProduct ? Math.round(selectedProduct.costPrice * 1.1) : 0;
+  const minRequiredPrice = selectedProduct?.minimumSalePrice ?? 0;
   const isMarginValid = form.salePrice >= minRequiredPrice;
 
   const loadData = async () => {
@@ -33,7 +33,7 @@ export default function SellerListingsPage() {
       const [listRes, shopRes, prodRes]: any = await Promise.all([
         ApiClient.get('/listings/seller/mine'),
         ApiClient.get('/listings/seller/shops'),
-        ApiClient.get('/catalog/products'),
+        ApiClient.get('/seller/catalog/products'),
       ]);
 
       if (Array.isArray(listRes)) setListings(listRes);
@@ -47,8 +47,8 @@ export default function SellerListingsPage() {
           setForm(f => ({ ...f, productId: prodRes[0].id, salePrice: Math.round(prodRes[0].costPrice * 1.25) }));
         }
       }
-    } catch {
-      // demo fallback
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Không tải được gian hàng');
     } finally {
       setLoading(false);
     }
@@ -56,12 +56,12 @@ export default function SellerListingsPage() {
 
   useEffect(() => {
     loadData();
-  }, [currentUser]);
+  }, [currentUser.id, currentUser.sellerProfileId]);
 
   const handleCreateListing = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isMarginValid) {
-      alert(`Giá bán lẻ phải tối thiểu là ${minRequiredPrice.toLocaleString()} đ (đảm bảo biên lợi nhuận >= 10%)`);
+      alert(`Giá bán lẻ phải tối thiểu là ${minRequiredPrice.toLocaleString()} đ theo chính sách hiện tại`);
       return;
     }
 
@@ -94,6 +94,11 @@ export default function SellerListingsPage() {
 
   return (
     <div className="space-y-8">
+      <button type="button" className="rounded-lg border px-4 py-2" onClick={async()=>{
+        const name=prompt('Tên gian hàng mới:');if(!name?.trim())return;
+        try{await ApiClient.post('/listings/seller/shops',{name:name.trim()});await loadData();setToast('Đã tạo gian hàng');}
+        catch(error){setToast(error instanceof Error?error.message:'Không tạo được gian hàng');}
+      }}>Tạo gian hàng</button>
       {toast && (
         <div role="status" className="fixed bottom-6 right-6 z-50 bg-primary text-on-primary px-5 py-3 rounded-xl shadow-2xl text-sm font-semibold">
           {toast}
@@ -133,8 +138,8 @@ export default function SellerListingsPage() {
         <div className="space-y-4">
           {listings.map(item => {
             const margin = item.salePrice - item.costPrice;
-            const marginPercent = Math.round((margin / item.costPrice) * 100);
-            const isPausedMismatch = item.status === 'PAUSED_PRICE_MISMATCH';
+            const marginPercent = item.costPrice ? Math.round((margin / item.costPrice) * 100) : 0;
+            const isPausedMismatch = item.status === 'PAUSED_BY_POLICY' || item.status === 'PAUSED_PRICE_MISMATCH';
 
             return (
               <div
@@ -209,13 +214,13 @@ export default function SellerListingsPage() {
                 {isPausedMismatch && (
                   <div className="mt-4 pt-3 border-t border-amber-500/30 flex items-center justify-between text-xs text-amber-700 bg-amber-950/40 p-2.5 rounded-xl">
                     <span>
-                      ⚠️ <strong>Cảnh báo:</strong> NCC vừa tăng giá vốn. Giá bán lẻ hiện tại của bạn không đạt biên lợi nhuận tối thiểu 10%. Hãy tăng giá bán để tự động mở lại listing!
+                      ⚠️ <strong>Cảnh báo:</strong> Giá bán hiện tại không đạt mức tối thiểu theo chính sách. Hãy cập nhật giá bán để mở lại niêm yết.
                     </span>
                     <button
-                      onClick={() => handleUpdatePrice(item.id, Math.round(item.costPrice * 1.15))}
+                      onClick={() => handleUpdatePrice(item.id, item.minimumSalePrice ?? item.costPrice)}
                       className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 shrink-0 ml-4"
                     >
-                      Tăng giá ngay (+15%)
+                      Cập nhật giá
                     </button>
                   </div>
                 )}
@@ -266,7 +271,7 @@ export default function SellerListingsPage() {
               {selectedProduct && (
                 <div className="p-3 rounded-xl bg-canvas border border-line space-y-1">
                   <div className="text-subtle">Giá vốn nguồn NCC: <strong className="text-ink">{selectedProduct.costPrice.toLocaleString()} đ</strong></div>
-                  <div className="text-subtle">Biên lợi nhuận sàn yêu cầu (10%): <strong className="text-emerald-700">{minRequiredPrice.toLocaleString()} đ</strong></div>
+                  <div className="text-subtle">Giá bán tối thiểu: <strong className="text-emerald-700">{minRequiredPrice.toLocaleString()} đ</strong></div>
                 </div>
               )}
 
@@ -292,7 +297,7 @@ export default function SellerListingsPage() {
                 />
                 {!isMarginValid && (
                   <p className="text-xs text-rose-700 mt-1">
-                    Giá bán phải &gt;= {minRequiredPrice.toLocaleString()} đ (đảm bảo biên lợi nhuận tối thiểu 10%).
+                    Giá bán phải &gt;= {minRequiredPrice.toLocaleString()} đ theo chính sách hiện tại.
                   </p>
                 )}
               </div>

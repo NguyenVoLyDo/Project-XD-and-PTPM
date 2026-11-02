@@ -25,17 +25,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
+    const generation = authApi.getSessionGeneration();
     try {
       const profile = await authApi.getMe();
+      if (generation !== authApi.getSessionGeneration()) return;
       setUser(profile);
       setActor({
         userId: profile.userId,
         activeRole: profile.activeRole,
         activeProfileId: profile.activeProfileId,
       });
-    } catch {
-      setUser(null);
-      setActor(null);
+    } catch (error) {
+      if (generation !== authApi.getSessionGeneration()) return;
+      if ((error as {status?: number})?.status === 401 || (error as {status?: number})?.status === 403) {
+        authApi.setAccessToken(null);
+        setUser(null);
+        setActor(null);
+      }
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -44,17 +51,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Attempt to load existing user session or refresh token
     const token = authApi.getAccessToken();
+    const hasPriorSession = typeof window !== 'undefined' && localStorage.getItem('dc_has_session') === 'true';
     if (token) {
-      refreshUser();
-    } else {
-      // Try refresh cookie
+      refreshUser().catch(() => setIsLoading(false));
+    } else if (hasPriorSession) {
+      // Try refresh cookie only if user previously logged in
       authApi
         .refresh()
         .then(() => refreshUser())
         .catch(() => {
+          localStorage.removeItem('dc_has_session');
           setIsLoading(false);
         });
+    } else {
+      setIsLoading(false);
     }
+  }, [refreshUser]);
+
+
+  useEffect(() => {
+    const expired = () => { setUser(null); setActor(null); setIsLoading(false); };
+    const storageChanged = (event: StorageEvent) => {
+      if (event.key !== 'dc_access_token' && event.key !== 'dc_session_generation') return;
+      expired();
+      if (authApi.getAccessToken()) void refreshUser().catch(() => {});
+    };
+    window.addEventListener('dc-session-expired', expired);
+    window.addEventListener('storage', storageChanged);
+    return () => { window.removeEventListener('dc-session-expired', expired); window.removeEventListener('storage', storageChanged); };
   }, [refreshUser]);
 
   const login = async (data: LoginFormData) => {
@@ -66,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         activeRole: res.activeRole,
         activeProfileId: res.activeProfileId,
       });
+      localStorage.setItem('dc_has_session', 'true');
       await refreshUser();
     } finally {
       setIsLoading(false);
@@ -86,10 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
+      localStorage.removeItem('dc_has_session');
       await authApi.logout();
+    } finally {
       setUser(null);
       setActor(null);
-    } finally {
       setIsLoading(false);
     }
   };

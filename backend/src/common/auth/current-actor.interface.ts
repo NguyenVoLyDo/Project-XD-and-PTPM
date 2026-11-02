@@ -13,6 +13,7 @@ export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
  * }
  */
 export interface CurrentActor {
+  sessionId?: string;
   userId: string;
   activeRole: RoleType;
   activeProfileId: string | null;

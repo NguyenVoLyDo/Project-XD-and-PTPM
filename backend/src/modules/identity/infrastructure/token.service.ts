@@ -8,6 +8,7 @@ export class TokenService {
   constructor(private readonly jwtService: JwtService) {}
 
   async generateAccessToken(params: {
+    sessionId?: string;
     userId: string;
     email: string;
     roles: RoleType[];
@@ -15,6 +16,7 @@ export class TokenService {
     activeProfileId: string | null;
   }): Promise<string> {
     const payload: JwtPayload = {
+      sessionId: params.sessionId,
       sub: params.userId,
       email: params.email,
       roles: params.roles,

@@ -7,6 +7,7 @@ import { AdminProfile } from '@/features/admin/types';
 export default function AdminProfilesPage() {
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [tab, setTab] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'SUPPLIER' | 'SELLER'>('ALL');
   const [selectedProfile, setSelectedProfile] = useState<AdminProfile | null>(null);
@@ -17,12 +18,14 @@ export default function AdminProfilesPage() {
   const fetchProfiles = async () => {
     try {
       setLoading(true);
+      setError('');
       const role = roleFilter === 'ALL' ? undefined : roleFilter;
       const status = tab === 'ALL' ? undefined : tab;
       const res = await adminApi.getProfiles(role, status);
       setProfiles(res);
     } catch (err) {
       console.error('Failed to fetch profiles', err);
+      setError('Không tải được hồ sơ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -52,6 +55,7 @@ export default function AdminProfilesPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {error && <p role="alert">{error} <button onClick={fetchProfiles}>Thử lại</button></p>}
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-white tracking-tight">

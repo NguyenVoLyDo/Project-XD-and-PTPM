@@ -15,9 +15,13 @@ interface ListingCardProps {
 }
 export function ListingCard({ item, onAddToCart, isAdding = false, disabled, currency = 'đ', className }: ListingCardProps) {
   const outOfStock = item.availableStock !== undefined && item.availableStock <= 0;
+  const defaultImage = item.productName?.toLowerCase().includes('tai nghe') ? '/images/earbuds.jpg'
+    : (item.productName?.toLowerCase().includes('bình') || item.productName?.toLowerCase().includes('lock')) ? '/images/bottle.jpg'
+    : '/images/charger.jpg';
   const image = item.productImage?.includes('photo-1590658268037') ? '/images/earbuds.jpg'
     : item.productImage?.includes('photo-1583863788434') ? '/images/charger.jpg'
-    : item.productImage?.includes('photo-1602143407151') ? '/images/bottle.jpg' : item.productImage;
+    : item.productImage?.includes('photo-1602143407151') ? '/images/bottle.jpg'
+    : (item.productImage || defaultImage);
   return <article className={cn('product-card bg-surface border border-line rounded-2xl overflow-hidden flex flex-col hover:border-primary/30 transition-colors', className)}>
     <div className="product-image relative">
       {image ? <Image src={image} alt={item.productName} width={640} height={480} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" unoptimized={!image.startsWith('/')} />

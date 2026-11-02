@@ -53,9 +53,11 @@ export class JwtAuthGuard implements CanActivate {
       // "User bị khóa giữa hai request | Session bị vô hiệu trước request nghiệp vụ tiếp theo"
       if (this.userStatusValidator) {
         await this.userStatusValidator.assertUserActive(payload.sub);
+        await this.userStatusValidator.assertSession?.(payload);
       }
 
       const actor: CurrentActor = {
+        sessionId: payload.sessionId,
         userId: payload.sub,
         activeRole: payload.activeRole,
         activeProfileId: payload.activeProfileId || null,

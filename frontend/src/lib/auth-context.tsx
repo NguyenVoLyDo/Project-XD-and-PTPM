@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { RoleType, UserProfile } from './types';
 import { ApiClient } from './api';
 import { useAuth as useIdentity } from '../features/auth/hooks/use-auth';
@@ -59,7 +59,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
 interface AuthContextType {
   currentUser: DemoAccount;
   activeRole: RoleType;
-  switchAccount: (account: DemoAccount) => void;
+  switchAccount: (account: DemoAccount) => Promise<void>;
   cartCount: number;
   setCartCount: React.Dispatch<React.SetStateAction<number>>;
   refreshCartCount: () => Promise<void>;
@@ -70,7 +70,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const identity = useIdentity();
   const [demoUser, setCurrentUser] = useState<DemoAccount>(DEMO_ACCOUNTS[0]);
-  const currentUser: DemoAccount = identity.user && identity.actor ? {
+  const currentUser: DemoAccount = useMemo(() => identity.user && identity.actor ? {
     id: identity.actor.userId,
     email: identity.user.email,
     role: identity.actor.activeRole,
@@ -78,7 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     badge: identity.actor.activeRole,
     supplierProfileId: identity.actor.activeRole === 'SUPPLIER' ? identity.actor.activeProfileId ?? undefined : undefined,
     sellerProfileId: identity.actor.activeRole === 'SELLER' ? identity.actor.activeProfileId ?? undefined : undefined,
-  } : demoUser;
+  } : process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === 'true' ? demoUser : {
+    id: '', email: '', role: 'CUSTOMER', name: 'Khách', badge: 'Khách',
+  }, [identity.user, identity.actor, demoUser]);
   const [cartCount, setCartCount] = useState<number>(0);
 
   useEffect(() => {
@@ -89,8 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const switchAccount = (account: DemoAccount) => {
-    if (identity.isAuthenticated) return;
+  const switchAccount = async (account: DemoAccount) => {
+    if (identity.isAuthenticated) {
+      await identity.switchRole(account.role);
+      return;
+    }
+    if (process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED !== 'true') return;
     setCurrentUser(account);
     localStorage.setItem('dc_user_id', account.id);
     localStorage.setItem('dc_active_role', account.role);
@@ -98,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshCartCount = async () => {
-    if (currentUser.role === 'CUSTOMER') {
+    if (currentUser.id && currentUser.role === 'CUSTOMER') {
       try {
         const cart: any = await ApiClient.get('/cart');
         if (cart && Array.isArray(cart.items)) {

@@ -1,5 +1,6 @@
 import { API_BASE } from '@/lib/api-base';
 import { AdminAuditLog, AdminProfile, AdminUser } from './types';
+import { authApi } from '../auth/api/auth.api';
 
 const API_BASE_URL = API_BASE.replace(/\/api\/v1$/, '');
 
@@ -27,7 +28,7 @@ class AdminApiClient {
       if (params?.page) query.set('page', String(params.page));
       if (params?.limit) query.set('limit', String(params.limit));
 
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/users?${query.toString()}`, {
+      const res = await authApi.fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users?${query.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           ...this.getAuthHeader(),
@@ -49,7 +50,7 @@ class AdminApiClient {
     reason?: string,
   ): Promise<{ userId: string; status: string }> {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/status`, {
+      const res = await authApi.fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${userId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ class AdminApiClient {
       if (role) query.set('role', role);
       if (status) query.set('status', status);
 
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/profiles?${query.toString()}`, {
+      const res = await authApi.fetchWithAuth(`${API_BASE_URL}/api/v1/admin/profiles?${query.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           ...this.getAuthHeader(),
@@ -97,7 +98,7 @@ class AdminApiClient {
     role: 'SUPPLIER' | 'SELLER' = 'SUPPLIER',
   ): Promise<{ profileId: string; approvalStatus: string; decidedAt: string }> {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/profiles/${profileId}/decision`, {
+      const res = await authApi.fetchWithAuth(`${API_BASE_URL}/api/v1/admin/profiles/${profileId}/decision`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +117,7 @@ class AdminApiClient {
 
   async getAuditLogs(limit = 50): Promise<AdminAuditLog[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/audit?limit=${limit}`, {
+      const res = await authApi.fetchWithAuth(`${API_BASE_URL}/api/v1/admin/audit?limit=${limit}`, {
         headers: {
           'Content-Type': 'application/json',
           ...this.getAuthHeader(),

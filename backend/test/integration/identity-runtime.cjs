@@ -42,6 +42,7 @@ const { StoreService } = require('../../dist/common/database/store.service');
     await app.init();
     const user = { id: randomUUID(), email: 'integration@example.test', status: 'ACTIVE', passwordHash: await app.get(PasswordHasherService).hash('TestPassword123!'), roleMemberships: [{ role: 'CUSTOMER', status: 'ACTIVE' }] };
     repo('User').rows.push(user);
+    repo('UserRoleMembership').rows.push({ userId: user.id, role: 'CUSTOMER', status: 'ACTIVE' });
     const login = await request(app.getHttpServer()).post('/api/v1/auth/login').send({ email: user.email, password: 'TestPassword123!' });
     assert.equal(login.status, 200, JSON.stringify(login.body));
     const token = login.body.data.accessToken;
@@ -68,6 +69,9 @@ const { StoreService } = require('../../dist/common/database/store.service');
     assert.equal(locked.body.error.code, 'ACCOUNT_LOCKED');
     assert.ok(repo('UserSession').rows.every(session => session.isRevoked));
     console.log('PASS: integrated login, JWT -> me/cart/checkout, RBAC, forged headers, lock between requests (repository doubles).');
+    if (process.argv.includes('--audit')) {
+      await require('./flow-audit.cjs')({ app, repo, user });
+    }
     if (process.argv.includes('--browser')) {
       user.status = 'ACTIVE';
       const path = require('node:path');

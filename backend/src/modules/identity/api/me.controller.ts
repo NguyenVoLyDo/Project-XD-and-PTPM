@@ -33,7 +33,7 @@ export class MeController {
     @CurrentUser() actor: CurrentActor,
     @Body() dto: SwitchActiveRoleDto,
   ) {
-    return this.identityService.switchActiveRole(actor.userId, dto);
+    return this.identityService.switchActiveRole(actor.userId, dto, actor.sessionId);
   }
 
   @Post('profile-applications')

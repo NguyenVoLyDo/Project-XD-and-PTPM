@@ -21,12 +21,12 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md z-10">
         <AuthCard
           title="Khôi phục mật khẩu"
-          subtitle="Nhập email của bạn để nhận liên kết đặt lại mật khẩu"
+          subtitle="Chức năng gửi email khôi phục chưa khả dụng"
         >
           {submitted ? (
             <div className="text-center space-y-4">
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
-                Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu tới email <strong>{email}</strong> nếu tài khoản tồn tại trong hệ thống.
+                Hệ thống chưa hỗ trợ gửi email đặt lại mật khẩu. Vui lòng liên hệ quản trị viên để được hỗ trợ tài khoản.
               </div>
               <Link
                 href="/login"
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
                 type="submit"
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/25 transition-all"
               >
-                Gửi liên kết khôi phục
+                Xem hướng dẫn hỗ trợ
               </button>
 
               <div className="text-center pt-2">

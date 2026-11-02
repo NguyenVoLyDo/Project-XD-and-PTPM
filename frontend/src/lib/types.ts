@@ -25,7 +25,8 @@ export interface ListingItem {
   sellerSku: string;
   salePrice: number;
   costPrice: number;
-  status: 'ACTIVE' | 'PAUSED_PRICE_MISMATCH' | 'PAUSED_OUT_OF_STOCK' | 'ARCHIVED';
+  minimumSalePrice?: number;
+  status: 'ACTIVE' | 'DRAFT' | 'INACTIVE' | 'PAUSED_BY_POLICY' | 'PAUSED_PRICE_MISMATCH' | 'PAUSED_OUT_OF_STOCK' | 'ARCHIVED';
   visible: boolean;
   productName: string;
   productDescription: string;

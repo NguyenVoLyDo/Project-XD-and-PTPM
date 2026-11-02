@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ApiClient } from '../../../lib/api';
 import { useAuth, DEMO_ACCOUNTS } from '../../../lib/auth-context';
@@ -34,27 +34,36 @@ export default function CustomerOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('ALL');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const requestId = useRef(0);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    const request = ++requestId.current;
     try {
       setLoading(true);
       setError(null);
-      const data: any = await ApiClient.get('/orders');
+      const data: any = await ApiClient.get('/orders', { page, limit: 20 });
+      if (request !== requestId.current) return;
       if (data && Array.isArray(data.items)) {
         setOrders(data.items);
+        setPagination(data.pagination || { total: data.items.length, totalPages: 1 });
       } else if (Array.isArray(data)) {
         setOrders(data);
       } else {
         setOrders([]);
       }
     } catch (err: any) {
+      if (request !== requestId.current) return;
       console.warn('Fetch orders error:', err.message);
       setError(err.message || 'Không thể tải danh sách đơn hàng từ máy chủ.');
       setOrders([]);
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => { setPage(1); }, [currentUser.id]);
 
   useEffect(() => {
     if (currentUser.role === 'CUSTOMER') {
@@ -63,7 +72,8 @@ export default function CustomerOrdersPage() {
       setLoading(false);
       setError(null);
     }
-  }, [currentUser]);
+    return () => { requestId.current += 1; };
+  }, [currentUser.id, currentUser.role, fetchOrders]);
 
   const filteredOrders = orders.filter((o) => {
     if (activeTab === 'ALL') return true;
@@ -96,7 +106,7 @@ export default function CustomerOrdersPage() {
             <span>Đơn Hàng Của Bạn</span>
             {orders.length > 0 && (
               <span className="text-xs px-2.5 py-1 rounded-full bg-primary-soft text-primary border border-primary/25 font-medium">
-                {orders.length} đơn
+                {pagination.total} đơn
               </span>
             )}
           </h1>
@@ -129,6 +139,16 @@ export default function CustomerOrdersPage() {
         })}
       </div>
 
+      {currentUser.role === 'CUSTOMER' && pagination.totalPages > 1 && (
+        <nav aria-label="Phân trang đơn hàng" className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <p>Trang {page} / {pagination.totalPages} · Bộ lọc áp dụng cho trang hiện tại.</p>
+          <div className="flex gap-2">
+            <Button variant="secondary" disabled={loading || page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</Button>
+            <Button variant="secondary" disabled={loading || page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>Trang sau</Button>
+          </div>
+        </nav>
+      )}
+
       {/* 3 Network States: Loading -> Error -> Success */}
       {loading ? (
         <div className="space-y-4">
@@ -140,10 +160,10 @@ export default function CustomerOrdersPage() {
         <EmptyState
           title="Bạn đang ở vai trò khác"
           description={`Hiện tại bạn đang ở vai trò "${currentUser.name}" (${currentUser.badge}). Quản lý đơn hàng mua sắm dành riêng cho Khách mua sắm (Customer).`}
-          actionText="Chuyển sang Khách hàng C để xem đơn"
+          actionText="Chuyển sang vai trò Khách hàng"
           onAction={() => {
             const customerAcc = DEMO_ACCOUNTS.find((a) => a.role === 'CUSTOMER') || DEMO_ACCOUNTS[0];
-            switchAccount(customerAcc);
+            switchAccount(customerAcc).catch(error => window.alert(error.message));
           }}
         />
       ) : error ? (

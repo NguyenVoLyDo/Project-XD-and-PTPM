@@ -170,10 +170,10 @@ export default function CartPage() {
         <EmptyState
           title="Bạn đang ở vai trò khác"
           description={`Hiện tại bạn đang ở vai trò "${currentUser.name}" (${currentUser.badge}). Giỏ hàng và quy trình thanh toán dành riêng cho Khách mua sắm (Customer).`}
-          actionText="Chuyển sang Khách hàng C để mua sắm"
+          actionText="Chuyển sang vai trò Khách hàng"
           onAction={() => {
             const customerAcc = DEMO_ACCOUNTS.find((a) => a.role === 'CUSTOMER') || DEMO_ACCOUNTS[0];
-            switchAccount(customerAcc);
+            switchAccount(customerAcc).catch(error => window.alert(error.message));
           }}
         />
       ) : error ? (

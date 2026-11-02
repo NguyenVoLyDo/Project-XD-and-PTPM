@@ -171,6 +171,13 @@ function harness(
   };
 }
 
+describe('Bounded order pagination', () => {
+  it.each(['1e100', '9007199254740992', '107374184', '0', '-1', '1.5'])('rejects unsupported page %s', async page => {
+    const { queryService } = harness();
+    expect((await captureError(queryService.listOrders({ page }))).status).toBe(400);
+  });
+});
+
 describe("Workflow 7 — Customer xem Order", () => {
   describe("Fixture validation", () => {
     it("validates order-detail.json matches customerOrderDetailSchema", () => {

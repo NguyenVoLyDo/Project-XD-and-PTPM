@@ -4,7 +4,7 @@ const uuid = z.uuid();
 const vnd = z.int().nonnegative().safe();
 
 export const putCartItemBodySchema = z.strictObject({
-  quantity: z.int().positive().safe(),
+  quantity: z.int().positive().max(2147483647),
 });
 
 export const cartViewSchema = z.strictObject({

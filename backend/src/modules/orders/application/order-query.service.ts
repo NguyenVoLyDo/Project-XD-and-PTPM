@@ -48,6 +48,11 @@ export class OrderQueryService {
       }
     }
 
+    if ((query?.page !== undefined && (!Number.isSafeInteger(Number(query.page)) || Number(query.page) < 1)) ||
+        (query?.limit !== undefined && (!Number.isSafeInteger(Number(query.limit)) || Number(query.limit) < 1)) ||
+        !Number.isSafeInteger((page - 1) * limit) || (page - 1) * limit > 2147483647) {
+      failOrders(400, "INVALID_REQUEST", "Pagination exceeds supported range", []);
+    }
     const result = await this.orderRepository.findByCustomerId(customerId, {
       page,
       limit,

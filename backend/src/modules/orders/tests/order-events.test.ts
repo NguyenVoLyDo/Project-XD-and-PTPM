@@ -108,7 +108,37 @@ function harness(initialAggregate?: OrderAggregate) {
   };
 }
 
+describe('Terminal customer orders', () => {
+  for (const status of ['CLOSED', 'CANCELED'] as const) {
+    it.each(['FulfillmentAccepted', 'FulfillmentRejected', 'FulfillmentTimedOut', 'FulfillmentShipped', 'FulfillmentDelivered'])('ignores %s after ' + status, async eventType => {
+      const aggregate = createSampleAggregate({ order: { status } });
+      const { consumer, orderRepository, processedEvents } = harness(aggregate);
+      const event = { ...readFixture<DomainEventEnvelope<Record<string, unknown>>>('fulfillment-accepted.json'), eventType };
+      await consumer.consume(event);
+      expect(orderRepository.orders.get(aggregate.order.orderId)).toEqual(aggregate);
+      expect(await processedEvents.isProcessed(event.eventId)).toBe(true);
+    });
+  }
+});
+
 describe("Workflow 6 — Nhận kết quả payment/fulfillment", () => {
+  it('does not rewind delivered parcels when acceptance arrives late', async () => {
+    const initial = createSampleAggregate();
+    const aggregate = createSampleAggregate({fulfillmentOrders: initial.fulfillmentOrders.map(fo => ({...fo, status: 'DELIVERED'}))});
+    const {consumer, orderRepository} = harness(aggregate);
+    const event = readFixture<DomainEventEnvelope<Record<string, unknown>>>('fulfillment-accepted.json');
+    await consumer.consume(event);
+    expect(orderRepository.orders.get(aggregate.order.orderId)?.fulfillmentOrders[0].status).toBe('DELIVERED');
+    expect(orderRepository.orders.get(aggregate.order.orderId)?.order.status).toBe('CONFIRMED');
+  });
+
+  it('does not advance an order for a fulfillment ID belonging elsewhere', async () => {
+    const aggregate = createSampleAggregate();
+    const {consumer, orderRepository} = harness(aggregate);
+    const event = readFixture<DomainEventEnvelope<Record<string, unknown>>>('fulfillment-accepted.json');
+    await consumer.consume({...event,payload:{...event.payload,fulfillmentOrderId:'unknown'}});
+    expect(orderRepository.orders.get(aggregate.order.orderId)?.order.status).toBe('CONFIRMED');
+  });
   describe("Fixture validation", () => {
     it.each([
       "payment-succeeded.json",

@@ -1,8 +1,4 @@
-import { DatabaseModule } from './common/database/database.module';
-import { CatalogModule } from './modules/catalog/catalog.module';
-import { ListingsModule } from './modules/listings/listings.module';
-import { InventoryModule } from './modules/inventory/inventory.module';
-import { IntegrationModule } from './integration/integration.module';
+import { PostgresCommerceModule } from './integration/postgres/commerce.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { HealthController } from './health/health.controller';
@@ -20,12 +16,13 @@ import { SellerProfile } from './modules/identity/domain/seller-profile.entity.j
 import { UserSession } from './modules/identity/domain/user-session.entity.js';
 import { AuditLog } from './common/audit/audit-log.entity.js';
 import { Notification } from './modules/notifications/domain/notification.entity.js';
+import { UploadController } from './common/upload/upload.controller.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '.env.example'],
+      envFilePath: ['.env', 'backend/.env', '.env.example', 'backend/.env.example'],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -41,11 +38,7 @@ import { Notification } from './modules/notifications/domain/notification.entity
         synchronize: false,
       }),
     }),
-    DatabaseModule,
-    CatalogModule,
-    ListingsModule,
-    InventoryModule,
-    IntegrationModule,
+    PostgresCommerceModule,
     CartModule,
     OrdersModule,
     CommonModule,
@@ -53,6 +46,6 @@ import { Notification } from './modules/notifications/domain/notification.entity
     AdminModule,
     NotificationsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, UploadController],
 })
 export class AppModule {}

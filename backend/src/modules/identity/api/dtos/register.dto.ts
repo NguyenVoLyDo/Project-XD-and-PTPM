@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { RoleType } from '../../../../common/auth/current-actor.interface.js';
 
 export class RegisterDto {
@@ -11,6 +11,7 @@ export class RegisterDto {
   password!: string;
 
   @IsOptional()
+  @IsIn(['CUSTOMER', 'SELLER', 'SUPPLIER'])
   @IsString()
   role?: RoleType;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../../../features/auth/hooks/use-auth';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ApiClient } from '../../../../lib/api';
@@ -16,6 +17,7 @@ import { Skeleton } from '../../../../components/ui/skeleton';
 
 interface FulfillmentItemDetail {
   orderItemId: string;
+  fulfillmentOrderId: string;
   listingId: string;
   productName: string;
   quantity: number;
@@ -34,6 +36,7 @@ interface FulfillmentOrderDetail {
 }
 
 interface OrderDetail {
+  items: FulfillmentItemDetail[];
   orderId: string;
   orderNo: string;
   customerId: string;
@@ -59,29 +62,30 @@ interface OrderDetail {
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params?.id as string;
+  const { actor, isLoading } = useAuth();
+  if (isLoading) return <Skeleton className="h-56 w-full" />;
+  if (actor?.activeRole !== 'CUSTOMER') return <ErrorFallback title="Không có quyền truy cập" message="Vui lòng đăng nhập bằng tài khoản khách hàng." />;
+  return <CustomerOrderDetail key={`${actor.userId}:${actor.activeRole}:${orderId}`} orderId={orderId} />;
+}
 
+function CustomerOrderDetail({ orderId }: { orderId: string }) {
+  const [reload, setReload] = useState(0);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadOrderDetail = async () => {
-    if (!orderId) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data: any = await ApiClient.get(`/orders/${orderId}`);
-      setOrder(data);
-    } catch (err: any) {
-      console.warn('Load order detail error:', err.message);
-      setError(err.message || 'Không thể tải thông tin chi tiết đơn hàng.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const loadOrderDetail = () => setReload(value => value + 1);
   useEffect(() => {
-    loadOrderDetail();
-  }, [orderId]);
+    let active = true;
+    setLoading(true);
+    setOrder(null);
+    setError(null);
+    ApiClient.get<OrderDetail>(`/orders/${orderId}`)
+      .then(data => { if (active) setOrder(data); })
+      .catch(err => { if (active) setError(err.message || 'Không thể tải thông tin chi tiết đơn hàng.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [orderId, reload]);
 
   // Stepper calculations
   const steps: StepItem[] = React.useMemo(() => {
@@ -210,7 +214,7 @@ export default function OrderDetailPage() {
                       supplierId={parcel.supplierId}
                       status={parcel.status}
                       amountToCollect={parcel.amountToCollect}
-                      items={parcel.items || []}
+                      items={(order.items || []).filter(item => item.fulfillmentOrderId === parcel.fulfillmentOrderId)}
                       trackingNo={parcel.trackingNo}
                       carrierCode={parcel.carrierCode}
                     />

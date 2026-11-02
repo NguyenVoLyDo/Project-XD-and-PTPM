@@ -7,15 +7,18 @@ import { AdminAuditLog } from '@/features/admin/types';
 export default function AdminAuditPage() {
   const [logs, setLogs] = useState<AdminAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filterAction, setFilterAction] = useState('');
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError('');
       const res = await adminApi.getAuditLogs(100);
       setLogs(res);
     } catch (err) {
       console.error('Failed to fetch audit logs', err);
+      setError('Không tải được nhật ký. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -31,6 +34,7 @@ export default function AdminAuditPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {error && <p role="alert">{error} <button onClick={fetchLogs}>Thử lại</button></p>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

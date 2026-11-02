@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../../common/auth/jwt-auth.guard.js';
 import { CurrentUser } from '../../../common/auth/current-user.decorator.js';
 import { CurrentActor } from '../../../common/auth/current-actor.interface.js';
 import { NotificationService } from '../application/notification.service.js';
+import { positiveInteger } from '../../../common/http/positive-integer';
 
 @Controller('api/v1/notifications')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +30,7 @@ export class NotificationController {
   ) {
     const notifications = await this.notificationService.listByUserId(
       actor.userId,
-      Number(limit) || 50,
+      positiveInteger(limit, 50),
     );
 
     return {

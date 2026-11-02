@@ -69,8 +69,20 @@ export class OrderEventConsumerService implements OrderEventConsumerPort {
       ];
       const now = event.occurredAt || new Date().toISOString();
 
-      // 3. Dispatch by eventType
-      switch (event.eventType) {
+      // Fulfillment events may be delivered out of order or refer to another order.
+      // Never rewind a terminal parcel or advance the order for an unknown parcel.
+      const allowedSources: Record<string, readonly string[]> = {
+        FulfillmentAccepted: ['PENDING_ACCEPTANCE'],
+        FulfillmentRejected: ['PENDING_ACCEPTANCE'],
+        FulfillmentTimedOut: ['PENDING_ACCEPTANCE'],
+        FulfillmentShipped: ['PENDING_ACCEPTANCE', 'ACCEPTED', 'PACKING', 'READY_TO_SHIP'],
+        FulfillmentDelivered: ['PENDING_ACCEPTANCE', 'ACCEPTED', 'PACKING', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'DELIVERY_FAILED'],
+      };
+      const sources = allowedSources[event.eventType];
+      const target = currentFulfillmentOrders.find(fo => fo.fulfillmentOrderId === event.payload?.fulfillmentOrderId);
+      const allowed = !sources || (target && sources.includes(target.status) && !(['CANCELED', 'CLOSED'] satisfies CustomerOrder['status'][]).some(status => status === currentOrder.status));
+      // 3. Dispatch by eventType; ignored events are still recorded for deduplication.
+      switch (allowed ? event.eventType : '') {
         case "PaymentSucceeded": {
           if (currentOrder.status === "PENDING_PAYMENT") {
             currentOrder = {
