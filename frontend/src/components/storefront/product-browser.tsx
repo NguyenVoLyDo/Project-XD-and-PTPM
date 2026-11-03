@@ -8,6 +8,9 @@ import { useAuth } from '../../lib/auth-context';
 import { ListingCard, type ListingCardItem } from '../organisms/catalog/listing-card';
 import { Icon } from '../ui/icon';
 import { Button } from '../ui/button';
+import { Skeleton } from '../ui/skeleton';
+import { EmptyState } from '../molecules/empty-state';
+import { ErrorFallback } from '../molecules/error-fallback';
 import { LoginModal } from '../modals/login-modal';
 
 export function ProductBrowser({ featured = false }: { featured?: boolean }) {
@@ -117,6 +120,7 @@ export function ProductBrowser({ featured = false }: { featured?: boolean }) {
                 name="q"
                 type="search"
                 autoComplete="off"
+                aria-label="Tìm sản phẩm"
                 placeholder="Tìm theo tên sản phẩm, thương hiệu hoặc gian hàng..."
                 value={search}
                 onChange={(event) => updateFilter('q', event.target.value)}
@@ -127,7 +131,7 @@ export function ProductBrowser({ featured = false }: { featured?: boolean }) {
             <div className="flex items-center gap-2">
               <select
                 id="supplier-filter"
-                aria-label="Lọc theo nhà cung cấp"
+                aria-label="Nhà cung cấp"
                 value={supplier}
                 onChange={(event) => updateFilter('supplier', event.target.value)}
                 className="w-full h-11 px-3.5 border border-line rounded-xl text-xs sm:text-sm bg-canvas focus:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-primary font-medium"
@@ -142,38 +146,34 @@ export function ProductBrowser({ featured = false }: { featured?: boolean }) {
             </div>
           </div>
 
-          {/* Bottom row: Sort tabs (Like Shopee / Lazada) */}
+          {/* Bottom row: Sort tabs & select */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-line/70 text-xs">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-subtle font-semibold mr-1">Sắp xếp theo:</span>
-              {[
-                { label: 'Phổ biến', val: '' },
-                { label: 'Giá thấp đến cao', val: 'price-asc' },
-                { label: 'Giá cao đến thấp', val: 'price-desc' },
-              ].map((s) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  onClick={() => updateFilter('sort', s.val)}
-                  className={`px-3.5 py-1.5 rounded-xl font-semibold transition ${
-                    sort === s.val
-                      ? 'bg-primary text-on-primary shadow-xs'
-                      : 'bg-canvas text-subtle hover:text-ink hover:bg-muted border border-line'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-subtle font-semibold">Sắp xếp theo:</span>
+              <select
+                id="sort-select"
+                aria-label="Sắp xếp"
+                value={sort}
+                onChange={(event) => updateFilter('sort', event.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-line bg-canvas text-xs font-semibold text-ink focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Phổ biến</option>
+                <option value="price-asc">Giá thấp đến cao</option>
+                <option value="price-desc">Giá cao đến thấp</option>
+              </select>
             </div>
 
-            {(search || supplier || sort) && (
+            {(search || supplier || sort) && shown.length > 0 && (
               <button
                 type="button"
                 className="text-rose-600 hover:underline font-semibold flex items-center gap-1"
-                onClick={() => window.history.replaceState(null, '', '/catalog')}
+                onClick={() => {
+                  window.history.replaceState(null, '', '/catalog');
+                  setRevision((value) => value + 1);
+                }}
               >
                 <Icon name="close" width={14} height={14} />
-                <span>Xóa toàn bộ bộ lọc</span>
+                <span>Xóa bộ lọc</span>
               </button>
             )}
           </div>
@@ -191,26 +191,35 @@ export function ProductBrowser({ featured = false }: { featured?: boolean }) {
 
       {/* Grid or States */}
       {loading ? (
-        <div aria-label="Đang tải sản phẩm" aria-busy="true" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((index) => (
-            <div key={index} className="h-96 rounded-3xl border border-line bg-muted animate-pulse" />
+        <div aria-label="Đang tải sản phẩm" aria-busy="true" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <div key={index} className="h-96 rounded-2xl border border-line bg-surface p-4 flex flex-col justify-between">
+              <Skeleton className="h-48 w-full rounded-xl" />
+              <div className="space-y-2 mt-4">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-6 w-1/3 mt-2" />
+              </div>
+              <Skeleton className="h-10 w-full rounded-xl mt-4" />
+            </div>
           ))}
         </div>
       ) : error ? (
-        <div role="alert" className="p-12 text-center bg-surface border border-line rounded-3xl">
-          <p className="mb-4 text-subtle text-sm">{error}</p>
-          <Button onClick={() => setRevision((value) => value + 1)}>Thử lại</Button>
-        </div>
+        <ErrorFallback
+          title="Không thể tải danh sách sản phẩm"
+          message={error}
+          onRetry={() => setRevision((value) => value + 1)}
+        />
       ) : !shown.length ? (
-        <div className="py-20 text-center border border-line rounded-3xl bg-surface">
-          <div className="w-12 h-12 rounded-2xl bg-muted text-subtle mx-auto flex items-center justify-center mb-4">
-            <Icon name="search" width={24} height={24} />
-          </div>
-          <h2 className="text-base font-bold text-ink">Chưa tìm thấy sản phẩm phù hợp</h2>
-          <p className="text-subtle text-xs mt-1 max-w-sm mx-auto">
-            Thử tìm kiếm với từ khóa khác hoặc xóa bớt tiêu chí lọc nhà cung cấp.
-          </p>
-        </div>
+        <EmptyState
+          title="Chưa tìm thấy sản phẩm phù hợp"
+          description="Thử tìm kiếm với từ khóa khác hoặc xóa bớt tiêu chí lọc để xem thêm các mặt hàng khác."
+          actionText="Xóa bộ lọc"
+          onAction={() => {
+            window.history.replaceState(null, '', '/catalog');
+            setRevision((value) => value + 1);
+          }}
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((item) => (
@@ -226,26 +235,44 @@ export function ProductBrowser({ featured = false }: { featured?: boolean }) {
       )}
 
       {!featured && !loading && !error && totalPages > 1 && (
-        <nav aria-label="Phân trang sản phẩm" className="flex items-center justify-center gap-4 mt-6">
-          <Button variant="outline" disabled={page <= 1} onClick={() => updateFilter('page', String(page - 1))}>Trang trước</Button>
-          <span>Trang {page} / {totalPages}</span>
-          <Button variant="outline" disabled={page >= totalPages} onClick={() => updateFilter('page', String(page + 1))}>Trang sau</Button>
+        <nav aria-label="Phân trang sản phẩm" className="flex items-center justify-center gap-3 mt-10 pt-6 border-t border-line">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => updateFilter('page', String(page - 1))}
+            className="text-xs font-semibold"
+          >
+            ← Trang trước
+          </Button>
+          <span className="text-xs text-subtle font-medium px-3 py-1.5 rounded-lg bg-surface border border-line">
+            Trang <strong className="text-ink">{page}</strong> / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => updateFilter('page', String(page + 1))}
+            className="text-xs font-semibold"
+          >
+            Trang sau →
+          </Button>
         </nav>
       )}
       {/* Toast Notice */}
       {notice && (
         <div
           role="status"
-          className="fixed bottom-6 right-6 z-50 max-w-md bg-ink text-white rounded-2xl shadow-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 text-xs"
+          className="fixed bottom-6 right-6 z-50 max-w-md bg-navy text-white rounded-2xl shadow-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 text-xs border border-white/10"
         >
           <div className="flex-1">
             <p className="font-medium leading-relaxed">{notice.text}</p>
             {notice.success && (
               <Link
                 href="/cart"
-                className="inline-flex items-center gap-1 mt-2 text-emerald-400 font-bold hover:underline"
+                className="inline-flex items-center gap-1 mt-2 text-accent font-bold hover:underline"
               >
-                <span>Đi đến giỏ hàng</span>
+                <span>Xem giỏ hàng & Thanh toán</span>
                 <Icon name="arrow" width={14} height={14} />
               </Link>
             )}

@@ -160,11 +160,11 @@ export default function SellerListingsPage() {
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-on-primary transition-all animate-in fade-in slide-in-from-bottom-2 ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-danger'
           }`}
         >
-          <span className="text-sm font-semibold">{toast.message}</span>
+          <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
 
@@ -197,23 +197,50 @@ export default function SellerListingsPage() {
         </div>
       </div>
 
-      {/* Metrics Row */}
+      {/* Metrics Row - Modern SaaS KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-subtle font-medium">Tổng niêm yết</span>
-          <div className="text-2xl font-bold text-ink mt-1">{metrics.total}</div>
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider">Tổng niêm yết</span>
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line flex items-center justify-center text-ink">
+              <Icon name="tag" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-ink mt-2">{metrics.total}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Sản phẩm trên gian hàng</span>
         </div>
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-emerald-700 font-medium">Đang mở bán</span>
-          <div className="text-2xl font-bold text-emerald-700 mt-1">{metrics.active}</div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider text-success">Đang mở bán</span>
+            <div className="w-8 h-8 rounded-xl bg-success-soft text-success border border-success/20 flex items-center justify-center">
+              <Icon name="check" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-success mt-2">{metrics.active}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Đạt chuẩn Margin sàn</span>
         </div>
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-amber-700 font-medium">Tạm ẩn (Vi phạm Margin)</span>
-          <div className="text-2xl font-bold text-amber-700 mt-1">{metrics.paused}</div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider text-warning">Tạm ẩn (Margin)</span>
+            <div className="w-8 h-8 rounded-xl bg-warning-soft text-warning border border-warning/20 flex items-center justify-center">
+              <Icon name="alert" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-warning mt-2">{metrics.paused}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Cần điều chỉnh giá bán</span>
         </div>
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-primary font-medium">Gian hàng sở hữu</span>
-          <div className="text-2xl font-bold text-primary mt-1">{metrics.shopCount}</div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary">Gian hàng sở hữu</span>
+            <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary border border-primary/20 flex items-center justify-center">
+              <Icon name="store" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-primary mt-2">{metrics.shopCount}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Kênh phân phối trực tuyến</span>
         </div>
       </div>
 
@@ -301,12 +328,12 @@ export default function SellerListingsPage() {
                           {item.sellerSku || 'SKU'}
                         </span>
                         {item.status === 'ACTIVE' && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-success-soft text-success border border-success/25">
                             Đang mở bán
                           </span>
                         )}
                         {isPausedMismatch && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/25">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-warning-soft text-warning border border-warning/25">
                             Tạm ẩn do vi phạm Margin
                           </span>
                         )}
@@ -340,7 +367,7 @@ export default function SellerListingsPage() {
                       <span className="text-[11px] text-subtle block">Lợi nhuận gộp</span>
                       <span
                         className={`text-sm font-bold ${
-                          margin > 0 ? 'text-emerald-700' : 'text-rose-700'
+                          margin > 0 ? 'text-success' : 'text-danger'
                         }`}
                       >
                         +{margin.toLocaleString('vi-VN')} đ ({marginPercent}%)
@@ -360,11 +387,11 @@ export default function SellerListingsPage() {
                 </div>
 
                 {isPausedMismatch && (
-                  <div className="mt-4 pt-3 border-t border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-800 bg-amber-500/10 p-3 rounded-xl">
+                  <div className="mt-4 pt-3 border-t border-warning/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs bg-warning-soft text-ink p-3.5 rounded-xl border border-warning/20">
                     <div className="flex items-center gap-2">
-                      <Icon name="alert" width={16} height={16} className="text-amber-700 shrink-0" />
+                      <Icon name="alert" width={16} height={16} className="text-warning shrink-0" />
                       <span>
-                        <strong>Cảnh báo:</strong> Giá vốn từ NCC đã tăng, khiến giá bán hiện tại không đạt tỷ suất lợi nhuận 10%. Hãy tăng giá bán để tự động mở lại niêm yết.
+                        <strong className="text-ink">Cảnh báo biên lợi nhuận:</strong> Giá vốn từ NCC đã tăng khiến giá bán hiện tại không đạt tối thiểu 10% Margin. Hãy tăng giá bán lẻ để tự động kích hoạt lại niêm yết trên sàn.
                       </span>
                     </div>
                     <Button

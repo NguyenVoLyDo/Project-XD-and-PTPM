@@ -83,7 +83,7 @@ export function Navbar() {
         ]
       : [
           { href: '/', label: 'Trang chủ' },
-          { href: '/catalog', label: 'Tất cả sản phẩm' },
+          { href: '/catalog', label: 'Khám phá' },
           { href: '/orders', label: 'Đơn mua của tôi' },
         ];
 
@@ -93,7 +93,7 @@ export function Navbar() {
       {roleError && (
         <div
           role="alert"
-          className="fixed top-14 right-6 z-50 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-semibold shadow-xl flex items-center gap-2 animate-in fade-in"
+          className="fixed top-14 right-6 z-50 px-4 py-2.5 rounded-xl bg-danger text-white text-xs font-semibold shadow-xl flex items-center gap-2 animate-in fade-in"
         >
           <span>{roleError}</span>
           <button type="button" onClick={() => setRoleError(null)} className="ml-2 underline">
@@ -103,10 +103,10 @@ export function Navbar() {
       )}
 
       {/* 1. Top Utility Strip: Minimalist, clean, secondary actions */}
-      <div className="bg-canvas border-b border-line/60 text-[11px] text-subtle">
+      <div className="bg-canvas border-b border-line/60 text-[11px] text-subtle overflow-hidden">
         <div className="page-shell flex items-center justify-between h-8">
-          {/* Left partner links */}
-          <div className="flex items-center gap-4">
+          {/* Left partner links - hidden on small mobile to prevent horizontal overflow */}
+          <div className="hidden sm:flex items-center gap-4">
             <Link
               href="/seller/listings"
               className="hover:text-ink transition-colors font-medium"
@@ -120,20 +120,20 @@ export function Navbar() {
             >
               Kênh Nhà Cung Cấp
             </Link>
-            <span className="text-line hidden sm:inline">|</span>
-            <span className="hidden sm:inline text-subtle/80">
+            <span className="text-line">|</span>
+            <span className="text-subtle/80">
               Hotline hỗ trợ: 1900 8888
             </span>
           </div>
 
           {/* Right quick switch / demo switcher */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             {process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === 'true' && (
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] text-subtle/70">Demo:</span>
                 <select
                   id="demo-account"
-                  aria-label="Tài khoản trải nghiệm"
+                  aria-label="Bản demo"
                   value={currentUser.id}
                   onChange={(e) => {
                     const account = DEMO_ACCOUNTS.find((item) => item.id === e.target.value);
@@ -375,7 +375,7 @@ export function Navbar() {
                           setRoleError(err instanceof Error ? err.message : 'Lỗi đăng xuất')
                         );
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-1.5 transition"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-danger hover:bg-danger-soft flex items-center gap-1.5 transition"
                     >
                       <Icon name="logout" width={14} height={14} />
                       <span>Đăng xuất</span>
@@ -385,7 +385,7 @@ export function Navbar() {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <Link
                 href="/login"
                 className="text-xs font-semibold text-subtle hover:text-ink px-3 py-1.5 rounded-lg hover:bg-muted transition"
@@ -438,7 +438,7 @@ export function Navbar() {
 
       {/* Mobile Drawer */}
       {mobileOpen && (
-        <div
+        <nav
           id="mobile-navigation"
           aria-label="Điều hướng di động"
           className="lg:hidden border-t border-line bg-surface p-4 space-y-3 shadow-lg animate-in slide-in-from-top-2"
@@ -479,7 +479,7 @@ export function Navbar() {
               </Link>
             ))}
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );

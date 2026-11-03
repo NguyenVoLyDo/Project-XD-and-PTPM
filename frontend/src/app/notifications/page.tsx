@@ -92,7 +92,7 @@ export default function NotificationsPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight flex items-center gap-2.5">
             <span>Trung tâm thông báo</span>
             {unreadCount > 0 && (
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 border border-rose-500/25">
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-danger-soft text-danger border border-danger/30">
                 {unreadCount} chưa đọc
               </span>
             )}
@@ -107,22 +107,20 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={() => setFilter('ALL')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
-              filter === 'ALL'
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${filter === 'ALL'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-surface text-subtle hover:text-ink hover:bg-muted border border-line'
-            }`}
+              }`}
           >
             Tất cả ({items.length})
           </button>
           <button
             type="button"
             onClick={() => setFilter('UNREAD')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
-              filter === 'UNREAD'
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${filter === 'UNREAD'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-surface text-subtle hover:text-ink hover:bg-muted border border-line'
-            }`}
+              }`}
           >
             Chưa đọc ({unreadCount})
           </button>
@@ -130,7 +128,7 @@ export default function NotificationsPage() {
       </div>
 
       {error && (
-        <div role="alert" className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 text-xs flex items-center justify-between">
+        <div role="alert" className="p-4 rounded-2xl bg-danger-soft border border-danger/30 text-danger text-xs flex items-center justify-between">
           <span>⚠️ {error}</span>
           <button onClick={load} className="underline font-bold">Thử lại</button>
         </div>
@@ -152,11 +150,10 @@ export default function NotificationsPage() {
           {filteredItems.map((item) => (
             <article
               key={item.id}
-              className={`p-5 rounded-2xl border transition-all flex items-start justify-between gap-4 ${
-                item.isRead
+              className={`p-5 rounded-2xl border transition-all flex items-start justify-between gap-4 ${item.isRead
                   ? 'bg-surface border-line text-subtle'
                   : 'bg-primary-soft/40 border-primary/30 text-ink shadow-xs'
-              }`}
+                }`}
             >
               <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2">

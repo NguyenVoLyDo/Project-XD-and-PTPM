@@ -16,9 +16,9 @@ export function PriceDisplay({
   className,
   currency = 'đ',
 }: PriceDisplayProps) {
-  const sizeStyles = {
-    sm: 'text-xs font-semibold',
-    md: 'text-sm font-bold',
+  const sizeStyles: Record<string, string> = {
+    sm: 'text-sm font-semibold',
+    md: 'text-base font-bold',
     lg: 'text-lg font-bold',
     xl: 'text-2xl font-bold',
   };
@@ -27,12 +27,17 @@ export function PriceDisplay({
 
   return (
     <div className={cn('inline-flex items-baseline gap-2', className)}>
-      <span className={cn('text-primary', sizeStyles[size])}>
-        {amount.toLocaleString('vi-VN')} {currency}
+      <span
+        className={cn(
+          'text-primary tabular-nums',
+          sizeStyles[size],
+        )}
+      >
+        {amount.toLocaleString('vi-VN')}&thinsp;{currency}
       </span>
       {hasDiscount && (
-        <span className="text-xs text-subtle line-through">
-          {originalAmount.toLocaleString('vi-VN')} {currency}
+        <span className="text-xs text-subtle line-through tabular-nums">
+          {originalAmount!.toLocaleString('vi-VN')}&thinsp;{currency}
         </span>
       )}
     </div>

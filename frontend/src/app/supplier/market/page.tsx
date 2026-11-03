@@ -123,7 +123,7 @@ export default function SupplierMarketPage() {
       </div>
 
       {error && (
-        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between">
+        <div role="alert" className="p-4 rounded-xl bg-danger-soft border border-danger/30 text-danger text-xs font-semibold flex items-center justify-between">
           <span>{error}</span>
           <button type="button" onClick={loadMarketData} className="underline font-bold">
             Thử lại
@@ -166,7 +166,7 @@ export default function SupplierMarketPage() {
         <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider">Giá bán lẻ trung bình</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
               <Icon name="tag" width={16} height={16} />
             </div>
           </div>
@@ -180,15 +180,15 @@ export default function SupplierMarketPage() {
 
         <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
-            <span className="text-xs font-semibold uppercase tracking-wider">Tuân thủ giá sàn</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <span className="text-xs font-semibold uppercase tracking-wider text-success">Tuân thủ giá sàn</span>
+            <div className="w-8 h-8 rounded-xl bg-success-soft text-success border border-success/20 flex items-center justify-center">
               <Icon name="shield" width={16} height={16} />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-extrabold text-primary flex items-center gap-1.5">
+            <div className="text-2xl sm:text-3xl font-extrabold text-success flex items-center gap-1.5">
               <span>100%</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary-soft text-primary">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-success-soft text-success border border-success/20">
                 Bảo vệ biên
               </span>
             </div>
@@ -203,22 +203,20 @@ export default function SupplierMarketPage() {
           <button
             type="button"
             onClick={() => setActiveTab('MY_DISTRIBUTION')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'MY_DISTRIBUTION'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${activeTab === 'MY_DISTRIBUTION'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'text-subtle hover:text-ink hover:bg-muted'
-            }`}
+              }`}
           >
             Mạng lưới của tôi ({myDistributedListings.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('MARKET_OVERVIEW')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'MARKET_OVERVIEW'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${activeTab === 'MARKET_OVERVIEW'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'text-subtle hover:text-ink hover:bg-muted'
-            }`}
+              }`}
           >
             Toàn cảnh thị trường sàn ({allListings.length})
           </button>
@@ -310,7 +308,7 @@ export default function SupplierMarketPage() {
 
                       <td className="px-5 py-3.5 font-mono">
                         {item.costPrice ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success-soft text-success border border-success/20 text-[11px] font-bold">
                             +{markup.toLocaleString()} đ ({markupPercent}%)
                           </span>
                         ) : (
@@ -320,7 +318,7 @@ export default function SupplierMarketPage() {
 
                       <td className="px-5 py-3.5 font-mono text-subtle">
                         {item.availableStock !== undefined ? (
-                          <span className={item.availableStock > 0 ? 'text-ink font-semibold' : 'text-rose-600 font-bold'}>
+                          <span className={item.availableStock > 0 ? 'text-ink font-semibold' : 'text-danger font-bold'}>
                             {item.availableStock} cái
                           </span>
                         ) : (

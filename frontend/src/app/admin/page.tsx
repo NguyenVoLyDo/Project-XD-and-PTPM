@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {error && (
-        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between">
+        <div role="alert" className="p-4 rounded-xl bg-danger-soft border border-danger/30 text-danger text-xs font-semibold flex items-center justify-between">
           <span>{error}</span>
           <button type="button" onClick={() => window.location.reload()} className="underline font-bold">
             Thử lại
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
             icon: 'clipboard' as const,
             link: '/admin/profiles',
             badge: pendingCount > 0 ? `${pendingCount} cần duyệt` : null,
-            badgeStyle: 'bg-amber-50 text-amber-700 border-amber-200',
+            badgeStyle: 'bg-warning-soft text-warning border-warning/30',
           },
           {
             title: 'Tài khoản bị khóa',
@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
             icon: 'lock' as const,
             link: '/admin/users?status=LOCKED',
             badge: lockedCount > 0 ? `${lockedCount} tài khoản` : null,
-            badgeStyle: 'bg-rose-50 text-rose-700 border-rose-200',
+            badgeStyle: 'bg-danger-soft text-danger border-danger/30',
           },
           {
             title: 'Nhật ký kiểm toán',
@@ -186,8 +186,8 @@ export default function AdminDashboardPage() {
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                             p.role === 'SUPPLIER'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-info-soft text-info border border-info/20'
+                              : 'bg-success-soft text-success border border-success/20'
                           }`}
                         >
                           {p.role}

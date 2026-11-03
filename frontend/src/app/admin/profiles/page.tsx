@@ -68,7 +68,7 @@ export default function AdminProfilesPage() {
         <div
           role="status"
           className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+            toast.type === 'success' ? 'bg-primary' : 'bg-danger'
           }`}
         >
           <Icon name={toast.type === 'success' ? 'check' : 'alert'} width={18} height={18} />
@@ -77,7 +77,7 @@ export default function AdminProfilesPage() {
       )}
 
       {error && (
-        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between">
+        <div role="alert" className="p-4 rounded-xl bg-danger-soft border border-danger/30 text-danger text-xs font-semibold flex items-center justify-between">
           <span>{error}</span>
           <button type="button" onClick={fetchProfiles} className="underline font-bold">
             Thử lại
@@ -182,8 +182,8 @@ export default function AdminProfilesPage() {
                       <span
                         className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                           p.role === 'SUPPLIER'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'bg-info-soft text-info border border-info/20'
+                            : 'bg-success-soft text-success border border-success/20'
                         }`}
                       >
                         {p.role}
@@ -194,22 +194,22 @@ export default function AdminProfilesPage() {
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                           p.status === 'APPROVED'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'bg-success-soft text-success border border-success/25'
                             : p.status === 'REJECTED'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                            ? 'bg-danger-soft text-danger border border-danger/25'
+                            : 'bg-warning-soft text-warning border border-warning/25'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             p.status === 'APPROVED'
-                              ? 'bg-emerald-500'
+                              ? 'bg-success'
                               : p.status === 'REJECTED'
-                              ? 'bg-rose-500'
-                              : 'bg-amber-500 animate-pulse'
+                              ? 'bg-danger'
+                              : 'bg-warning animate-pulse'
                           }`}
                         />
-                        {p.status}
+                        {p.status === 'APPROVED' ? 'Đã duyệt' : p.status === 'REJECTED' ? 'Từ chối' : 'Chờ duyệt'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-subtle">
@@ -225,7 +225,7 @@ export default function AdminProfilesPage() {
                               setDecision('APPROVED');
                               setReasonCode('KYC_VERIFIED');
                             }}
-                            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition"
+                            className="px-2.5 py-1.5 rounded-lg bg-success-soft hover:bg-success/15 text-success border border-success/30 text-xs font-semibold transition"
                           >
                             Phê duyệt
                           </button>
@@ -236,7 +236,7 @@ export default function AdminProfilesPage() {
                               setDecision('REJECTED');
                               setReasonCode('INCOMPLETE_DOCS');
                             }}
-                            className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
+                            className="px-2.5 py-1.5 rounded-lg bg-danger-soft hover:bg-danger/15 text-danger border border-danger/30 text-xs font-semibold transition"
                           >
                             Từ chối
                           </button>

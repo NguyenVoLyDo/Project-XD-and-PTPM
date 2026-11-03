@@ -178,17 +178,23 @@ export default function CheckoutPage() {
           }}
         />
       )}
-      {priceNotice && <p role="alert" className="rounded-xl border border-amber-400 bg-amber-50 p-4 text-amber-900">
-        Giá sản phẩm đã thay đổi. Vui lòng kiểm tra giá mới bên dưới và bấm đặt hàng lần nữa để xác nhận.
-      </p>}
+      {priceNotice && (
+        <div role="alert" className="rounded-2xl border border-warning/30 bg-warning-soft p-4 text-xs text-ink flex items-start gap-3">
+          <span className="text-warning text-base font-bold">⚠️</span>
+          <div>
+            <strong className="block text-ink font-bold">Giá sản phẩm đã được cập nhật từ Nhà cung cấp:</strong>
+            <span className="text-subtle">Vui lòng kiểm tra lại giá mới trong bảng tóm tắt bên dưới và nhấn đặt hàng để xác nhận tiếp tục.</span>
+          </div>
+        </div>
+      )}
       {/* Toast Notification */}
       {toast && (
-        <div role="status"
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-on-primary transition-[color,background-color,border-color,box-shadow,opacity,transform] transform  ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
-          }`}
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${toast.type === 'success' ? 'bg-primary' : 'bg-danger'
+            }`}
         >
-          <span className="text-sm font-semibold">{toast.message}</span>
+          <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
 

@@ -190,11 +190,11 @@ export default function SupplierProductsPage() {
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-on-primary transition-all animate-in fade-in slide-in-from-bottom-2 ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-danger'
           }`}
         >
-          <span className="text-sm font-semibold">{toast.message}</span>
+          <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
 
@@ -217,23 +217,52 @@ export default function SupplierProductsPage() {
         </Button>
       </div>
 
-      {/* Metrics Row */}
+      {/* Metrics Row - Modern SaaS KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-subtle font-medium">Tổng sản phẩm</span>
-          <div className="text-2xl font-bold text-ink mt-1">{metrics.total}</div>
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider">Tổng sản phẩm</span>
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line flex items-center justify-center text-ink">
+              <Icon name="box" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-ink mt-2">{metrics.total}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Mã hàng trong danh mục</span>
         </div>
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-emerald-700 font-medium">Còn hàng</span>
-          <div className="text-2xl font-bold text-emerald-700 mt-1">{metrics.inStock}</div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider text-success">Còn hàng</span>
+            <div className="w-8 h-8 rounded-xl bg-success-soft text-success border border-success/20 flex items-center justify-center">
+              <Icon name="check" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-success mt-2">{metrics.inStock}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Sẵn sàng xuất kho</span>
         </div>
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-rose-700 font-medium">Hết hàng</span>
-          <div className="text-2xl font-bold text-rose-700 mt-1">{metrics.outOfStock}</div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider text-danger">Hết hàng</span>
+            <div className="w-8 h-8 rounded-xl bg-danger-soft text-danger border border-danger/20 flex items-center justify-center">
+              <Icon name="alert" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-danger mt-2">{metrics.outOfStock}</div>
+          <span className="text-[11px] text-subtle mt-1 block">Cần nhập kho bổ sung</span>
         </div>
-        <div className="p-4 rounded-2xl bg-surface border border-line">
-          <span className="text-xs text-primary font-medium">Tổng lượng tồn kho</span>
-          <div className="text-2xl font-bold text-primary mt-1">{metrics.totalUnits} <span className="text-xs font-normal text-subtle">chiếc</span></div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+          <div className="flex items-center justify-between text-subtle">
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary">Tổng lượng tồn</span>
+            <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary border border-primary/20 flex items-center justify-center">
+              <Icon name="store" width={15} height={15} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-primary mt-2">
+            {metrics.totalUnits} <span className="text-xs font-normal text-subtle">chiếc</span>
+          </div>
+          <span className="text-[11px] text-subtle mt-1 block">Tổng thực tế trong kho</span>
         </div>
       </div>
 
@@ -310,8 +339,8 @@ export default function SupplierProductsPage() {
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                           inStock
-                            ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/25'
-                            : 'bg-rose-500/15 text-rose-700 border border-rose-500/25'
+                            ? 'bg-success-soft text-success border border-success/25'
+                            : 'bg-danger-soft text-danger border border-danger/25'
                         }`}
                       >
                         {inStock ? 'Sẵn sàng giao' : 'Hết hàng tồn'}

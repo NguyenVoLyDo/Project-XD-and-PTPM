@@ -173,8 +173,8 @@ export default function SellerSourcingPage() {
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-on-primary transition-all animate-in fade-in ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-white transition-all animate-in fade-in ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-danger'
           }`}
         >
           <span className="text-xs font-semibold">{toast.message}</span>
@@ -290,7 +290,7 @@ export default function SellerSourcingPage() {
                   />
                   {outOfStock ? (
                     <div className="absolute inset-0 bg-ink/50 backdrop-blur-xs flex items-center justify-center">
-                      <span className="rounded-md px-2.5 py-1 bg-surface text-rose-700 font-bold text-xs shadow-md">
+                      <span className="rounded-md px-2.5 py-1 bg-surface text-danger font-bold text-xs shadow-md">
                         Tạm hết hàng
                       </span>
                     </div>
@@ -336,7 +336,7 @@ export default function SellerSourcingPage() {
 
                     <div className="flex items-center justify-between text-[11px] text-subtle pt-1 border-t border-line/40">
                       <span>Lãi tối thiểu:</span>
-                      <span className="text-emerald-700 font-bold">
+                      <span className="text-success font-bold">
                         +{minMargin.toLocaleString()} đ
                       </span>
                     </div>

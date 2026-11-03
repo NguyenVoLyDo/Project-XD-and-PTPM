@@ -45,15 +45,15 @@ export default function HomePage() {
           {/* Quick trust metrics */}
           <div className="flex flex-wrap items-center gap-6 mt-10 pt-6 border-t border-line text-xs text-subtle">
             <div className="flex items-center gap-1.5">
-              <Icon name="check" width={14} height={14} className="text-primary" />
+              <Icon name="check" width={14} height={14} className="text-accent" />
               <span>Nguồn hàng xác minh</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Icon name="check" width={14} height={14} className="text-primary" />
+              <Icon name="check" width={14} height={14} className="text-accent" />
               <span>Tách kiện theo kho NCC</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Icon name="check" width={14} height={14} className="text-primary" />
+              <Icon name="check" width={14} height={14} className="text-accent" />
               <span>Thanh toán COD & VietQR</span>
             </div>
           </div>

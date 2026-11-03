@@ -107,11 +107,11 @@ export default function CustomerOrdersPage() {
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-on-primary transition-all animate-in fade-in slide-in-from-bottom-2 ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-danger'
           }`}
         >
-          <span className="text-sm font-semibold">{toast.message}</span>
+          <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
       {loginModalOpen && (

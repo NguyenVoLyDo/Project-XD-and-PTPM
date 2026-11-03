@@ -138,8 +138,10 @@ export function StockModal({
           </div>
 
           {error && (
-            <p role="alert" className="text-xs text-rose-600 font-medium mt-3 flex items-center gap-1.5">
-              <span>⚠️</span>
+            <p role="alert" className="text-xs text-danger font-medium mt-3 flex items-center gap-1.5">
+              <svg aria-hidden="true" className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
               <span>{error}</span>
             </p>
           )}

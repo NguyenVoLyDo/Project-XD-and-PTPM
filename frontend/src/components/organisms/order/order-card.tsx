@@ -49,7 +49,7 @@ export function OrderCard({
   return (
     <Card
       className={cn(
-        'p-5 sm:p-6 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-line hover:shadow-xl hover:shadow-black/20 space-y-4',
+        'p-5 sm:p-6 transition-[color,background-color,border-color,box-shadow] hover:border-primary/20 hover:shadow-[var(--shadow-card-hover)] space-y-4',
         className,
       )}
     >

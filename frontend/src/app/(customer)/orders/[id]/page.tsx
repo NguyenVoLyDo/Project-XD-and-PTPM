@@ -315,7 +315,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
 
                   <div className="flex items-center justify-between text-subtle">
                     <span>Phí vận chuyển:</span>
-                    <span className="text-emerald-700 font-semibold">Miễn phí</span>
+                    <span className="text-success font-semibold">Miễn phí giao hàng</span>
                   </div>
 
                   <Separator className="my-2" />
@@ -330,7 +330,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
               {/* VietQR Payment Card (Chỉ hiện khi khách chọn Thanh toán Online) */}
               {order.paymentMethod !== 'COD' && (
                 order.paymentStatus === 'PENDING' || order.status === 'PENDING_PAYMENT' ? (
-                  <Card className="p-5 space-y-4 border-2 border-emerald-500/30 bg-emerald-50/20">
+                  <Card className="p-5 space-y-4 border border-accent/30 bg-accent-soft/40">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-ink text-sm">Quét Mã VietQR</span>
@@ -363,13 +363,13 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-subtle">Số tiền:</span>
-                          <span className="font-bold text-emerald-700">
+                          <span className="font-bold text-primary">
                             {new Intl.NumberFormat('vi-VN').format(order.totalPayable)} đ
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-subtle">Nội dung CK:</span>
-                          <span className="font-mono font-bold text-ink bg-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="font-mono font-bold text-ink bg-canvas px-1.5 py-0.5 rounded border border-line">
                             {order.orderNo}
                           </span>
                         </div>
@@ -380,7 +380,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
                       type="button"
                       onClick={handleSimulatePayment}
                       disabled={paying}
-                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                      className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
                     >
                       {paying ? (
                         <span>Đang xử lý Webhook...</span>
@@ -393,13 +393,13 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
                     </button>
                   </Card>
                 ) : (
-                  <Card className="p-4 border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  <Card className="p-4 border border-success/30 bg-success-soft flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
                       ✓
                     </div>
                     <div className="text-xs">
-                      <div className="font-bold text-emerald-900">Thanh toán Online thành công</div>
-                      <div className="text-emerald-700 text-[11px]">Đã xác nhận tiền về tài khoản ký quỹ VietQR</div>
+                      <div className="font-bold text-ink">Thanh toán Online thành công</div>
+                      <div className="text-success text-[11px] font-medium">Đã xác nhận tiền về tài khoản ký quỹ VietQR</div>
                     </div>
                   </Card>
                 )
@@ -412,10 +412,10 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
       {/* Floating Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 ${
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold flex items-center gap-2 ${
             toast.type === 'error'
-              ? 'bg-rose-50 text-rose-800 border-rose-200'
-              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              ? 'bg-danger-soft text-danger border-danger/30'
+              : 'bg-success-soft text-success border-success/30'
           }`}
         >
           <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>

@@ -36,7 +36,7 @@ export default function AdminAuditPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {error && (
-        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between">
+        <div role="alert" className="p-4 rounded-xl bg-danger-soft border border-danger/30 text-danger text-xs font-semibold flex items-center justify-between">
           <span>{error}</span>
           <button type="button" onClick={fetchLogs} className="underline font-bold">
             Thử lại

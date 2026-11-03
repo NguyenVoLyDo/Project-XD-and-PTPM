@@ -73,7 +73,10 @@ export function RetailPriceModal({
           </div>
           <div className="flex flex-wrap items-center justify-between text-xs text-subtle pt-2 border-t border-line">
             <span>Giá vốn từ NCC: <strong className="text-ink">{costPrice.toLocaleString('vi-VN')} đ</strong></span>
-            <span>Giá tối thiểu (Margin 10%): <strong className="text-emerald-700">{minRequired.toLocaleString('vi-VN')} đ</strong></span>
+            <span>
+              Giá tối thiểu (Margin 10%):&nbsp;
+              <strong className="text-success">{minRequired.toLocaleString('vi-VN')} đ</strong>
+            </span>
           </div>
         </div>
 
@@ -94,8 +97,10 @@ export function RetailPriceModal({
                 setSalePrice(isNaN(val) ? 0 : val);
                 if (error) setError(null);
               }}
-              className={`w-full text-lg font-bold py-3 pl-4 pr-12 rounded-xl border text-ink bg-canvas focus:bg-surface focus:outline-none focus:ring-2 ${
-                isMarginValid ? 'border-line focus:ring-primary' : 'border-rose-400 focus:ring-rose-500'
+              className={`w-full text-lg font-bold py-3 pl-4 pr-12 rounded-xl border text-ink bg-canvas focus:bg-surface focus:outline-none focus:ring-2 transition-[border-color,box-shadow] ${
+                isMarginValid
+                  ? 'border-line focus:ring-primary/20 focus:border-primary'
+                  : 'border-danger focus:ring-danger/20'
               }`}
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-subtle">
@@ -105,35 +110,46 @@ export function RetailPriceModal({
         </div>
 
         {/* Live Profit Preview Box */}
-        <div className={`p-4 rounded-2xl border transition-all ${
-          isMarginValid ? 'bg-primary-soft/50 border-primary/20' : 'bg-rose-500/10 border-rose-500/30'
-        }`}>
-          <div className="flex items-center justify-between mb-2">
+        <div
+          className={`p-4 rounded-2xl border transition-all ${
+            isMarginValid
+              ? 'bg-success-soft border-success/20'
+              : 'bg-danger-soft border-danger/30'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-subtle">
               Dự tính lợi nhuận mỗi đơn
             </span>
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-              isMarginValid ? 'bg-emerald-500/20 text-emerald-700' : 'bg-rose-500/20 text-rose-700'
-            }`}>
-              {isMarginValid ? 'Đạt chuẩn sàn' : 'Không đạt Margin'}
+            <span
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                isMarginValid
+                  ? 'bg-success/15 text-success'
+                  : 'bg-danger/15 text-danger'
+              }`}
+            >
+              {isMarginValid ? '✓ Đạt chuẩn sàn' : '✗ Không đạt Margin'}
             </span>
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-medium text-ink">Lợi nhuận gộp:</span>
-            <span className={`text-xl font-black ${profit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              +{profit.toLocaleString('vi-VN')} đ <span className="text-xs font-normal">({marginPercent}%)</span>
+            <span className={`text-xl font-black tabular-nums ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
+              +{profit.toLocaleString('vi-VN')} đ&nbsp;
+              <span className="text-xs font-normal text-subtle">({marginPercent}%)</span>
             </span>
           </div>
           {!isMarginValid && (
-            <p className="text-xs text-rose-700 mt-2">
-              ⚠️ Giá bán phải đạt tối thiểu {minRequired.toLocaleString('vi-VN')} đ để niêm yết được phép hiển thị trên sàn.
+            <p className="text-xs text-danger mt-2">
+              Giá bán phải đạt tối thiểu {minRequired.toLocaleString('vi-VN')} đ để niêm yết được phép hiển thị trên sàn.
             </p>
           )}
         </div>
 
         {error && (
-          <p role="alert" className="text-xs text-rose-600 font-medium flex items-center gap-1.5">
-            <span>⚠️</span>
+          <p role="alert" className="text-xs text-danger font-medium flex items-center gap-1.5">
+            <svg aria-hidden="true" className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
             <span>{error}</span>
           </p>
         )}

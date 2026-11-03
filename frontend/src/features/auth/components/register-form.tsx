@@ -48,10 +48,10 @@ export function RegisterForm() {
       {errorMessage && (
         <div
           id="register-error-alert"
-          className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2 animate-in fade-in"
+          className="p-3 rounded-xl bg-danger-soft border border-danger/30 text-danger text-xs flex items-start gap-2 animate-in fade-in"
         >
           <svg
-            className="w-4 h-4 shrink-0 mt-0.5 text-rose-600"
+            className="w-4 h-4 shrink-0 mt-0.5 text-danger"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -135,12 +135,12 @@ export function RegisterForm() {
           {...register('email')}
           className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
             errors.email
-              ? 'border-rose-500 focus:ring-rose-500/20'
+              ? 'border-danger focus:ring-danger/20'
               : 'border-line focus:ring-primary/20 focus:border-primary'
           }`}
         />
         {errors.email && (
-          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.email.message}</p>
+          <p className="mt-1 text-xs text-danger font-medium">{errors.email.message}</p>
         )}
       </div>
 
@@ -161,7 +161,7 @@ export function RegisterForm() {
             {...register('password')}
             className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
               errors.password
-                ? 'border-rose-500 focus:ring-rose-500/20'
+                ? 'border-danger focus:ring-danger/20'
                 : 'border-line focus:ring-primary/20 focus:border-primary'
             }`}
           />
@@ -183,7 +183,7 @@ export function RegisterForm() {
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.password.message}</p>
+          <p className="mt-1 text-xs text-danger font-medium">{errors.password.message}</p>
         )}
       </div>
 
@@ -203,12 +203,12 @@ export function RegisterForm() {
           {...register('confirmPassword')}
           className={`w-full px-3.5 py-2.5 rounded-xl border bg-canvas text-ink text-sm placeholder:text-subtle/70 focus:bg-surface focus:outline-none focus:ring-2 transition-all ${
             errors.confirmPassword
-              ? 'border-rose-500 focus:ring-rose-500/20'
+              ? 'border-danger focus:ring-danger/20'
               : 'border-line focus:ring-primary/20 focus:border-primary'
           }`}
         />
         {errors.confirmPassword && (
-          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.confirmPassword.message}</p>
+          <p className="mt-1 text-xs text-danger font-medium">{errors.confirmPassword.message}</p>
         )}
       </div>
 
@@ -237,7 +237,7 @@ export function RegisterForm() {
           </label>
         </div>
         {errors.agreeTerms && (
-          <p className="mt-1 text-xs text-rose-600 font-medium">{errors.agreeTerms.message}</p>
+          <p className="mt-1 text-xs text-danger font-medium">{errors.agreeTerms.message}</p>
         )}
       </div>
 

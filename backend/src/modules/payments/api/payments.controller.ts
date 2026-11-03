@@ -8,8 +8,12 @@ import {
   Inject,
   HttpCode,
   HttpStatus,
+  Query,
+  Optional,
 } from '@nestjs/common';
 import { PaymentsService } from '../application/payments.service';
+import { PaymentReconciliationService } from '../application/payment-reconciliation.service';
+import { WebhookLogService } from '../application/webhook-log.service';
 import { JwtAuthGuard } from '../../../common/auth/jwt-auth.guard';
 import {
   createPaymentObligationSchema,
@@ -23,6 +27,12 @@ export class PaymentsController {
   constructor(
     @Inject(PaymentsService)
     private readonly paymentsService: PaymentsService,
+    @Optional()
+    @Inject(PaymentReconciliationService)
+    private readonly reconciliationService?: PaymentReconciliationService,
+    @Optional()
+    @Inject(WebhookLogService)
+    private readonly webhookLogService?: WebhookLogService,
   ) {}
 
   /**
@@ -88,6 +98,45 @@ export class PaymentsController {
       body.reasonCode || 'CUSTOMER_RETURN',
       body.sourceRef || 'ADMIN_DISPUTE_REF',
     );
+  }
+
+  /**
+   * 5. GET /api/v1/payments/reconciliation/report
+   * Đối soát tài chính và giao dịch toàn sàn.
+   */
+  @Get('reconciliation/report')
+  @UseGuards(JwtAuthGuard)
+  async getReconciliationReport() {
+    if (!this.reconciliationService) {
+      return { message: 'Reconciliation service not enabled' };
+    }
+    return this.reconciliationService.runReconciliation();
+  }
+
+  /**
+   * 6. GET /api/v1/payments/reconciliation/orders/:orderId
+   * Đối soát chi tiết từng đơn hàng.
+   */
+  @Get('reconciliation/orders/:orderId')
+  @UseGuards(JwtAuthGuard)
+  async reconcileOrder(@Param('orderId') orderId: string) {
+    if (!this.reconciliationService) {
+      return { message: 'Reconciliation service not enabled' };
+    }
+    return this.reconciliationService.reconcileOrder(orderId);
+  }
+
+  /**
+   * 7. GET /api/v1/payments/webhooks/history
+   * Xem lịch sử nhận webhook để audit.
+   */
+  @Get('webhooks/history')
+  @UseGuards(JwtAuthGuard)
+  async getWebhookHistory(@Query('limit') limit = 50) {
+    if (!this.webhookLogService) {
+      return [];
+    }
+    return this.webhookLogService.getRecentLogs(Number(limit) || 50);
   }
 }
 

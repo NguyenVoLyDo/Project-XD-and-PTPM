@@ -254,7 +254,7 @@ export default function SupplierOrdersPage() {
                       {order.items.map((item, idx) => (
                         <div
                           key={item.fulfillmentItemId || idx}
-                          className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-line/60 text-xs"
+                          className="flex items-center justify-between p-3 rounded-xl bg-canvas border border-line text-xs"
                         >
                           <div className="space-y-0.5">
                             <div className="font-bold text-ink">{item.productName}</div>
@@ -269,7 +269,7 @@ export default function SupplierOrdersPage() {
                   </div>
 
                   {/* Right col: Recipient info & Settlement amount */}
-                  <div className="space-y-3 text-xs bg-slate-50/50 p-4 rounded-xl border border-line">
+                  <div className="space-y-3 text-xs bg-canvas p-4 rounded-xl border border-line">
                     <span className="font-bold text-subtle uppercase tracking-wider">
                       Địa chỉ nhận hàng:
                     </span>
@@ -280,7 +280,7 @@ export default function SupplierOrdersPage() {
                       <div className="text-subtle font-mono">
                         {order.shippingAddress?.phone || '09xx-xxx-xxx'}
                       </div>
-                      <div className="text-slate-600 leading-relaxed">
+                      <div className="text-subtle leading-relaxed">
                         {order.shippingAddress?.line1 || order.shippingAddress?.address || 'Việt Nam'}
                         {order.shippingAddress?.city && `, ${order.shippingAddress.city}`}
                       </div>
@@ -301,7 +301,7 @@ export default function SupplierOrdersPage() {
                         type="button"
                         onClick={() => handleRejectOrder(order.fulfillmentOrderId)}
                         disabled={isLoadingThis}
-                        className="px-4 py-2 border border-rose-300 text-rose-700 hover:bg-rose-50 font-semibold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
+                        className="px-4 py-2 border border-danger/30 text-danger hover:bg-danger-soft font-semibold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
                       >
                         ✕ Từ chối đơn (Hết hàng)
                       </button>
@@ -309,7 +309,7 @@ export default function SupplierOrdersPage() {
                         type="button"
                         onClick={() => handleAcceptOrder(order.fulfillmentOrderId)}
                         disabled={isLoadingThis}
-                        className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                        className="px-5 py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
                       >
                         {isLoadingThis ? 'Đang xử lý...' : '✓ Tiếp nhận đơn hàng'}
                       </button>
@@ -321,7 +321,7 @@ export default function SupplierOrdersPage() {
                       type="button"
                       onClick={() => handleShipOrder(order.fulfillmentOrderId)}
                       disabled={isLoadingThis}
-                      className="px-5 py-2 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                      className="px-5 py-2 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
                     >
                       {isLoadingThis ? 'Đang tạo vận đơn...' : '🚚 Giao cho bưu tá (GHN Express)'}
                     </button>
@@ -332,21 +332,21 @@ export default function SupplierOrdersPage() {
                       type="button"
                       onClick={() => handleDeliverOrder(order.fulfillmentOrderId)}
                       disabled={isLoadingThis}
-                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                      className="px-5 py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
                     >
                       {isLoadingThis ? 'Đang xác nhận...' : '📦 Xác nhận giao hàng thành công'}
                     </button>
                   )}
 
                   {order.status === 'DELIVERED' && (
-                    <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
+                    <span className="text-xs text-success font-bold flex items-center gap-1.5">
                       <span>✓</span>
                       <span>Đã hoàn tất giao hàng</span>
                     </span>
                   )}
 
                   {order.status === 'REJECTED' && (
-                    <span className="text-xs text-rose-600 font-bold flex items-center gap-1.5">
+                    <span className="text-xs text-danger font-bold flex items-center gap-1.5">
                       <span>✕</span>
                       <span>Đã từ chối đơn hàng (Đã kích hoạt hoàn tiền)</span>
                     </span>
@@ -361,10 +361,10 @@ export default function SupplierOrdersPage() {
       {/* Floating Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 ${
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold flex items-center gap-2 ${
             toast.type === 'error'
-              ? 'bg-rose-50 text-rose-800 border-rose-200'
-              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              ? 'bg-danger-soft text-danger border-danger/30'
+              : 'bg-success-soft text-success border-success/30'
           }`}
         >
           <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>

@@ -12,6 +12,7 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  Optional,
   NotImplementedException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/auth/jwt-auth.guard.js';
@@ -24,6 +25,7 @@ import { AdminProfileDecisionDto } from './dtos/admin-profile-decision.dto.js';
 import { AdminDisputeDecisionDto } from './dtos/admin-dispute-decision.dto.js';
 import { AdminUserStatusDto } from './dtos/admin-user-status.dto.js';
 import { AuditService } from '../../../common/audit/audit.service.js';
+import { DisputesService } from '../../disputes/disputes.service.js';
 
 import { positiveInteger } from '../../../common/http/positive-integer';
 
@@ -36,6 +38,7 @@ export class AdminController {
   constructor(
     private readonly identityPort: IdentityPort,
     private readonly auditService: AuditService,
+    @Optional() private readonly disputesService?: DisputesService,
   ) {}
 
   /**
@@ -72,7 +75,38 @@ export class AdminController {
     @Body() dto: AdminDisputeDecisionDto,
     @CurrentUser() actor: CurrentActor,
   ) {
-    throw new NotImplementedException('Disputes module is not integrated; no decision has been recorded');
+    if (!this.disputesService) {
+      throw new NotImplementedException('Disputes module is not integrated; no decision has been recorded');
+    }
+    return this.disputesService.decideDispute(returnRequestId, {
+      decision: dto.decision,
+      reasonCode: dto.reasonCode,
+      adminId: actor?.userId || 'unknown-admin',
+    });
+  }
+
+  /**
+   * Lists all ReturnRequests (disputes) for Admin management
+   */
+  @Get('disputes')
+  async listDisputes(@Query('status') status?: string) {
+    if (!this.disputesService) {
+      return [];
+    }
+    return this.disputesService.listReturnRequests(status as any);
+  }
+
+  /**
+   * Gets a single ReturnRequest by ID
+   */
+  @Get('disputes/:returnRequestId')
+  async getDispute(
+    @Param('returnRequestId', new ParseUUIDPipe({ version: '4' })) returnRequestId: string,
+  ) {
+    if (!this.disputesService) {
+      throw new NotImplementedException('Disputes module is not integrated');
+    }
+    return this.disputesService.getReturnRequestById(returnRequestId);
   }
 
   /**

@@ -137,12 +137,13 @@ export default function CartPage() {
       </Modal>}
       {/* Toast Notification */}
       {toast && (
-        <div role="status"
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-on-primary transition-[color,background-color,border-color,box-shadow,opacity,transform] transform  ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-rose-600'
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            toast.type === 'success' ? 'bg-primary' : 'bg-danger'
           }`}
         >
-          <span className="text-sm font-semibold">{toast.message}</span>
+          <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
 
@@ -216,13 +217,13 @@ export default function CartPage() {
           {/* Items List */}
           <div className="lg:col-span-2 space-y-4">
             {hasUnavailableItems && (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs flex items-start gap-3">
-                <svg aria-hidden="true" className="w-5 h-5 shrink-0 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="p-4 rounded-2xl bg-warning-soft border border-warning/30 text-ink text-xs flex items-start gap-3">
+                <svg aria-hidden="true" className="w-5 h-5 shrink-0 text-warning mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <div>
-                  <div className="font-bold">Lưu ý về sản phẩm trong giỏ:</div>
-                  <div>Một số sản phẩm đang tạm ngừng bán hoặc hết hàng. Vui lòng xóa trước khi tiến hành thanh toán.</div>
+                <div className="space-y-0.5">
+                  <div className="font-bold text-ink">Lưu ý về sản phẩm trong giỏ:</div>
+                  <div className="text-subtle">Một số sản phẩm đang tạm ngừng bán hoặc hết hàng. Vui lòng xóa trước khi tiến hành thanh toán.</div>
                 </div>
               </div>
             )}

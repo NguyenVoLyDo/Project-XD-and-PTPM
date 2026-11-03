@@ -49,7 +49,7 @@ export function Modal({ title, subtitle, onClose, children, maxWidth = 'lg' }: M
           onClose();
         }
       }}
-      className={`m-auto w-[calc(100%-2rem)] ${widthClasses[maxWidth]} max-h-[88dvh] overflow-y-auto overscroll-contain bg-surface text-ink rounded-3xl border border-line p-6 sm:p-8 shadow-2xl backdrop:bg-ink/60 backdrop:backdrop-blur-sm transition-all animate-in fade-in zoom-in-95`}
+      className={`m-auto w-[calc(100%-2rem)] ${widthClasses[maxWidth]} max-h-[88dvh] overflow-y-auto overscroll-contain bg-surface text-ink rounded-2xl border border-line p-6 sm:p-8 shadow-2xl backdrop:bg-navy/60 backdrop:backdrop-blur-sm transition-all animate-in fade-in zoom-in-95`}
     >
       <div className="flex justify-between items-start gap-4 mb-6 pb-4 border-b border-line">
         <div>

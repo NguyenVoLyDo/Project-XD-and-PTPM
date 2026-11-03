@@ -40,6 +40,8 @@ export function CostPriceModal({
     }
   };
 
+  const delta = cost - currentCost;
+
   return (
     <Modal
       title="Cập nhật giá vốn giao buôn"
@@ -79,7 +81,7 @@ export function CostPriceModal({
                 setCost(isNaN(val) ? 0 : val);
                 if (error) setError(null);
               }}
-              className="w-full text-lg font-bold py-3 pl-4 pr-12 rounded-xl border border-line bg-canvas focus:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full text-lg font-bold py-3 pl-4 pr-12 rounded-xl border border-line bg-canvas focus:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-subtle">
               VND
@@ -88,24 +90,30 @@ export function CostPriceModal({
           <div className="text-xs text-subtle mt-1.5 flex justify-between">
             <span>Tương đương: <strong>{cost.toLocaleString('vi-VN')} đ</strong></span>
             {cost !== currentCost && (
-              <span className={cost > currentCost ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'}>
-                {cost > currentCost ? `Tăng ${(cost - currentCost).toLocaleString('vi-VN')} đ` : `Giảm ${(currentCost - cost).toLocaleString('vi-VN')} đ`}
+              <span className={delta > 0 ? 'text-warning font-semibold' : 'text-success font-semibold'}>
+                {delta > 0
+                  ? `Tăng ${delta.toLocaleString('vi-VN')} đ`
+                  : `Giảm ${Math.abs(delta).toLocaleString('vi-VN')} đ`}
               </span>
             )}
           </div>
         </div>
 
         {/* Policy notice */}
-        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs leading-relaxed flex items-start gap-2.5">
-          <span className="text-base shrink-0">⚠️</span>
-          <div>
-            <strong>Lưu ý chính sách Margin:</strong> Nếu giá vốn tăng khiến niêm yết của Seller không đạt biên lợi nhuận tối thiểu 10%, listing đó sẽ tự động chuyển sang trạng thái <em>PAUSED_PRICE_MISMATCH</em> và tạm ẩn cho đến khi Seller cập nhật lại giá bán lẻ.
+        <div className="p-3.5 rounded-xl bg-warning-soft border border-warning/30 text-warning text-xs leading-relaxed flex items-start gap-2.5">
+          <svg aria-hidden="true" className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div className="text-ink/80">
+            <strong className="text-ink">Lưu ý chính sách Margin:</strong> Nếu giá vốn tăng khiến niêm yết của Seller không đạt biên lợi nhuận tối thiểu 10%, listing đó sẽ tự động chuyển sang trạng thái <em>PAUSED_PRICE_MISMATCH</em> và tạm ẩn cho đến khi Seller cập nhật lại giá bán lẻ.
           </div>
         </div>
 
         {error && (
-          <p role="alert" className="text-xs text-rose-600 font-medium flex items-center gap-1.5">
-            <span>⚠️</span>
+          <p role="alert" className="text-xs text-danger font-medium flex items-center gap-1.5">
+            <svg aria-hidden="true" className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
             <span>{error}</span>
           </p>
         )}
