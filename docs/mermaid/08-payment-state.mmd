@@ -5,18 +5,16 @@ stateDiagram-v2
   PENDING --> PAID: callback thanh toán thành công
   PENDING --> FAILED: callback thất bại / hết hạn
   PENDING --> PENDING_COD: khách chọn COD
-  PENDING_COD --> COLLECTED: carrier xác nhận thu tiền COD
-  PENDING_COD --> VOIDED: khách hủy / boom hàng giao thất bại
-  
-  PAID --> REFUND_PENDING: hủy / hoàn hàng được duyệt
-  COLLECTED --> REFUND_PENDING: duyệt hoàn tiền COD (chuyển khoản)
-  
-  REFUND_PENDING --> REFUNDED: hoàn tiền toàn bộ thành công
-  REFUND_PENDING --> PARTIALLY_REFUNDED: hoàn tiền một phần (tách đơn)
-  REFUND_PENDING --> REFUND_FAILED: hoàn tiền lỗi
-  REFUND_FAILED --> REFUND_PENDING: retry lệnh hoàn tiền
-  
+  PENDING_COD --> COLLECTED: carrier xác nhận thu COD
+  PENDING_COD --> VOIDED: mọi kiện COD chưa thu bị hủy / return-to-origin
+  PAID --> REFUND_PENDING: tạo Refund
+  COLLECTED --> REFUND_PENDING: tạo Refund COD
+  REFUND_PENDING --> PARTIALLY_REFUNDED: refund thành công, còn số dư
+  REFUND_PENDING --> REFUNDED: refund thành công toàn bộ
+  REFUND_PENDING --> REFUND_FAILED: refund lỗi
+  REFUND_FAILED --> REFUND_PENDING: retry với idempotency key
+  PARTIALLY_REFUNDED --> REFUND_PENDING: hoàn tiếp phần còn lại
+  PARTIALLY_REFUNDED --> REFUNDED: tổng hoàn tiền đạt số tiền đã thu
   FAILED --> [*]
   VOIDED --> [*]
   REFUNDED --> [*]
-  PARTIALLY_REFUNDED --> [*]

@@ -3,9 +3,11 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Optional,
 } from '@nestjs/common';
+import { CurrentActor } from '../../../common/auth/current-actor.interface';
 import { StoreService } from '../../../common/database/store.service';
 import {
   Payment,
@@ -21,6 +23,7 @@ import {
   PaymentDetailResponse,
 } from '../api/contracts';
 import { DemoCheckoutState } from '../../../integration/store-adapters.service';
+import { CommerceDb } from '../../../integration/postgres/commerce-db';
 
 @Injectable()
 export class PaymentsService {
@@ -40,6 +43,9 @@ export class PaymentsService {
     @Optional()
     @Inject(DemoCheckoutState)
     private readonly demoState?: DemoCheckoutState,
+    @Optional()
+    @Inject(CommerceDb)
+    private readonly db?: CommerceDb,
   ) {}
 
   /**
@@ -196,6 +202,37 @@ export class PaymentsService {
         }
       }
 
+      if (this.db) {
+        await this.db.query(
+          "UPDATE payments SET status = 'PAID', provider_transaction_ref = $1, paid_at = now(), updated_at = now() WHERE id = $2",
+          [payload.providerTransactionRef, payment.id],
+        ).catch(() => {});
+        await this.db.query(
+          "UPDATE payment_allocations SET status = 'FUNDED' WHERE payment_id = $1",
+          [payment.id],
+        ).catch(() => {});
+        await this.db.query(
+          "UPDATE customer_orders SET status = 'CONFIRMED', updated_at = now() WHERE id = $1 AND status = 'PENDING_PAYMENT'",
+          [payment.customerOrderId],
+        ).catch(() => {});
+        const [orderRow] = await this.db.query(
+          'SELECT snapshot FROM customer_orders WHERE id = $1',
+          [payment.customerOrderId],
+        ).catch(() => []);
+        if (orderRow?.snapshot) {
+          const snap = orderRow.snapshot;
+          if (snap.order && snap.order.status === 'PENDING_PAYMENT') {
+            snap.order.status = 'CONFIRMED';
+            snap.order.paymentStatus = 'PAID';
+            snap.order.updatedAt = now;
+          }
+          await this.db.query(
+            'UPDATE customer_orders SET snapshot = $1 WHERE id = $2',
+            [snap, payment.customerOrderId],
+          ).catch(() => {});
+        }
+      }
+
       this.store.logAudit(
         null,
         'PAYMENT_SUCCEEDED',
@@ -240,6 +277,43 @@ export class PaymentsService {
         res.status = 'RELEASED';
       }
 
+      if (this.db) {
+        await this.db.query(
+          "UPDATE payments SET status = 'FAILED', updated_at = now() WHERE id = $1",
+          [payment.id],
+        ).catch(() => {});
+        await this.db.query(
+          "UPDATE payment_allocations SET status = 'VOIDED' WHERE payment_id = $1",
+          [payment.id],
+        ).catch(() => {});
+        await this.db.query(
+          "UPDATE customer_orders SET status = 'PAYMENT_FAILED', updated_at = now() WHERE id = $1 AND status = 'PENDING_PAYMENT'",
+          [payment.customerOrderId],
+        ).catch(() => {});
+        if (itemIds.length > 0) {
+          await this.db.query(
+            "UPDATE stock_reservations SET status = 'RELEASED' WHERE order_item_id = ANY($1::uuid[]) AND status = 'HELD'",
+            [itemIds],
+          ).catch(() => {});
+        }
+        const [orderRow] = await this.db.query(
+          'SELECT snapshot FROM customer_orders WHERE id = $1',
+          [payment.customerOrderId],
+        ).catch(() => []);
+        if (orderRow?.snapshot) {
+          const snap = orderRow.snapshot;
+          if (snap.order && snap.order.status === 'PENDING_PAYMENT') {
+            snap.order.status = 'PAYMENT_FAILED';
+            snap.order.paymentStatus = 'FAILED';
+            snap.order.updatedAt = now;
+          }
+          await this.db.query(
+            'UPDATE customer_orders SET snapshot = $1 WHERE id = $2',
+            [snap, payment.customerOrderId],
+          ).catch(() => {});
+        }
+      }
+
       this.store.logAudit(
         null,
         'PAYMENT_FAILED',
@@ -263,10 +337,33 @@ export class PaymentsService {
   /**
    * 3. LẤY CHI TIẾT THANH TOÁN KÈM THEO CÁC PHÂN BỔ ĐƠN CON
    */
-  async getPaymentById(paymentId: string): Promise<PaymentDetailResponse> {
+  async getPaymentById(paymentId: string, actor?: CurrentActor): Promise<PaymentDetailResponse> {
     const payment = this.store.payments.find((p) => p.id === paymentId);
     if (!payment) {
       throw new NotFoundException(`Không tìm thấy thanh toán với ID: ${paymentId}`);
+    }
+
+    if (actor) {
+      const role = actor.activeRole || (actor as any).role;
+      if (role !== 'ADMIN') {
+        const customerOrder = this.store.customerOrders.find((co) => co.id === payment.customerOrderId);
+        const isOwnerCustomer = Boolean(customerOrder && (customerOrder.customerId === actor.userId || (customerOrder as any).customerUserId === actor.userId));
+
+        const allocations = this.store.paymentAllocations.filter((a) => a.paymentId === payment.id);
+        const foIds = allocations.map((a) => a.fulfillmentOrderId);
+        const fos = this.store.fulfillmentOrders.filter((fo) => foIds.includes(fo.id));
+
+        const isRelatedSupplier =
+          role === 'SUPPLIER' &&
+          fos.some((fo) => fo.supplierId === (actor.activeProfileId || (actor as any).supplierProfileId));
+        const isRelatedSeller =
+          role === 'SELLER' &&
+          fos.some((fo) => fo.sellerId === (actor.activeProfileId || (actor as any).sellerProfileId));
+
+        if (!isOwnerCustomer && !isRelatedSupplier && !isRelatedSeller) {
+          throw new ForbiddenException('Bạn không có quyền truy cập thông tin thanh toán này');
+        }
+      }
     }
 
     const allocations = this.store.paymentAllocations.filter((a) => a.paymentId === payment.id);

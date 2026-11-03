@@ -261,8 +261,8 @@ export default function AdminProfilesPage() {
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   decision === 'APPROVED'
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-600 border border-rose-200'
+                    ? 'bg-canvas text-ink border border-line'
+                    : 'bg-canvas text-ink border border-line'
                 }`}
               >
                 <Icon name={decision === 'APPROVED' ? 'check' : 'alert'} width={20} height={20} />

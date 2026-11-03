@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { ApiClient } from '../../lib/api';
-import { useAuth } from '../../features/auth/hooks/use-auth';
+import { useAuth as useIdentity } from '../../features/auth/hooks/use-auth';
+import { useAuth as useDemoAuth } from '../../lib/auth-context';
 import Link from 'next/link';
 import { Icon } from '../../components/ui/icon';
 import { Button } from '../../components/ui/button';
@@ -16,11 +17,14 @@ type Notice = {
 };
 
 export default function NotificationsPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useIdentity();
+  const { currentUser } = useDemoAuth();
   const [items, setItems] = useState<Notice[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL');
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const activeUserId = user?.userId || currentUser?.id;
 
   const load = async () => {
     try {
@@ -33,8 +37,8 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    if (user) void load();
-  }, [user?.userId]);
+    if (activeUserId) void load();
+  }, [activeUserId]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -70,7 +74,7 @@ export default function NotificationsPage() {
   if (!user) {
     return (
       <div className="max-w-lg mx-auto py-16 text-center bg-surface border border-line rounded-3xl p-8 space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-primary-soft text-primary mx-auto flex items-center justify-center">
+        <div className="w-12 h-12 rounded-2xl bg-canvas border border-line text-subtle mx-auto flex items-center justify-center">
           <Icon name="user" width={24} height={24} />
         </div>
         <h2 className="text-xl font-bold text-ink">Đăng nhập để xem thông báo</h2>
@@ -129,7 +133,7 @@ export default function NotificationsPage() {
 
       {error && (
         <div role="alert" className="p-4 rounded-2xl bg-danger-soft border border-danger/30 text-danger text-xs flex items-center justify-between">
-          <span>⚠️ {error}</span>
+          <span className="flex items-center gap-1.5"><Icon name="alert" className="w-4 h-4 shrink-0" /> {error}</span>
           <button onClick={load} className="underline font-bold">Thử lại</button>
         </div>
       )}
@@ -137,7 +141,7 @@ export default function NotificationsPage() {
       {/* Notifications list */}
       {filteredItems.length === 0 ? (
         <div className="py-20 text-center bg-surface border border-line rounded-3xl">
-          <div className="w-12 h-12 rounded-2xl bg-primary-soft text-primary mx-auto flex items-center justify-center mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-canvas border border-line text-subtle mx-auto flex items-center justify-center mb-3">
             <Icon name="check" width={24} height={24} />
           </div>
           <h3 className="text-base font-bold text-ink">Không có thông báo mới</h3>

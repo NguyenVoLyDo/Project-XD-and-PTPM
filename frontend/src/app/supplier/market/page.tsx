@@ -136,7 +136,7 @@ export default function SupplierMarketPage() {
         <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider">Sản phẩm đang phân phối</span>
-            <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="box" width={16} height={16} />
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function SupplierMarketPage() {
         <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider">Gian hàng đối tác (Shops)</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="store" width={16} height={16} />
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function SupplierMarketPage() {
         <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider">Giá bán lẻ trung bình</span>
-            <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="tag" width={16} height={16} />
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function SupplierMarketPage() {
         <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider text-success">Tuân thủ giá sàn</span>
-            <div className="w-8 h-8 rounded-xl bg-success-soft text-success border border-success/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="shield" width={16} height={16} />
             </div>
           </div>

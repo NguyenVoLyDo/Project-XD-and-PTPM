@@ -1,9 +1,17 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Inject, ForbiddenException } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { CurrentUser, CurrentActor } from '../../common/auth/current-user.decorator';
+
+function getSellerProfileId(actor: CurrentActor): string {
+  const id = actor?.activeProfileId || actor?.sellerProfileId || (process.env.DEMO_AUTH_ENABLED === 'true' && actor?.activeRole === 'SELLER' ? 'prof-sell-x' : undefined);
+  if (!id) {
+    throw new ForbiddenException('ACTIVE_ROLE_REQUIRED: Cần hồ sơ Người bán (Seller) được duyệt');
+  }
+  return id;
+}
 
 @Controller('api/v1/listings')
 export class ListingsController {
@@ -18,7 +26,7 @@ export class ListingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SELLER', 'ADMIN')
   async getSellerListings(@CurrentUser() actor: CurrentActor) {
-    return this.listingsService.getSellerListings(actor.sellerProfileId || 'prof-sell-x');
+    return this.listingsService.getSellerListings(getSellerProfileId(actor));
   }
 
   @Get('page')
@@ -36,14 +44,14 @@ export class ListingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SELLER', 'ADMIN')
   async getSellerShops(@CurrentUser() actor: CurrentActor) {
-    return this.listingsService.getSellerShops(actor.sellerProfileId || 'prof-sell-x');
+    return this.listingsService.getSellerShops(getSellerProfileId(actor));
   }
 
   @Post('seller/shops')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SELLER', 'ADMIN')
   async createShop(@CurrentUser() actor: CurrentActor, @Body() body: { name: string }) {
-    return this.listingsService.createShop(actor.sellerProfileId || 'prof-sell-x', body.name);
+    return this.listingsService.createShop(getSellerProfileId(actor), body.name);
   }
 
   @Post()
@@ -53,7 +61,7 @@ export class ListingsController {
     @CurrentUser() actor: CurrentActor,
     @Body() body: { shopId: string; productId: string; sellerSku?: string; salePrice: number; visible?: boolean },
   ) {
-    return this.listingsService.createListing(actor.sellerProfileId || 'prof-sell-x', body);
+    return this.listingsService.createListing(getSellerProfileId(actor), body);
   }
 
   @Get(':id')
@@ -69,6 +77,6 @@ export class ListingsController {
     @Param('id') id: string,
     @Body() body: Partial<{ salePrice: number; visible: boolean; status: any }>,
   ) {
-    return this.listingsService.updateListing(actor.sellerProfileId || 'prof-sell-x', id, body);
+    return this.listingsService.updateListing(getSellerProfileId(actor), id, body);
   }
 }

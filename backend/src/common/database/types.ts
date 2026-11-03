@@ -3,7 +3,7 @@ export type RoleType = 'CUSTOMER' | 'SELLER' | 'SUPPLIER' | 'ADMIN';
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 export type ShopStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'OUT_OF_STOCK' | 'ARCHIVED';
-export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED_PRICE_MISMATCH' | 'PAUSED_OUT_OF_STOCK' | 'ARCHIVED';
+export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED_BY_POLICY' | 'PAUSED_PRICE_MISMATCH' | 'PAUSED_OUT_OF_STOCK' | 'ARCHIVED';
 export type CustomerOrderStatus = 
   | 'DRAFT' 
   | 'PENDING_PAYMENT' 

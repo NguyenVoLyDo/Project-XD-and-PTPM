@@ -64,6 +64,7 @@ export class RequestActorAdapter implements CartActorPort, OrdersActorPort {
 @Injectable()
 export class DemoCheckoutState {
   orders = new Map<string, OrderAggregate>();
+  carts = new Map<string, CartSnapshot>();
   idempotency = new Map<string, IdempotencyRecord>();
   processedEvents = new Set<string>();
   outbox: OutboxEvent[] = [];
@@ -74,16 +75,19 @@ export class DemoCheckoutState {
 export class CartIntegrationAdapter
   implements CartStorePort, CartListingProjectionPort, CartReaderPort
 {
-  private readonly cartsByCustomer = new Map<string, CartSnapshot>();
 
-  constructor(@Inject(StoreService) private readonly store: StoreService) {}
+
+  constructor(
+    @Inject(StoreService) private readonly store: StoreService,
+    @Inject(DemoCheckoutState) private readonly state: DemoCheckoutState,
+  ) {}
 
   async getByCustomerId(customerId: string): Promise<CartSnapshot | null> {
-    return structuredClone(this.cartsByCustomer.get(customerId) ?? null);
+    return structuredClone(this.state.carts.get(customerId) ?? null);
   }
 
   async save(cart: CartSnapshot): Promise<void> {
-    this.cartsByCustomer.set(cart.customerId, structuredClone(cart));
+    this.state.carts.set(cart.customerId, structuredClone(cart));
   }
 
   async getForCart(listingIds: readonly string[]): Promise<readonly ListingProjection[]> {
@@ -124,7 +128,7 @@ export class CartIntegrationAdapter
   }
 
   async getForCheckout(customerId: string): Promise<CheckoutCart | null> {
-    const snapshot = this.cartsByCustomer.get(customerId);
+    const snapshot = this.state.carts.get(customerId);
     if (!snapshot) return null;
 
     return {
@@ -159,7 +163,7 @@ export class OrdersCatalogInventoryAdapter
     const fields = ["stockReservations", "customerOrders", "orderItems", "fulfillmentOrders",
       "fulfillmentItems", "payments", "paymentAllocations"] as const;
     const snapshot = fields.map((field) => structuredClone(this.store[field]));
-    const stateSnapshot = structuredClone({ orders: this.state.orders, idempotency: this.state.idempotency,
+    const stateSnapshot = structuredClone({ orders: this.state.orders, carts: this.state.carts, idempotency: this.state.idempotency,
       processedEvents: this.state.processedEvents, outbox: this.state.outbox });
     try {
       return await callback({ token: Symbol("demo-checkout-transaction") });
@@ -318,6 +322,14 @@ export class OrdersRepositoryAdapter implements OrderRepositoryPort {
       this.store.customerOrders[existingIdx] = storeOrder;
     } else {
       this.store.customerOrders.unshift(storeOrder);
+      const cart = this.state.carts.get(aggregate.order.customerId);
+      if (cart) {
+        const checkedOutIds = new Set(aggregate.items.map((item) => item.listingId));
+        this.state.carts.set(aggregate.order.customerId, {
+          ...cart,
+          items: cart.items.filter((item) => !checkedOutIds.has(item.listingId)),
+        });
+      }
     }
   }
 

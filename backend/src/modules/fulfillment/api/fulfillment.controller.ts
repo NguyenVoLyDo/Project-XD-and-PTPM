@@ -6,12 +6,29 @@ import {
   Body,
   UseGuards,
   Inject,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FulfillmentService } from '../application/fulfillment.service';
 import { JwtAuthGuard } from '../../../common/auth/jwt-auth.guard';
 import { RolesGuard } from '../../../common/auth/roles.guard';
 import { Roles } from '../../../common/auth/roles.decorator';
 import { CurrentUser, CurrentActor } from '../../../common/auth/current-user.decorator';
+
+function getSupplierProfileId(actor: CurrentActor): string {
+  const id = actor?.activeProfileId || actor?.supplierProfileId || (process.env.DEMO_AUTH_ENABLED === 'true' && actor?.activeRole === 'SUPPLIER' ? 'prof-supp-a' : undefined);
+  if (!id) {
+    throw new ForbiddenException('ACTIVE_ROLE_REQUIRED: Cần hồ sơ Nhà cung cấp được duyệt');
+  }
+  return id;
+}
+
+function getSellerProfileId(actor: CurrentActor): string {
+  const id = actor?.activeProfileId || actor?.sellerProfileId || (process.env.DEMO_AUTH_ENABLED === 'true' && actor?.activeRole === 'SELLER' ? 'prof-sell-x' : undefined);
+  if (!id) {
+    throw new ForbiddenException('ACTIVE_ROLE_REQUIRED: Cần hồ sơ Người bán (Seller) được duyệt');
+  }
+  return id;
+}
 
 @Controller('api/v1/supplier/orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,7 +45,7 @@ export class FulfillmentController {
    */
   @Get()
   async getSupplierOrders(@CurrentUser() actor: CurrentActor) {
-    const supplierProfileId = actor?.supplierProfileId || 'prof-supp-a';
+    const supplierProfileId = getSupplierProfileId(actor);
     return this.fulfillmentService.getSupplierOrders(supplierProfileId);
   }
 
@@ -41,7 +58,7 @@ export class FulfillmentController {
     @CurrentUser() actor: CurrentActor,
     @Param('id') fulfillmentOrderId: string,
   ) {
-    const supplierProfileId = actor?.supplierProfileId || 'prof-supp-a';
+    const supplierProfileId = getSupplierProfileId(actor);
     return this.fulfillmentService.acceptOrder(supplierProfileId, fulfillmentOrderId);
   }
 
@@ -55,7 +72,7 @@ export class FulfillmentController {
     @Param('id') fulfillmentOrderId: string,
     @Body() body: { carrierCode?: string; trackingNo?: string },
   ) {
-    const supplierProfileId = actor?.supplierProfileId || 'prof-supp-a';
+    const supplierProfileId = getSupplierProfileId(actor);
     return this.fulfillmentService.shipOrder(
       supplierProfileId,
       fulfillmentOrderId,
@@ -73,7 +90,7 @@ export class FulfillmentController {
     @CurrentUser() actor: CurrentActor,
     @Param('id') fulfillmentOrderId: string,
   ) {
-    const supplierProfileId = actor?.supplierProfileId || 'prof-supp-a';
+    const supplierProfileId = getSupplierProfileId(actor);
     return this.fulfillmentService.deliverOrder(supplierProfileId, fulfillmentOrderId);
   }
 
@@ -87,12 +104,32 @@ export class FulfillmentController {
     @Param('id') fulfillmentOrderId: string,
     @Body() body: { reasonCode?: string },
   ) {
-    const supplierProfileId = actor?.supplierProfileId || 'prof-supp-a';
+    const supplierProfileId = getSupplierProfileId(actor);
     return this.fulfillmentService.rejectOrder(
       supplierProfileId,
       fulfillmentOrderId,
       body.reasonCode || 'OUT_OF_STOCK',
     );
+  }
+}
+
+@Controller('api/v1/seller/orders')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SELLER', 'ADMIN')
+export class SellerFulfillmentController {
+  constructor(
+    @Inject(FulfillmentService)
+    private readonly fulfillmentService: FulfillmentService,
+  ) {}
+
+  /**
+   * GET /api/v1/seller/orders
+   * Lấy danh sách các đơn con thuộc về Seller đang đăng nhập (ẩn PII).
+   */
+  @Get()
+  async getSellerOrders(@CurrentUser() actor: CurrentActor) {
+    const sellerProfileId = getSellerProfileId(actor);
+    return this.fulfillmentService.getSellerOrders(sellerProfileId);
   }
 }
 

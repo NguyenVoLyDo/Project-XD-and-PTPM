@@ -184,7 +184,7 @@ export default function AdminUsersPage() {
                             key={r}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                               r === 'ADMIN'
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                ? 'bg-canvas text-ink border-line'
                                 : r === 'SUPPLIER'
                                 ? 'bg-info-soft text-info border border-info/20'
                                 : r === 'SELLER'
@@ -257,8 +257,8 @@ export default function AdminUsersPage() {
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   actionUser.status === 'ACTIVE'
-                    ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                    : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                    ? 'bg-canvas text-ink border border-line'
+                    : 'bg-canvas text-ink border border-line'
                 }`}
               >
                 <Icon name={actionUser.status === 'ACTIVE' ? 'lock' : 'unlock'} width={20} height={20} />

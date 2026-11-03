@@ -5,6 +5,8 @@ import { ApiClient } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth-context';
 import { Card } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Icon } from '../../../components/ui/icon';
 import { PriceDisplay } from '../../../components/molecules/price-display';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { EmptyState } from '../../../components/molecules/empty-state';
@@ -89,7 +91,7 @@ export default function SellerFinancePage() {
         fastForwardDemo: true,
         sourceRef: `seller_eval_${settlementId}_${Date.now()}`,
       });
-      showToast('Đã qua 7 ngày đổi trả! Hoa hồng đơn hàng đã sẵn sàng rút (ELIGIBLE).', 'success');
+      showToast('Đã qua 7 ngày đổi trả. Hoa hồng đơn hàng đã sẵn sàng rút (ELIGIBLE).', 'success');
       await fetchSellerFinance();
     } catch (err: any) {
       showToast(err.message || 'Chưa đủ điều kiện mở khóa đối soát', 'error');
@@ -104,7 +106,7 @@ export default function SellerFinancePage() {
       await ApiClient.post(`/settlements/${settlementId}/payout`, {
         sourceRef: `payout_${settlementId}`,
       });
-      showToast('Đã rút hoa hồng thành công! Sổ cái đã cập nhật tất toán.', 'success');
+      showToast('Đã rút hoa hồng thành công. Sổ cái đã cập nhật tất toán.', 'success');
       await fetchSellerFinance();
     } catch (err: any) {
       showToast(err.message || 'Giải ngân thất bại', 'error');
@@ -115,20 +117,20 @@ export default function SellerFinancePage() {
 
   const renderStatusBadge = (item: SellerSettlementItem) => {
     if (item.status === 'HOLD' && item.hasOpenDispute) {
-      return <Badge variant="destructive">🔒 Đóng băng (Khách đang khiếu nại)</Badge>;
+      return <Badge variant="destructive">Đóng băng (Khách đang khiếu nại)</Badge>;
     }
     switch (item.status) {
       case 'HOLD':
-        return <Badge variant="warning">⏳ Tạm giữ (7 ngày bảo vệ người mua)</Badge>;
+        return <Badge variant="warning">Tạm giữ (7 ngày bảo vệ người mua)</Badge>;
       case 'ELIGIBLE':
       case 'CALCULATED':
-        return <Badge variant="info">✅ Sẵn sàng rút hoa hồng</Badge>;
+        return <Badge variant="info">Sẵn sàng rút hoa hồng</Badge>;
       case 'PAYOUT_PENDING':
-        return <Badge variant="warning">🔄 Đang chi trả</Badge>;
+        return <Badge variant="warning">Đang chi trả</Badge>;
       case 'PAID':
-        return <Badge variant="success">💸 Đã nhận hoa hồng</Badge>;
+        return <Badge variant="success">Đã nhận hoa hồng</Badge>;
       case 'REVERSED':
-        return <Badge variant="destructive">↩️ Hoàn tiền khách / Đảo lợi nhuận</Badge>;
+        return <Badge variant="destructive">Hoàn tiền khách / Đảo lợi nhuận</Badge>;
       default:
         return <Badge variant="secondary">{item.status}</Badge>;
     }
@@ -139,35 +141,47 @@ export default function SellerFinancePage() {
       <Card className="p-8 text-center max-w-xl mx-auto my-8 space-y-3 border border-line">
         <h2 className="text-lg font-bold text-ink">Khu vực dành cho Người bán (Seller)</h2>
         <p className="text-sm text-subtle">
-          Vui lòng chọn tài khoản <strong>Seller X (TechStore)</strong> ở góc phải trên cùng màn hình để theo dõi lợi nhuận bán hàng Dropshipping và lịch sử rút tiền.
+          Vui lòng chọn tài khoản <strong>Seller X (TechStore)</strong> để theo dõi lợi nhuận bán hàng Dropshipping và lịch sử rút tiền.
         </p>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto py-4">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {toast && (
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2.5 text-white text-xs font-semibold ${
+            toast.type === 'success' ? 'bg-ink' : 'bg-danger'
+          }`}
+        >
+          <Icon name={toast.type === 'success' ? 'check' : 'alert'} width={16} height={16} />
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold text-ink tracking-tight">
-              💰 Doanh Thu & Hoa Hồng Gian Hàng
-            </h1>
-            <Badge variant="default">Seller Finance</Badge>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+            Doanh Thu & Đối Soát Gian Hàng
+          </h1>
           <p className="text-xs text-subtle mt-1">
             Gian hàng: <strong>{data?.summary.shopName || 'TechStore'}</strong> • Chủ shop:{' '}
             {data?.summary.displayName || currentUser.name}
           </p>
         </div>
 
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchSellerFinance}
-          className="text-xs font-semibold text-primary hover:underline self-start sm:self-auto"
+          className="text-xs font-semibold self-start sm:self-auto"
         >
-          🔄 Làm mới doanh thu
-        </button>
+          <Icon name="refresh" width={14} height={14} />
+          <span>Làm mới doanh thu</span>
+        </Button>
       </div>
 
       {/* Summary KPIs */}
@@ -180,10 +194,15 @@ export default function SellerFinancePage() {
       ) : data ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="p-5 border border-line bg-surface space-y-1.5">
-            <span className="text-xs font-semibold text-subtle uppercase tracking-wider">
-              Lợi nhuận chờ đối soát (HOLD)
-            </span>
-            <div className="text-2xl font-bold text-amber-700">
+            <div className="flex items-center justify-between text-subtle">
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Chờ đối soát (HOLD)
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-canvas border border-line flex items-center justify-center text-subtle">
+                <Icon name="clock" width={15} height={15} />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-ink">
               <PriceDisplay amount={data.summary.holdingAmount} />
             </div>
             <p className="text-xs text-subtle">
@@ -192,10 +211,15 @@ export default function SellerFinancePage() {
           </Card>
 
           <Card className="p-5 border border-line bg-surface space-y-1.5">
-            <span className="text-xs font-semibold text-subtle uppercase tracking-wider">
-              Lợi nhuận khả dụng (ELIGIBLE)
-            </span>
-            <div className="text-2xl font-bold text-sky-700">
+            <div className="flex items-center justify-between text-subtle">
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Khả dụng (ELIGIBLE)
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-canvas border border-line flex items-center justify-center text-subtle">
+                <Icon name="wallet" width={15} height={15} />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-ink">
               <PriceDisplay amount={data.summary.eligibleAmount} />
             </div>
             <p className="text-xs text-subtle">
@@ -204,10 +228,15 @@ export default function SellerFinancePage() {
           </Card>
 
           <Card className="p-5 border border-line bg-surface space-y-1.5">
-            <span className="text-xs font-semibold text-subtle uppercase tracking-wider">
-              Lợi nhuận đã nhận (PAID)
-            </span>
-            <div className="text-2xl font-bold text-primary">
+            <div className="flex items-center justify-between text-subtle">
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Đã nhận (PAID)
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-canvas border border-line flex items-center justify-center text-subtle">
+                <Icon name="check" width={15} height={15} />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-ink">
               <PriceDisplay amount={data.summary.paidAmount} />
             </div>
             <p className="text-xs text-subtle">
@@ -220,7 +249,7 @@ export default function SellerFinancePage() {
       {/* Seller Settlements */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-ink">Chi Tiết Lợi Nhuận Theo Kiện Hàng Đã Giao</h2>
+          <h2 className="text-base font-bold text-ink">Chi tiết lợi nhuận theo kiện hàng đã giao</h2>
           <span className="text-xs text-subtle">Bảo mật dữ liệu theo vai trò Seller</span>
         </div>
 
@@ -246,7 +275,7 @@ export default function SellerFinancePage() {
                         <span className="text-xs text-subtle">• Đơn khách: {item.orderNo}</span>
                         {renderStatusBadge(item)}
                       </div>
-                      <p className="text-xs text-subtle">
+                      <div className="text-xs text-subtle">
                         Doanh thu bán lẻ:{' '}
                         <strong className="text-ink">
                           <PriceDisplay amount={item.grossSaleAmount} />
@@ -255,7 +284,7 @@ export default function SellerFinancePage() {
                         <strong className="text-ink">
                           <PriceDisplay amount={item.platformFee} />
                         </strong>
-                      </p>
+                      </div>
                       <p className="text-xs text-subtle">
                         Ngày đủ điều kiện đối soát:{' '}
                         <span className="font-medium text-ink">
@@ -268,7 +297,7 @@ export default function SellerFinancePage() {
 
                     <div className="text-left sm:text-right">
                       <span className="text-xs text-subtle block">Lợi nhuận ròng Seller nhận</span>
-                      <span className="text-lg font-bold text-primary">
+                      <span className="text-lg font-bold text-ink">
                         <PriceDisplay amount={item.sellerEarning} />
                       </span>
                     </div>
@@ -281,25 +310,30 @@ export default function SellerFinancePage() {
 
                     <div className="flex flex-wrap items-center gap-2">
                       {item.status === 'HOLD' && !item.hasOpenDispute && (
-                        <button
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleFastForwardEligible(item.settlementId)}
                           disabled={isBusy}
-                          className="px-3.5 py-2 rounded-xl border border-line bg-primary-soft text-primary text-xs font-semibold hover:bg-primary hover:text-white transition-colors disabled:opacity-50"
+                          isLoading={isBusy}
                         >
-                          {isBusy ? 'Đang xử lý...' : '⏩ Mô phỏng qua 7 ngày đổi trả'}
-                        </button>
+                          <Icon name="clock" width={14} height={14} />
+                          <span>Mô phỏng qua 7 ngày đổi trả</span>
+                        </Button>
                       )}
 
                       {(item.status === 'ELIGIBLE' ||
                         item.status === 'CALCULATED' ||
                         item.status === 'PAYOUT_PENDING') && (
-                        <button
+                        <Button
+                          size="sm"
                           onClick={() => handlePayout(item.settlementId)}
                           disabled={isBusy}
-                          className="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50"
+                          isLoading={isBusy}
                         >
-                          {isBusy ? 'Đang rút tiền...' : '💸 Rút hoa hồng (Mock Payout)'}
-                        </button>
+                          <Icon name="wallet" width={14} height={14} />
+                          <span>Rút hoa hồng (Mock Payout)</span>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -313,7 +347,7 @@ export default function SellerFinancePage() {
       {/* Seller Ledger */}
       <section className="space-y-3">
         <div>
-          <h2 className="text-lg font-bold text-ink">📒 Bút Toán Lợi Nhuận Seller (SELLER_PAYABLE)</h2>
+          <h2 className="text-base font-bold text-ink">Bút toán lợi nhuận Seller (SELLER_PAYABLE)</h2>
           <p className="text-xs text-subtle">
             Trích lục sổ cái kế toán kép cho tài khoản công nợ hoa hồng của Gian hàng.
           </p>
@@ -326,13 +360,13 @@ export default function SellerFinancePage() {
         ) : (
           <Card className="overflow-x-auto border border-line">
             <table className="w-full text-left text-xs">
-              <thead className="bg-muted text-subtle border-b border-line">
+              <thead className="bg-canvas text-subtle uppercase text-[10px] font-bold tracking-wider border-b border-line">
                 <tr>
-                  <th className="py-3 px-4 font-semibold">Thời gian</th>
-                  <th className="py-3 px-4 font-semibold">Mã Group</th>
-                  <th className="py-3 px-4 font-semibold">Vế kế toán</th>
-                  <th className="py-3 px-4 font-semibold text-right">Số tiền (VND)</th>
-                  <th className="py-3 px-4 font-semibold">Nội dung</th>
+                  <th className="py-3.5 px-4">Thời gian</th>
+                  <th className="py-3.5 px-4">Mã Group</th>
+                  <th className="py-3.5 px-4">Vế kế toán</th>
+                  <th className="py-3.5 px-4 text-right">Số tiền (VND)</th>
+                  <th className="py-3.5 px-4">Nội dung</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -360,14 +394,6 @@ export default function SellerFinancePage() {
           </Card>
         )}
       </section>
-
-      {toast && (
-        <div role="status" className="toast">
-          {toast.type === 'error' ? '❌ ' : '✅ '}
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }
-

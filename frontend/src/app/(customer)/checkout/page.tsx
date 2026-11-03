@@ -136,6 +136,7 @@ export default function CheckoutPage() {
         'idempotency-key': checkoutAttempt.current.key,
       });
 
+      setCart((prev) => (prev ? { ...prev, items: [], estimatedMerchandiseTotal: 0 } : null));
       await refreshCartCount();
       showToast('Đã tạo đơn hàng. Đang mở chi tiết…');
 
@@ -180,7 +181,7 @@ export default function CheckoutPage() {
       )}
       {priceNotice && (
         <div role="alert" className="rounded-2xl border border-warning/30 bg-warning-soft p-4 text-xs text-ink flex items-start gap-3">
-          <span className="text-warning text-base font-bold">⚠️</span>
+          <span className="text-warning text-base font-bold">!</span>
           <div>
             <strong className="block text-ink font-bold">Giá sản phẩm đã được cập nhật từ Nhà cung cấp:</strong>
             <span className="text-subtle">Vui lòng kiểm tra lại giá mới trong bảng tóm tắt bên dưới và nhấn đặt hàng để xác nhận tiếp tục.</span>

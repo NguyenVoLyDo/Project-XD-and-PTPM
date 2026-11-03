@@ -5,7 +5,7 @@ import type { FulfillmentOrderSnapshot, FulfillmentSummaryStatus } from "./order
  * statuses of its constituent FulfillmentOrders (see docs/03-state-machines.md §3.1).
  */
 export function computeFulfillmentSummary(
-  fulfillmentOrders: readonly FulfillmentOrderSnapshot[],
+  fulfillmentOrders: readonly { readonly status: string }[],
 ): FulfillmentSummaryStatus {
   if (fulfillmentOrders.length === 0) {
     return "UNFULFILLED";

@@ -15,6 +15,10 @@ import { PaymentsService } from '../application/payments.service';
 import { PaymentReconciliationService } from '../application/payment-reconciliation.service';
 import { WebhookLogService } from '../application/webhook-log.service';
 import { JwtAuthGuard } from '../../../common/auth/jwt-auth.guard';
+import { RolesGuard } from '../../../common/auth/roles.guard';
+import { Roles } from '../../../common/auth/roles.decorator';
+import { CurrentUser, CurrentActor } from '../../../common/auth/current-user.decorator';
+import { Public } from '../../../common/auth/public.decorator';
 import {
   createPaymentObligationSchema,
   paymentWebhookPayloadSchema,
@@ -23,6 +27,7 @@ import {
 } from './contracts';
 
 @Controller('api/v1/payments')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class PaymentsController {
   constructor(
     @Inject(PaymentsService)
@@ -36,14 +41,56 @@ export class PaymentsController {
   ) {}
 
   /**
-   * 1. GET /api/v1/payments/:id
+   * 1. GET /api/v1/payments/reconciliation/report
+   * Đối soát tài chính và giao dịch toàn sàn (Chỉ Admin).
+   */
+  @Get('reconciliation/report')
+  @Roles('ADMIN')
+  async getReconciliationReport() {
+    if (!this.reconciliationService) {
+      return { message: 'Reconciliation service not enabled' };
+    }
+    return this.reconciliationService.runReconciliation();
+  }
+
+  /**
+   * 2. GET /api/v1/payments/reconciliation/orders/:orderId
+   * Đối soát chi tiết từng đơn hàng (Chỉ Admin).
+   */
+  @Get('reconciliation/orders/:orderId')
+  @Roles('ADMIN')
+  async reconcileOrder(@Param('orderId') orderId: string) {
+    if (!this.reconciliationService) {
+      return { message: 'Reconciliation service not enabled' };
+    }
+    return this.reconciliationService.reconcileOrder(orderId);
+  }
+
+  /**
+   * 3. GET /api/v1/payments/webhooks/history
+   * Xem lịch sử nhận webhook để audit (Chỉ Admin).
+   */
+  @Get('webhooks/history')
+  @Roles('ADMIN')
+  async getWebhookHistory(@Query('limit') limit = 50) {
+    if (!this.webhookLogService) {
+      return [];
+    }
+    return this.webhookLogService.getRecentLogs(Number(limit) || 50);
+  }
+
+  /**
+   * 4. GET /api/v1/payments/:id
    * Tra cứu chi tiết thông tin thanh toán và các khoản phân bổ đơn con.
-   * Yêu cầu xác thực JWT (Khách hàng hoặc Admin).
+   * Yêu cầu xác thực JWT và kiểm tra quyền sở hữu (Customer/Supplier/Seller/Admin).
    */
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  async getPaymentById(@Param('id') paymentId: string) {
-    return this.paymentsService.getPaymentById(paymentId);
+  @Roles('ADMIN', 'CUSTOMER', 'SELLER', 'SUPPLIER')
+  async getPaymentById(
+    @Param('id') paymentId: string,
+    @CurrentUser() actor: CurrentActor,
+  ) {
+    return this.paymentsService.getPaymentById(paymentId, actor);
   }
 
   /**
@@ -51,7 +98,7 @@ export class PaymentsController {
    * Tạo nghĩa vụ thanh toán lúc Checkout.
    */
   @Post('obligation')
-  @UseGuards(JwtAuthGuard)
+  @Roles('CUSTOMER', 'ADMIN')
   async createObligation(@Body() body: unknown) {
     // Validate dữ liệu đầu vào bằng Zod schema
     const parsedInput = createPaymentObligationSchema.parse(body);
@@ -67,6 +114,7 @@ export class PaymentsController {
    * họ không có token của người dùng mà xác thực qua chữ ký số bí mật (Signature) trong payload.
    */
   @Post('webhooks/:provider')
+  @Public()
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
     @Param('provider') provider: string,
@@ -84,10 +132,10 @@ export class PaymentsController {
 
   /**
    * 4. POST /api/v1/payments/allocations/:id/refund
-   * Xử lý hoàn tiền cho 1 đơn con khi có khiếu nại hoặc hủy đơn.
+   * Xử lý hoàn tiền cho 1 đơn con khi có khiếu nại hoặc hủy đơn (Chỉ Admin).
    */
   @Post('allocations/:id/refund')
-  @UseGuards(JwtAuthGuard)
+  @Roles('ADMIN')
   async refundAllocation(
     @Param('id') allocationId: string,
     @Body() body: { amount: number; reasonCode: string; sourceRef: string },
@@ -100,43 +148,6 @@ export class PaymentsController {
     );
   }
 
-  /**
-   * 5. GET /api/v1/payments/reconciliation/report
-   * Đối soát tài chính và giao dịch toàn sàn.
-   */
-  @Get('reconciliation/report')
-  @UseGuards(JwtAuthGuard)
-  async getReconciliationReport() {
-    if (!this.reconciliationService) {
-      return { message: 'Reconciliation service not enabled' };
-    }
-    return this.reconciliationService.runReconciliation();
-  }
 
-  /**
-   * 6. GET /api/v1/payments/reconciliation/orders/:orderId
-   * Đối soát chi tiết từng đơn hàng.
-   */
-  @Get('reconciliation/orders/:orderId')
-  @UseGuards(JwtAuthGuard)
-  async reconcileOrder(@Param('orderId') orderId: string) {
-    if (!this.reconciliationService) {
-      return { message: 'Reconciliation service not enabled' };
-    }
-    return this.reconciliationService.reconcileOrder(orderId);
-  }
-
-  /**
-   * 7. GET /api/v1/payments/webhooks/history
-   * Xem lịch sử nhận webhook để audit.
-   */
-  @Get('webhooks/history')
-  @UseGuards(JwtAuthGuard)
-  async getWebhookHistory(@Query('limit') limit = 50) {
-    if (!this.webhookLogService) {
-      return [];
-    }
-    return this.webhookLogService.getRecentLogs(Number(limit) || 50);
-  }
 }
 

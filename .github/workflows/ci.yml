@@ -33,3 +33,6 @@ jobs:
 
       - name: Verify Backend Build
         run: pnpm --filter @dropconnect/backend build
+
+      - name: Verify Frontend Typecheck
+        run: pnpm --filter @dropconnect/frontend exec tsc --noEmit

@@ -1,9 +1,6 @@
 stateDiagram-v2
-  [*] --> AVAILABLE
-  AVAILABLE --> HELD: checkout reserve(quantity, expiresAt)
-  HELD --> COMMITTED: Supplier accepts and order is PAID or confirmed COD
-  HELD --> RELEASED: payment failed / TTL expired / supplier rejects
-  RELEASED --> AVAILABLE: quantity returned
-  COMMITTED --> ADJUSTED: return accepted or manual stock adjustment
-  ADJUSTED --> AVAILABLE: quantity restored when resaleable
-  COMMITTED --> [*]: fulfilled and no stock return
+  [*] --> HELD: reserve(quantity, expiresAt)
+  HELD --> COMMITTED: điều kiện thanh toán hợp lệ và supplier accept
+  HELD --> RELEASED: payment failed / hết TTL / supplier từ chối / hủy
+  COMMITTED --> [*]
+  RELEASED --> [*]

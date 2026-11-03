@@ -1,5 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject, Optional } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { CommerceDb } from '../../integration/postgres/commerce-db';
 import {
   User,
   UserRoleMembership,
@@ -53,8 +54,251 @@ export class StoreService implements OnModuleInit {
   notifications: NotificationItem[] = [];
   idempotencyKeys: Map<string, { requestHash: string; responseBody: any }> = new Map();
 
-  onModuleInit() {
+  constructor(
+    @Optional()
+    @Inject(CommerceDb)
+    private readonly db?: CommerceDb,
+  ) {}
+
+  async onModuleInit() {
     this.seedInitialData();
+    await this.syncFromPostgres().catch(() => {});
+  }
+
+  async syncFromPostgres() {
+    if (!this.db) return;
+    try {
+      // 1. Sync accounts & profiles
+      const users = await this.db.query('SELECT * FROM users');
+      for (const u of users) {
+        if (!this.users.some(existing => existing.id === u.id || existing.email === u.email)) {
+          this.users.push({
+            id: u.id,
+            email: u.email,
+            passwordHash: u.password_hash,
+            status: u.status,
+            createdAt: u.created_at?.toISOString?.() || new Date().toISOString(),
+            updatedAt: u.updated_at?.toISOString?.() || new Date().toISOString(),
+          });
+        }
+      }
+
+      const memberships = await this.db.query('SELECT * FROM user_role_memberships');
+      for (const m of memberships) {
+        if (!this.userRoles.some(existing => existing.userId === m.user_id && existing.role === m.role)) {
+          this.userRoles.push({
+            id: m.id || crypto.randomUUID(),
+            userId: m.user_id,
+            role: m.role,
+            status: m.status,
+            createdAt: m.created_at?.toISOString?.() || new Date().toISOString(),
+          });
+        }
+      }
+
+      const supplierProfiles = await this.db.query('SELECT * FROM supplier_profiles');
+      for (const sp of supplierProfiles) {
+        if (!this.supplierProfiles.some(existing => existing.id === sp.id)) {
+          this.supplierProfiles.push({
+            id: sp.id,
+            userId: sp.user_id,
+            legalName: sp.legal_name,
+            approvalStatus: sp.approval_status,
+            payoutAccountRef: sp.payout_account_ref || '',
+            createdAt: sp.created_at?.toISOString?.() || new Date().toISOString(),
+            updatedAt: sp.updated_at?.toISOString?.() || new Date().toISOString(),
+          });
+        }
+      }
+
+      const sellerProfiles = await this.db.query('SELECT * FROM seller_profiles');
+      for (const sp of sellerProfiles) {
+        if (!this.sellerProfiles.some(existing => existing.id === sp.id)) {
+          this.sellerProfiles.push({
+            id: sp.id,
+            userId: sp.user_id,
+            displayName: sp.display_name,
+            approvalStatus: sp.approval_status,
+            createdAt: sp.created_at?.toISOString?.() || new Date().toISOString(),
+            updatedAt: sp.updated_at?.toISOString?.() || new Date().toISOString(),
+          });
+        }
+      }
+
+      // 2. Sync products & listings
+      const products = await this.db.query('SELECT * FROM products');
+      for (const p of products) {
+        const existing = this.products.find(item => item.id === p.id);
+        if (!existing) {
+          this.products.push({
+            id: p.id,
+            supplierId: p.supplier_id,
+            supplierSku: p.supplier_sku,
+            name: p.name,
+            description: p.description || '',
+            costPrice: Number(p.cost_price),
+            availableStock: p.available_stock,
+            status: p.status,
+            createdAt: p.created_at?.toISOString?.() || new Date().toISOString(),
+            updatedAt: p.updated_at?.toISOString?.() || new Date().toISOString(),
+          });
+        } else {
+          existing.availableStock = p.available_stock;
+          existing.status = p.status;
+        }
+      }
+
+      // 3. Sync customer orders
+      const orders = await this.db.query('SELECT * FROM customer_orders');
+      for (const o of orders) {
+        const existing = this.customerOrders.find(co => co.id === o.id);
+        const snap = o.snapshot;
+        if (!existing) {
+          this.customerOrders.push({
+            id: o.id,
+            orderNo: o.order_no,
+            customerId: o.customer_id,
+            status: o.status,
+            fulfillmentSummary: o.fulfillment_summary,
+            shippingAddress: snap?.order?.shippingAddress || { recipientName: 'Khách hàng', phone: '', address: '', city: '' },
+            grandTotal: Number(o.grand_total),
+            totalPayable: Number(o.total_payable),
+            currency: o.currency || 'VND',
+            placedAt: o.placed_at?.toISOString?.() || o.placed_at || o.created_at,
+            createdAt: o.created_at?.toISOString?.() || o.created_at,
+            updatedAt: o.updated_at?.toISOString?.() || o.updated_at,
+          });
+        } else {
+          existing.status = o.status;
+          existing.fulfillmentSummary = o.fulfillment_summary;
+          existing.totalPayable = Number(o.total_payable);
+          existing.updatedAt = o.updated_at?.toISOString?.() || o.updated_at;
+        }
+      }
+
+      // 4. Sync order items
+      const orderItems = await this.db.query('SELECT * FROM order_items');
+      for (const oi of orderItems) {
+        if (!this.orderItems.some(existing => existing.id === oi.id)) {
+          this.orderItems.push({
+            id: oi.id,
+            customerOrderId: oi.customer_order_id,
+            listingId: oi.listing_id,
+            productNameSnapshot: oi.product_name_snapshot,
+            quantity: oi.quantity,
+            unitSalePriceSnapshot: Number(oi.unit_sale_price_snapshot),
+            unitCostPriceSnapshot: Number(oi.unit_cost_price_snapshot),
+            createdAt: oi.created_at?.toISOString?.() || new Date().toISOString(),
+          });
+        }
+      }
+
+      // 5. Sync fulfillment orders
+      const fos = await this.db.query('SELECT * FROM fulfillment_orders');
+      for (const fo of fos) {
+        const existing = this.fulfillmentOrders.find(f => f.id === fo.id);
+        if (!existing) {
+          this.fulfillmentOrders.push({
+            id: fo.id,
+            fulfillmentNo: fo.fulfillment_no,
+            customerOrderId: fo.customer_order_id,
+            supplierId: fo.supplier_id,
+            sellerId: fo.seller_id,
+            status: fo.status,
+            carrierCode: fo.carrier_code || 'GHN_EXPRESS',
+            trackingNo: fo.tracking_no || null,
+            currency: fo.currency || 'VND',
+            deliveryAttemptCount: fo.delivery_attempt_count || 0,
+            createdAt: fo.created_at?.toISOString?.() || new Date().toISOString(),
+            updatedAt: fo.updated_at?.toISOString?.() || new Date().toISOString(),
+          });
+        } else {
+          existing.status = fo.status;
+          existing.carrierCode = fo.carrier_code || existing.carrierCode;
+          existing.trackingNo = fo.tracking_no || existing.trackingNo;
+          existing.updatedAt = fo.updated_at?.toISOString?.() || fo.updated_at;
+        }
+      }
+
+      // 6. Sync fulfillment items
+      const fis = await this.db.query('SELECT * FROM fulfillment_items');
+      for (const fi of fis) {
+        if (!this.fulfillmentItems.some(existing => existing.fulfillmentOrderId === fi.fulfillment_order_id && existing.orderItemId === fi.order_item_id)) {
+          this.fulfillmentItems.push({
+            id: fi.id || crypto.randomUUID(),
+            fulfillmentOrderId: fi.fulfillment_order_id,
+            orderItemId: fi.order_item_id,
+            quantity: fi.quantity,
+            itemGrossSnapshot: Number(fi.item_gross_snapshot),
+          });
+        }
+      }
+
+      // 7. Sync stock reservations
+      const reservations = await this.db.query('SELECT * FROM stock_reservations');
+      for (const res of reservations) {
+        const existing = this.stockReservations.find(r => r.id === res.id || r.orderItemId === res.order_item_id);
+        if (!existing) {
+          this.stockReservations.push({
+            id: res.id,
+            orderItemId: res.order_item_id,
+            productId: res.product_id,
+            quantity: res.quantity,
+            status: res.status,
+            expiresAt: res.expires_at?.toISOString?.() || res.expires_at,
+            createdAt: res.created_at?.toISOString?.() || new Date().toISOString(),
+          });
+        } else {
+          existing.status = res.status;
+        }
+      }
+
+      // 8. Sync payments & payment allocations
+      const payments = await this.db.query('SELECT * FROM payments');
+      for (const p of payments) {
+        const existing = this.payments.find(pay => pay.id === p.id);
+        if (!existing) {
+          this.payments.push({
+            id: p.id,
+            customerOrderId: p.customer_order_id,
+            paymentIntentId: p.payment_intent_id || '',
+            method: p.method,
+            status: p.status,
+            amount: Number(p.amount),
+            providerTransactionRef: p.provider_transaction_ref || '',
+            createdAt: p.created_at?.toISOString?.() || new Date().toISOString(),
+            updatedAt: p.updated_at?.toISOString?.() || new Date().toISOString(),
+          });
+        } else {
+          existing.status = p.status;
+          existing.providerTransactionRef = p.provider_transaction_ref || existing.providerTransactionRef;
+          existing.updatedAt = p.updated_at?.toISOString?.() || p.updated_at;
+        }
+      }
+
+      const allocs = await this.db.query('SELECT * FROM payment_allocations');
+      for (const a of allocs) {
+        const existing = this.paymentAllocations.find(pa => pa.id === a.id);
+        if (!existing) {
+          this.paymentAllocations.push({
+            id: a.id,
+            paymentId: a.payment_id,
+            fulfillmentOrderId: a.fulfillment_order_id,
+            merchandiseAmount: Number(a.merchandise_amount),
+            shippingAmount: Number(a.shipping_amount),
+            discountAmount: Number(a.discount_amount),
+            amountToCollect: Number(a.amount_to_collect),
+            currency: 'VND',
+            status: a.status,
+            createdAt: a.created_at?.toISOString?.() || new Date().toISOString(),
+          });
+        } else {
+          existing.status = a.status;
+        }
+      }
+    } catch {
+      // Non-blocking in non-postgres test environments
+    }
   }
 
   generateUuid(): string {

@@ -16,11 +16,60 @@ export interface WorkspaceMenuItem {
   exact?: boolean;
 }
 
+export const ADMIN_MENU_ITEMS: WorkspaceMenuItem[] = [
+  { href: '/admin', label: 'Tổng quan hệ thống', icon: 'chart', exact: true },
+  { href: '/admin/users', label: 'Quản lý người dùng', icon: 'users' },
+  { href: '/admin/profiles', label: 'Xét duyệt hồ sơ KYC', icon: 'clipboard' },
+  { href: '/customer/disputes', label: 'Xử lý khiếu nại sàn', icon: 'alert' },
+  { href: '/supplier/finance', label: 'Đối soát Nhà cung cấp', icon: 'box' },
+  { href: '/seller/finance', label: 'Đối soát Người bán', icon: 'store' },
+  { href: '/admin/audit', label: 'Nhật ký kiểm toán', icon: 'shield' },
+  { href: '/notifications', label: 'Thông báo hệ thống', icon: 'bell' },
+];
+
+export const SELLER_MENU_ITEMS: WorkspaceMenuItem[] = [
+  { href: '/seller/listings', label: 'Gian hàng & Niêm yết', icon: 'store' },
+  { href: '/seller/sourcing', label: 'Khám phá nguồn hàng', icon: 'search' },
+  { href: '/seller/orders', label: 'Đơn hàng bán lẻ', icon: 'receipt' },
+  { href: '/seller/finance', label: 'Doanh thu & Đối soát', icon: 'wallet' },
+  { href: '/notifications', label: 'Thông báo', icon: 'bell' },
+];
+
+export const SUPPLIER_MENU_ITEMS: WorkspaceMenuItem[] = [
+  { href: '/supplier/products', label: 'Sản phẩm & Tồn kho', icon: 'box' },
+  { href: '/supplier/orders', label: 'Đơn hàng cần xử lý', icon: 'truck' },
+  { href: '/supplier/finance', label: 'Tài chính & Đối soát', icon: 'wallet' },
+  { href: '/customer/disputes', label: 'Khiếu nại & Hàng hoàn', icon: 'refresh' },
+  { href: '/supplier/market', label: 'Thị trường phân phối', icon: 'chart' },
+  { href: '/notifications', label: 'Thông báo', icon: 'bell' },
+];
+
+export const WORKSPACE_CONFIG: Record<
+  'ADMIN' | 'SELLER' | 'SUPPLIER',
+  { title: string; subtitle: string; menuItems: WorkspaceMenuItem[] }
+> = {
+  ADMIN: {
+    title: 'Quản Trị Viên',
+    subtitle: 'Bảng điều khiển hệ thống',
+    menuItems: ADMIN_MENU_ITEMS,
+  },
+  SELLER: {
+    title: 'Người Bán',
+    subtitle: 'Kênh quản lý gian hàng',
+    menuItems: SELLER_MENU_ITEMS,
+  },
+  SUPPLIER: {
+    title: 'Nhà Cung Cấp',
+    subtitle: 'Kênh vận hành kho nguồn',
+    menuItems: SUPPLIER_MENU_ITEMS,
+  },
+};
+
 interface WorkspaceShellProps {
   role: 'ADMIN' | 'SELLER' | 'SUPPLIER';
-  title: string;
-  subtitle: string;
-  menuItems: WorkspaceMenuItem[];
+  title?: string;
+  subtitle?: string;
+  menuItems?: WorkspaceMenuItem[];
   children: React.ReactNode;
 }
 
@@ -39,48 +88,62 @@ export function WorkspaceShell({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile drawer on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Loading state
   if (isLoading && process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED !== 'true') {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center p-6 text-subtle text-sm">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-          <span className="font-medium text-slate-600">Đang kiểm tra quyền truy cập không gian {title}...</span>
+          <div className="w-8 h-8 rounded-full border-2 border-line border-t-ink animate-spin" />
+          <span className="font-medium text-subtle">Đang kiểm tra quyền truy cập...</span>
         </div>
       </div>
     );
   }
 
-  // Check role authorization
   const activeRole = actor?.activeRole || currentUser?.role;
+
+  // Allow ADMIN to inspect finance / dispute routes while keeping ADMIN's own workspace layout
+  const isAdminSharedRoute =
+    activeRole === 'ADMIN' &&
+    (pathname.startsWith('/supplier/finance') ||
+      pathname.startsWith('/seller/finance') ||
+      pathname.startsWith('/customer/disputes') ||
+      pathname.startsWith('/notifications'));
+
+  const effectiveRole: 'ADMIN' | 'SELLER' | 'SUPPLIER' = isAdminSharedRoute ? 'ADMIN' : role;
+  const config = WORKSPACE_CONFIG[effectiveRole];
+  const resolvedTitle = isAdminSharedRoute ? config.title : title || config.title;
+  const resolvedSubtitle = isAdminSharedRoute ? config.subtitle : subtitle || config.subtitle;
+  const resolvedMenu = isAdminSharedRoute ? config.menuItems : menuItems || config.menuItems;
+
   const isAuthorized =
-    activeRole === role ||
-    (process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === 'true' && currentUser.role === role);
+    activeRole === effectiveRole ||
+    isAdminSharedRoute ||
+    (process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === 'true' && currentUser.role === effectiveRole);
 
   if (!isAuthorized) {
-    const hasRole = user?.roles?.includes(role as RoleType);
-    const demoForRole = DEMO_ACCOUNTS.find((a) => a.role === role);
+    const hasRole = user?.roles?.includes(effectiveRole as RoleType);
+    const demoForRole = DEMO_ACCOUNTS.find((a) => a.role === effectiveRole);
 
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xl text-center space-y-5 animate-in fade-in">
-          <div className="w-14 h-14 rounded-2xl bg-warning-soft text-warning border border-warning/30 mx-auto flex items-center justify-center shadow-xs">
-            <Icon name="shield" width={28} height={28} />
+        <div className="max-w-md w-full bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs text-center space-y-5">
+          <div className="w-12 h-12 rounded-xl bg-canvas text-ink border border-line mx-auto flex items-center justify-center">
+            <Icon name="lock" width={22} height={22} />
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-warning bg-warning-soft px-2.5 py-1 rounded-full border border-warning/30">
-              Yêu cầu quyền {title}
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-subtle bg-canvas px-2.5 py-1 rounded-md border border-line">
+              Yêu cầu quyền {resolvedTitle}
             </span>
-            <h1 className="text-xl font-bold text-ink mt-3">Chuyển sang không gian {title}</h1>
+            <h1 className="text-xl font-bold text-ink mt-3">Chuyển sang không gian {resolvedTitle}</h1>
             <p className="text-xs text-subtle mt-2 leading-relaxed">
-              Bạn đang ở phiên đăng nhập với vai trò <strong className="text-ink font-semibold">{activeRole || 'Khách hàng'}</strong>.
-              Vui lòng chuyển đổi vai trò hoặc tài khoản để tiếp tục làm việc.
+              Bạn đang ở phiên làm việc với vai trò{' '}
+              <strong className="text-ink font-semibold">{activeRole || 'Khách hàng'}</strong>. Vui lòng
+              chuyển đổi vai trò hoặc tài khoản để tiếp tục.
             </p>
           </div>
 
@@ -92,13 +155,13 @@ export function WorkspaceShell({
                 className="w-full"
                 onClick={async () => {
                   try {
-                    await switchRole(role as RoleType);
+                    await switchRole(effectiveRole as RoleType);
                   } catch (e) {
                     console.error(e);
                   }
                 }}
               >
-                Kích hoạt vai trò {title}
+                Kích hoạt vai trò {resolvedTitle}
               </Button>
             )}
 
@@ -106,12 +169,12 @@ export function WorkspaceShell({
               <Button
                 variant="default"
                 size="md"
-                className="w-full bg-primary hover:bg-primary-hover text-white"
+                className="w-full"
                 onClick={async () => {
                   await switchAccount(demoForRole);
                 }}
               >
-                Trải nghiệm với tài khoản {demoForRole.name}
+                Chuyển sang {demoForRole.name}
               </Button>
             )}
 
@@ -124,28 +187,20 @@ export function WorkspaceShell({
               Đăng nhập tài khoản khác
             </Button>
 
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-subtle hover:text-primary pt-2 transition-colors"
-            >
-              <Icon name="arrow" width={14} height={14} className="rotate-180" />
-              <span>Quay về Sàn mua sắm</span>
-            </Link>
+            {activeRole === 'CUSTOMER' && (
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-subtle hover:text-ink pt-2 transition-colors"
+              >
+                <Icon name="arrow" width={14} height={14} className="rotate-180" />
+                <span>Quay về Trang mua sắm</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
     );
   }
-
-  const roleBadgeStyle =
-    role === 'ADMIN'
-      ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-      : role === 'SELLER'
-      ? 'bg-teal-500/20 text-teal-300 border-teal-400/30'
-      : 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30';
-
-  const roleAccentColor =
-    role === 'ADMIN' ? 'bg-primary' : role === 'SELLER' ? 'bg-accent' : 'bg-indigo-600';
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col md:flex-row antialiased">
@@ -155,80 +210,74 @@ export function WorkspaceShell({
           role="presentation"
           aria-hidden="true"
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 bg-navy/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in"
+          className="fixed inset-0 bg-ink/40 backdrop-blur-xs z-40 md:hidden"
         />
       )}
 
-      {/* Sidebar (Desktop & Mobile Drawer) */}
+      {/* Minimalist Light Surface Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 h-screen z-50 md:z-20 bg-navy text-slate-100 border-r border-navy-soft/60 flex flex-col shrink-0 transition-all duration-200 ease-in-out ${
+        className={`fixed md:sticky top-0 h-screen z-50 md:z-20 bg-surface text-ink border-r border-line flex flex-col shrink-0 transition-all duration-200 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } ${collapsed ? 'w-20' : 'w-64'}`}
       >
         {/* Sidebar Brand Header */}
-        <div className="h-16 px-4 border-b border-navy-soft/60 flex items-center justify-between gap-3">
+        <div className="h-16 px-4 border-b border-line flex items-center justify-between gap-3">
           <Link
-            href={menuItems[0]?.href || '/'}
-            className={`flex items-center gap-2.5 overflow-hidden transition-opacity ${
+            href={resolvedMenu[0]?.href || '/'}
+            className={`flex items-center gap-2.5 overflow-hidden ${
               collapsed ? 'justify-center w-full' : ''
             }`}
           >
-            <span
-              className={`w-9 h-9 rounded-xl ${roleAccentColor} text-white flex items-center justify-center font-bold shadow-xs shrink-0`}
-            >
-              <Icon name="box" width={18} height={18} />
+            <span className="w-8 h-8 rounded-lg bg-ink text-white flex items-center justify-center shrink-0">
+              <Icon name="box" width={16} height={16} />
             </span>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <span className="font-extrabold text-white text-base tracking-tight leading-tight block truncate">
-                  Drop<span className="text-blue-400">Connect</span>
+                <span className="font-bold text-ink text-sm tracking-tight leading-tight block truncate">
+                  DropConnect
                 </span>
-                <span
-                  className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider border mt-0.5 ${roleBadgeStyle}`}
-                >
-                  {title}
+                <span className="text-[10px] font-medium text-subtle block truncate">
+                  {resolvedTitle}
                 </span>
               </div>
             )}
           </Link>
 
-          {/* Close button for Mobile drawer */}
           <button
             type="button"
             aria-label="Đóng bảng điều hướng"
             onClick={() => setMobileOpen(false)}
-            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-surface transition"
+            className="md:hidden p-1.5 rounded-lg text-subtle hover:text-ink hover:bg-muted transition"
           >
             <Icon name="close" width={18} height={18} />
           </button>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="p-3 space-y-1.5 flex-1 overflow-y-auto">
-          {menuItems.map((item) => {
+        <nav aria-label="Điều hướng không gian làm việc" className="p-3 space-y-1 flex-1 overflow-y-auto">
+          {resolvedMenu.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
-              : item.href === '/admin' || item.href === '/seller/listings' || item.href === '/supplier/products'
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+              : pathname === item.href || pathname.startsWith(item.href + '/');
 
             return (
               <Link
-                key={item.href}
+                key={`${item.href}-${item.label}`}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-navy-surface'
+                    ? 'bg-ink text-white font-semibold'
+                    : 'text-subtle hover:text-ink hover:bg-canvas'
                 } ${collapsed ? 'justify-center px-0' : ''}`}
               >
                 <Icon
                   name={item.icon}
-                  width={18}
-                  height={18}
-                  className={`shrink-0 transition-transform group-hover:scale-105 ${
-                    isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                  width={17}
+                  height={17}
+                  className={`shrink-0 ${
+                    isActive ? 'text-white' : 'text-subtle group-hover:text-ink'
                   }`}
                 />
                 {!collapsed && <span className="truncate">{item.label}</span>}
@@ -237,59 +286,40 @@ export function WorkspaceShell({
           })}
         </nav>
 
-        {/* Sidebar Footer (Profile, Store Return, Logout) */}
-        <div className="p-3 border-t border-navy-soft/60 bg-navy/80 space-y-2">
+        {/* Sidebar Footer (User Profile & Logout) */}
+        <div className="p-3 border-t border-line bg-canvas/50 space-y-2">
           {!collapsed ? (
             <>
-              {/* User Identity Info */}
-              <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-navy-surface/60 border border-navy-soft/40">
-                <div className="w-8 h-8 rounded-lg bg-blue-600/30 text-blue-300 border border-blue-400/30 flex items-center justify-center text-xs font-bold shrink-0">
+              <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-surface border border-line">
+                <div className="w-7 h-7 rounded-lg bg-canvas text-ink border border-line flex items-center justify-center text-xs font-bold shrink-0">
                   {user?.email?.charAt(0).toUpperCase() || currentUser?.name?.charAt(0) || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate leading-tight">
-                    {currentUser?.name || user?.email || 'Đối tác'}
+                  <p className="text-xs font-semibold text-ink truncate leading-tight">
+                    {currentUser?.name || user?.email || 'Tài khoản'}
                   </p>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                    {user?.email || currentUser?.email || 'Tài khoản hoạt động'}
+                  <p className="text-[10px] text-subtle truncate mt-0.5">
+                    {user?.email || currentUser?.email || resolvedTitle}
                   </p>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <Link
-                  href="/"
-                  className="py-1.5 px-2 rounded-lg bg-navy-surface hover:bg-navy-soft text-slate-300 hover:text-white text-[11px] font-semibold text-center border border-navy-soft/60 transition flex items-center justify-center gap-1"
-                >
-                  <Icon name="arrow" width={12} height={12} className="rotate-180" />
-                  <span>Về Sàn</span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => logout()}
-                  className="py-1.5 px-2 rounded-lg text-danger hover:bg-danger-soft/20 text-[11px] font-semibold transition flex items-center justify-center gap-1 border border-danger/30"
-                >
-                  <Icon name="logout" width={12} height={12} />
-                  <span>Đăng xuất</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="w-full py-2 px-3 rounded-xl bg-surface hover:bg-muted text-subtle hover:text-ink text-xs font-medium transition flex items-center justify-center gap-1.5 border border-line"
+              >
+                <Icon name="logout" width={14} height={14} />
+                <span>Đăng xuất</span>
+              </button>
             </>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <Link
-                href="/"
-                title="Về Sàn mua sắm"
-                className="w-10 h-10 rounded-xl bg-navy-surface hover:bg-navy-soft text-slate-300 hover:text-white flex items-center justify-center transition border border-navy-soft/60"
-              >
-                <Icon name="arrow" width={16} height={16} className="rotate-180" />
-              </Link>
               <button
                 type="button"
                 title="Đăng xuất"
                 onClick={() => logout()}
-                className="w-10 h-10 rounded-xl text-danger hover:bg-danger-soft/20 flex items-center justify-center transition border border-danger/30"
+                className="w-10 h-10 rounded-xl bg-surface hover:bg-muted text-subtle hover:text-ink flex items-center justify-center transition border border-line"
               >
                 <Icon name="logout" width={16} height={16} />
               </button>
@@ -301,10 +331,8 @@ export function WorkspaceShell({
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Workspace Topbar */}
-        <header className="h-16 border-b border-line bg-surface/90 backdrop-blur sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-4">
-          {/* Left: Mobile Toggle, Desktop Collapse & Breadcrumbs */}
+        <header className="h-16 border-b border-line bg-surface sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Hamburger Button */}
             <button
               type="button"
               aria-label="Mở bảng điều hướng"
@@ -314,44 +342,57 @@ export function WorkspaceShell({
               <Icon name="menu" width={18} height={18} />
             </button>
 
-            {/* Desktop Collapse Toggle */}
             <button
               type="button"
-              aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
+              aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
               onClick={() => setCollapsed(!collapsed)}
               className="hidden md:flex p-2 rounded-xl text-subtle hover:text-ink hover:bg-muted border border-line transition shrink-0"
             >
-              <Icon name="sidebar" width={18} height={18} />
+              <Icon name="sidebar" width={17} height={17} />
             </button>
 
-            {/* Breadcrumb Path */}
             <div className="flex items-center gap-2 text-xs truncate">
-              <span className="text-subtle font-medium hidden sm:inline">{title}</span>
+              <span className="text-subtle font-medium hidden sm:inline">{resolvedTitle}</span>
               <span className="text-line hidden sm:inline">/</span>
-              <h1 className="text-ink font-bold truncate">
-                {menuItems.find((i) =>
+              <span className="text-ink font-semibold truncate">
+                {resolvedMenu.find((i) =>
                   i.exact
                     ? pathname === i.href
-                    : i.href === '/admin' || i.href === '/seller/listings' || i.href === '/supplier/products'
-                    ? pathname === i.href
-                    : pathname.startsWith(i.href),
-                )?.label || subtitle}
-              </h1>
+                    : pathname === i.href || pathname.startsWith(i.href + '/'),
+                )?.label || resolvedSubtitle}
+              </span>
             </div>
           </div>
 
-          {/* Right: Status, Demo Switcher, Quick Links */}
-          <div className="flex items-center gap-3 shrink-0">
-            {/* System Online Status */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success-soft border border-success/25 text-success text-[11px] font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-              <span>Hệ thống trực tuyến</span>
-            </div>
+          {/* Right Actions: Role Switcher & Notifications */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* Multi-role switcher for authenticated real users */}
+            {user?.roles && user.roles.length > 1 && (
+              <select
+                aria-label="Chuyển đổi vai trò"
+                value={actor?.activeRole || effectiveRole}
+                onChange={async (e) => {
+                  const nextRole = e.target.value as RoleType;
+                  await switchRole(nextRole);
+                  if (nextRole === 'SELLER') router.push('/seller/listings');
+                  else if (nextRole === 'SUPPLIER') router.push('/supplier/products');
+                  else if (nextRole === 'ADMIN') router.push('/admin');
+                  else router.push('/');
+                }}
+                className="h-8 text-xs bg-canvas rounded-lg border border-line px-2.5 font-medium text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {user.roles.map((r) => (
+                  <option key={r} value={r}>
+                    Vai trò: {r}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* Demo Quick Account Switcher */}
             {process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === 'true' && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-subtle hidden sm:inline">Vai trò:</span>
+                <span className="text-[11px] text-subtle hidden sm:inline">Tài khoản:</span>
                 <select
                   aria-label="Chọn tài khoản trải nghiệm"
                   value={currentUser?.id}
@@ -365,7 +406,7 @@ export function WorkspaceShell({
                       else router.push('/');
                     }
                   }}
-                  className="h-8 text-xs bg-canvas rounded-lg border border-line px-2 font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="h-8 text-xs bg-canvas rounded-lg border border-line px-2.5 font-medium text-ink focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   {DEMO_ACCOUNTS.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -376,19 +417,18 @@ export function WorkspaceShell({
               </div>
             )}
 
-            {/* Storefront Link Pill */}
             <Link
-              href="/"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-line hover:border-primary/40 hover:bg-primary-soft text-subtle hover:text-primary text-xs font-semibold transition"
+              href="/notifications"
+              aria-label="Thông báo"
+              className="p-2 rounded-xl border border-line bg-surface hover:bg-canvas text-subtle hover:text-ink transition"
             >
-              <span>Xem Sàn</span>
-              <Icon name="externalLink" width={13} height={13} />
+              <Icon name="bell" width={16} height={16} />
             </Link>
           </div>
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-w-0">
+        <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-w-0">
           {children}
         </main>
       </div>

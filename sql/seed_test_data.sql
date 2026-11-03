@@ -211,30 +211,214 @@ ON CONFLICT (cart_id, listing_id) DO UPDATE
 SET quantity = EXCLUDED.quantity, last_viewed_unit_sale_price = EXCLUDED.last_viewed_unit_sale_price;
 
 -- =========================================================================================
--- PHẦN 8: ĐƠN HÀNG MẪU (CUSTOMER_ORDERS & FULFILLMENT_ORDERS)
+-- PHẦN 8: ĐƠN HÀNG MẪU (CUSTOMER_ORDERS, FULFILLMENT_ORDERS, PAYMENTS, RESERVATIONS)
 -- =========================================================================================
 
 -- Đơn mẫu 1: Customer 2 đặt đơn hàng gồm 2 món từ 2 nhà cung cấp khác nhau (Đang giao hàng PROCESSING)
-INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at)
-VALUES ('88888888-8888-4888-8888-111111111111', 'DC-ORD-SPLIT-001', '44444444-4444-4444-8444-222222222222', 'PROCESSING', 'PARTIALLY_FULFILLED', 'VND', 608000, 608000, now() - interval '2 days')
+INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at, snapshot)
+VALUES (
+  '88888888-8888-4888-8888-111111111111',
+  'DC-ORD-SPLIT-001',
+  '44444444-4444-4444-8444-222222222222',
+  'PROCESSING',
+  'PARTIALLY_FULFILLED',
+  'VND',
+  608000,
+  608000,
+  now() - interval '2 days',
+  '{
+    "order": {
+      "orderId": "88888888-8888-4888-8888-111111111111",
+      "orderNo": "DC-ORD-SPLIT-001",
+      "customerId": "44444444-4444-4444-8444-222222222222",
+      "status": "PROCESSING",
+      "paymentStatus": "PAID",
+      "fulfillmentSummary": "PARTIALLY_FULFILLED",
+      "currency": "VND",
+      "grandTotal": 608000,
+      "totalPayable": 608000,
+      "createdAt": "2026-11-01T10:00:00.000Z",
+      "updatedAt": "2026-11-01T10:30:00.000Z",
+      "shippingAddress": {
+        "recipientName": "Khách hàng B",
+        "phone": "0987654321",
+        "address": "456 Đường Nguyễn Huệ, Phường Bến Nghé",
+        "city": "TP. Hồ Chí Minh"
+      }
+    },
+    "items": [
+      {
+        "orderItemId": "99999999-9999-4999-8999-111111111111",
+        "customerOrderId": "88888888-8888-4888-8888-111111111111",
+        "listingId": "66666666-6666-4666-8666-333333333333",
+        "productName": "Tai nghe Bluetooth True Wireless Baseus Bowie E16",
+        "quantity": 1,
+        "unitSalePrice": 249000,
+        "unitCostPrice": 160000,
+        "lineSaleTotal": 249000,
+        "fulfillmentOrderId": "aaaaaaaa-aaaa-4aaa-8aaa-111111111111"
+      },
+      {
+        "orderItemId": "99999999-9999-4999-8999-222222222222",
+        "customerOrderId": "88888888-8888-4888-8888-111111111111",
+        "listingId": "66666666-6666-4666-8666-555555555555",
+        "productName": "Bình giữ nhiệt LocknLock Easy Take 500ml",
+        "quantity": 1,
+        "unitSalePrice": 359000,
+        "unitCostPrice": 260000,
+        "lineSaleTotal": 359000,
+        "fulfillmentOrderId": "aaaaaaaa-aaaa-4aaa-8aaa-333333333333"
+      }
+    ],
+    "fulfillmentOrders": [
+      {
+        "fulfillmentOrderId": "aaaaaaaa-aaaa-4aaa-8aaa-111111111111",
+        "fulfillmentNo": "FO-001-SUP1",
+        "customerOrderId": "88888888-8888-4888-8888-111111111111",
+        "supplierId": "aaaaaaaa-3333-4333-8333-111111111111",
+        "sellerId": "bbbbbbbb-2222-4222-8222-111111111111",
+        "status": "ACCEPTED",
+        "carrierCode": "VNPOST",
+        "trackingNo": "VNPOST-888999",
+        "currency": "VND"
+      },
+      {
+        "fulfillmentOrderId": "aaaaaaaa-aaaa-4aaa-8aaa-333333333333",
+        "fulfillmentNo": "FO-002-SUP2",
+        "customerOrderId": "88888888-8888-4888-8888-111111111111",
+        "supplierId": "aaaaaaaa-3333-4333-8333-222222222222",
+        "sellerId": "bbbbbbbb-2222-4222-8222-222222222222",
+        "status": "PENDING_ACCEPTANCE",
+        "carrierCode": "GHN_EXPRESS",
+        "trackingNo": null,
+        "currency": "VND"
+      }
+    ],
+    "payments": [
+      {
+        "paymentId": "cccccccc-cccc-4ccc-8ccc-111111111111",
+        "customerOrderId": "88888888-8888-4888-8888-111111111111",
+        "paymentIntentId": "eeeeeeee-eeee-4eee-8eee-111111111111",
+        "method": "ONLINE_MOCK",
+        "status": "PAID",
+        "amount": 608000
+      }
+    ]
+  }'::jsonb
+)
 ON CONFLICT (id) DO UPDATE 
-SET status = 'PROCESSING', fulfillment_summary = 'PARTIALLY_FULFILLED';
+SET status = 'PROCESSING', fulfillment_summary = 'PARTIALLY_FULFILLED', snapshot = EXCLUDED.snapshot;
 
 INSERT INTO order_items (id, customer_order_id, listing_id, product_name_snapshot, quantity, unit_sale_price_snapshot, unit_cost_price_snapshot)
 VALUES 
   ('99999999-9999-4999-8999-111111111111', '88888888-8888-4888-8888-111111111111', '66666666-6666-4666-8666-333333333333', 'Tai nghe Bluetooth True Wireless Baseus Bowie E16', 1, 249000, 160000),
-  ('99999999-9999-4999-8999-222222222222', '88888888-8888-4888-8888-111111111111', '66666666-6666-4666-8666-111111111111', 'Củ sạc nhanh 65W GaN 3 cổng Baseus GaN5 Pro', 1, 359000, 260000)
+  ('99999999-9999-4999-8999-222222222222', '88888888-8888-4888-8888-111111111111', '66666666-6666-4666-8666-555555555555', 'Bình giữ nhiệt LocknLock Easy Take 500ml', 1, 359000, 260000)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO fulfillment_orders (id, fulfillment_no, customer_order_id, supplier_id, seller_id, status, tracking_no, currency)
-VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-111111111111', 'FO-001-SUP1', '88888888-8888-4888-8888-111111111111', 'aaaaaaaa-3333-4333-8333-111111111111', 'bbbbbbbb-2222-4222-8222-111111111111', 'ACCEPTED', 'VNPOST-888999', 'VND')
-ON CONFLICT (id) DO UPDATE SET status = 'ACCEPTED';
+VALUES 
+  ('aaaaaaaa-aaaa-4aaa-8aaa-111111111111', 'FO-001-SUP1', '88888888-8888-4888-8888-111111111111', 'aaaaaaaa-3333-4333-8333-111111111111', 'bbbbbbbb-2222-4222-8222-111111111111', 'ACCEPTED', 'VNPOST-888999', 'VND'),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-333333333333', 'FO-002-SUP2', '88888888-8888-4888-8888-111111111111', 'aaaaaaaa-3333-4333-8333-222222222222', 'bbbbbbbb-2222-4222-8222-222222222222', 'PENDING_ACCEPTANCE', NULL, 'VND')
+ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, tracking_no = EXCLUDED.tracking_no;
+
+INSERT INTO fulfillment_items (fulfillment_order_id, order_item_id, quantity, item_gross_snapshot)
+VALUES 
+  ('aaaaaaaa-aaaa-4aaa-8aaa-111111111111', '99999999-9999-4999-8999-111111111111', 1, 249000),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-333333333333', '99999999-9999-4999-8999-222222222222', 1, 359000)
+ON CONFLICT (fulfillment_order_id, order_item_id) DO NOTHING;
+
+INSERT INTO payment_intents (id, customer_order_id, provider, amount, status)
+VALUES ('eeeeeeee-eeee-4eee-8eee-111111111111', '88888888-8888-4888-8888-111111111111', 'ONLINE_VIETQR', 608000, 'PAID')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO payments (id, customer_order_id, payment_intent_id, method, status, amount, provider_transaction_ref)
+VALUES ('cccccccc-cccc-4ccc-8ccc-111111111111', '88888888-8888-4888-8888-111111111111', 'eeeeeeee-eeee-4eee-8eee-111111111111', 'ONLINE_MOCK', 'PAID', 608000, 'VIETQR-DEMO-001')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO payment_allocations (id, payment_id, fulfillment_order_id, merchandise_amount, shipping_amount, discount_amount, amount_to_collect, status)
+VALUES 
+  ('dddddddd-dddd-4ddd-8ddd-111111111111', 'cccccccc-cccc-4ccc-8ccc-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-111111111111', 249000, 0, 0, 249000, 'FUNDED'),
+  ('dddddddd-dddd-4ddd-8ddd-222222222222', 'cccccccc-cccc-4ccc-8ccc-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-333333333333', 359000, 0, 0, 359000, 'FUNDED')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO stock_reservations (id, order_item_id, product_id, quantity, status)
+VALUES 
+  ('ffffffff-ffff-4fff-8fff-111111111111', '99999999-9999-4999-8999-111111111111', '55555555-5555-4555-8555-333333333333', 1, 'COMMITTED'),
+  ('ffffffff-ffff-4fff-8fff-222222222222', '99999999-9999-4999-8999-222222222222', '55555555-5555-4555-8555-555555555555', 1, 'HELD')
+ON CONFLICT (id) DO NOTHING;
 
 -- Đơn mẫu 2: Customer 3 đặt đơn COD, đã hoàn thành FULFILLED
-INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at)
-VALUES ('88888888-8888-4888-8888-222222222222', 'DC-ORD-COD-DELIVERED', '44444444-4444-4444-8444-333333333333', 'CONFIRMED', 'FULFILLED', 'VND', 279000, 279000, now() - interval '5 days')
+INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at, snapshot)
+VALUES (
+  '88888888-8888-4888-8888-222222222222',
+  'DC-ORD-COD-DELIVERED',
+  '44444444-4444-4444-8444-333333333333',
+  'CLOSED',
+  'COMPLETED',
+  'VND',
+  279000,
+  279000,
+  now() - interval '5 days',
+  '{
+    "order": {
+      "orderId": "88888888-8888-4888-8888-222222222222",
+      "orderNo": "DC-ORD-COD-DELIVERED",
+      "customerId": "44444444-4444-4444-8444-333333333333",
+      "status": "CLOSED",
+      "paymentStatus": "COLLECTED",
+      "fulfillmentSummary": "COMPLETED",
+      "currency": "VND",
+      "grandTotal": 279000,
+      "totalPayable": 279000,
+      "createdAt": "2026-10-29T08:00:00.000Z",
+      "updatedAt": "2026-10-31T15:00:00.000Z",
+      "shippingAddress": {
+        "recipientName": "Khách hàng C",
+        "phone": "0912345678",
+        "address": "789 Đường Lê Duẩn, Quận 1",
+        "city": "TP. Hồ Chí Minh"
+      }
+    },
+    "items": [
+      {
+        "orderItemId": "99999999-9999-4999-8999-333333333333",
+        "customerOrderId": "88888888-8888-4888-8888-222222222222",
+        "listingId": "66666666-6666-4666-8666-888888888888",
+        "productName": "Balo laptop công sở chống nước đa năng 15.6 inch",
+        "quantity": 1,
+        "unitSalePrice": 279000,
+        "unitCostPrice": 155000,
+        "lineSaleTotal": 279000,
+        "fulfillmentOrderId": "aaaaaaaa-aaaa-4aaa-8aaa-222222222222"
+      }
+    ],
+    "fulfillmentOrders": [
+      {
+        "fulfillmentOrderId": "aaaaaaaa-aaaa-4aaa-8aaa-222222222222",
+        "fulfillmentNo": "FO-002-DELIVERED",
+        "customerOrderId": "88888888-8888-4888-8888-222222222222",
+        "supplierId": "aaaaaaaa-3333-4333-8333-333333333333",
+        "sellerId": "bbbbbbbb-2222-4222-8222-333333333333",
+        "status": "DELIVERED",
+        "carrierCode": "GHN_EXPRESS",
+        "trackingNo": "GHN-99887766",
+        "currency": "VND"
+      }
+    ],
+    "payments": [
+      {
+        "paymentId": "cccccccc-cccc-4ccc-8ccc-222222222222",
+        "customerOrderId": "88888888-8888-4888-8888-222222222222",
+        "paymentIntentId": "eeeeeeee-eeee-4eee-8eee-222222222222",
+        "method": "COD",
+        "status": "COLLECTED",
+        "amount": 279000
+      }
+    ]
+  }'::jsonb
+)
 ON CONFLICT (id) DO UPDATE 
-SET status = 'CONFIRMED', fulfillment_summary = 'FULFILLED';
+SET status = 'COMPLETED', fulfillment_summary = 'COMPLETED', snapshot = EXCLUDED.snapshot;
 
 INSERT INTO order_items (id, customer_order_id, listing_id, product_name_snapshot, quantity, unit_sale_price_snapshot, unit_cost_price_snapshot)
 VALUES ('99999999-9999-4999-8999-333333333333', '88888888-8888-4888-8888-222222222222', '66666666-6666-4666-8666-888888888888', 'Balo laptop công sở chống nước đa năng 15.6 inch', 1, 279000, 155000)
@@ -242,6 +426,26 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO fulfillment_orders (id, fulfillment_no, customer_order_id, supplier_id, seller_id, status, tracking_no, currency)
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-222222222222', 'FO-002-DELIVERED', '88888888-8888-4888-8888-222222222222', 'aaaaaaaa-3333-4333-8333-333333333333', 'bbbbbbbb-2222-4222-8222-333333333333', 'DELIVERED', 'GHN-99887766', 'VND')
-ON CONFLICT (id) DO UPDATE SET status = 'DELIVERED';
+ON CONFLICT (id) DO UPDATE SET status = 'DELIVERED', tracking_no = 'GHN-99887766';
+
+INSERT INTO fulfillment_items (fulfillment_order_id, order_item_id, quantity, item_gross_snapshot)
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-222222222222', '99999999-9999-4999-8999-333333333333', 1, 279000)
+ON CONFLICT (fulfillment_order_id, order_item_id) DO NOTHING;
+
+INSERT INTO payment_intents (id, customer_order_id, provider, amount, status)
+VALUES ('eeeeeeee-eeee-4eee-8eee-222222222222', '88888888-8888-4888-8888-222222222222', 'COD', 279000, 'COLLECTED')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO payments (id, customer_order_id, payment_intent_id, method, status, amount)
+VALUES ('cccccccc-cccc-4ccc-8ccc-222222222222', '88888888-8888-4888-8888-222222222222', 'eeeeeeee-eeee-4eee-8eee-222222222222', 'COD', 'COLLECTED', 279000)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO payment_allocations (id, payment_id, fulfillment_order_id, merchandise_amount, shipping_amount, discount_amount, amount_to_collect, status)
+VALUES ('dddddddd-dddd-4ddd-8ddd-333333333333', 'cccccccc-cccc-4ccc-8ccc-222222222222', 'aaaaaaaa-aaaa-4aaa-8aaa-222222222222', 279000, 0, 0, 279000, 'COLLECTED')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO stock_reservations (id, order_item_id, product_id, quantity, status)
+VALUES ('ffffffff-ffff-4fff-8fff-333333333333', '99999999-9999-4999-8999-333333333333', '55555555-5555-4555-8555-888888888888', 1, 'COMMITTED')
+ON CONFLICT (id) DO NOTHING;
 
 COMMIT;

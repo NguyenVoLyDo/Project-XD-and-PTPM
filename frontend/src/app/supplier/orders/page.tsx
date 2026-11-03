@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { ApiClient } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth-context';
 import { Card } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Icon } from '../../../components/ui/icon';
 import { StatusBadge } from '../../../components/molecules/status-badge';
 import { PriceDisplay } from '../../../components/molecules/price-display';
 import { Skeleton } from '../../../components/ui/skeleton';
@@ -149,27 +150,30 @@ export default function SupplierOrdersPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto py-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-line">
         <div>
-          <h1 className="text-2xl font-bold text-ink tracking-tight flex items-center gap-2">
-            <span>📦 Đơn Hàng Cần Xử Lý</span>
-            <Badge variant="info" className="text-xs">
-              Nhà Cung Cấp
-            </Badge>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-subtle bg-surface border border-line px-2.5 py-1 rounded-full mb-2">
+            Supplier Portal
+          </span>
+          <h1 className="text-2xl font-bold text-ink tracking-tight">
+            Đơn Hàng Cần Xử Lý
           </h1>
-          <p className="text-xs text-subtle mt-1">
+          <p className="text-sm text-subtle mt-1">
             Quản lý các kiện hàng phân bổ (Fulfillment Orders) từ khách mua trên toàn sàn
           </p>
         </div>
 
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchSupplierOrders}
-          className="text-xs font-semibold text-primary hover:underline self-start sm:self-auto cursor-pointer"
+          className="self-start sm:self-auto"
         >
-          🔄 Làm mới danh sách
-        </button>
+          <Icon name="refresh" className="w-3.5 h-3.5 mr-1.5" />
+          Làm mới danh sách
+        </Button>
       </div>
 
       {/* Filter Tabs */}
@@ -185,10 +189,10 @@ export default function SupplierOrdersPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition cursor-pointer ${
               activeTab === tab.key
-                ? 'bg-primary text-white font-bold'
-                : 'text-subtle hover:bg-slate-100'
+                ? 'bg-ink text-white font-semibold'
+                : 'bg-surface border border-line text-subtle hover:text-ink'
             }`}
           >
             {tab.label}
@@ -204,6 +208,7 @@ export default function SupplierOrdersPage() {
         </div>
       ) : filteredOrders.length === 0 ? (
         <EmptyState
+          icon="orders"
           title="Không có đơn hàng nào"
           description="Hiện tại chưa có đơn hàng nào ở trạng thái này."
         />
@@ -235,10 +240,11 @@ export default function SupplierOrdersPage() {
                   </div>
 
                   {order.trackingNo && (
-                    <div className="text-xs bg-slate-50 px-3 py-1.5 rounded-lg border border-line font-mono">
+                    <div className="text-xs bg-canvas px-3 py-1.5 rounded-lg border border-line font-mono flex items-center gap-1.5">
+                      <Icon name="truck" className="w-3.5 h-3.5 text-subtle" />
                       <span className="text-subtle">Vận đơn: </span>
-                      <span className="font-bold text-primary">{order.trackingNo}</span>
-                      <span className="text-slate-400"> ({order.carrierCode})</span>
+                      <span className="font-bold text-ink">{order.trackingNo}</span>
+                      <span className="text-subtle"> ({order.carrierCode})</span>
                     </div>
                   )}
                 </div>
@@ -297,57 +303,66 @@ export default function SupplierOrdersPage() {
                 <div className="pt-3 border-t border-line flex flex-wrap items-center justify-end gap-3">
                   {order.status === 'PENDING_ACCEPTANCE' && (
                     <>
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleRejectOrder(order.fulfillmentOrderId)}
                         disabled={isLoadingThis}
-                        className="px-4 py-2 border border-danger/30 text-danger hover:bg-danger-soft font-semibold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
+                        className="text-danger border-danger/30 hover:bg-danger-soft"
                       >
-                        ✕ Từ chối đơn (Hết hàng)
-                      </button>
-                      <button
+                        <Icon name="close" className="w-3.5 h-3.5 mr-1" />
+                        Từ chối đơn (Hết hàng)
+                      </Button>
+                      <Button
                         type="button"
+                        variant="default"
+                        size="sm"
                         onClick={() => handleAcceptOrder(order.fulfillmentOrderId)}
                         disabled={isLoadingThis}
-                        className="px-5 py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
                       >
-                        {isLoadingThis ? 'Đang xử lý...' : '✓ Tiếp nhận đơn hàng'}
-                      </button>
+                        <Icon name="check" className="w-3.5 h-3.5 mr-1" />
+                        {isLoadingThis ? 'Đang xử lý...' : 'Tiếp nhận đơn hàng'}
+                      </Button>
                     </>
                   )}
 
                   {order.status === 'ACCEPTED' && (
-                    <button
+                    <Button
                       type="button"
+                      variant="default"
+                      size="sm"
                       onClick={() => handleShipOrder(order.fulfillmentOrderId)}
                       disabled={isLoadingThis}
-                      className="px-5 py-2 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
                     >
-                      {isLoadingThis ? 'Đang tạo vận đơn...' : '🚚 Giao cho bưu tá (GHN Express)'}
-                    </button>
+                      <Icon name="truck" className="w-3.5 h-3.5 mr-1.5" />
+                      {isLoadingThis ? 'Đang tạo vận đơn...' : 'Giao cho bưu tá (GHN Express)'}
+                    </Button>
                   )}
 
                   {(order.status === 'SHIPPED' || order.status === 'IN_TRANSIT') && (
-                    <button
+                    <Button
                       type="button"
+                      variant="default"
+                      size="sm"
                       onClick={() => handleDeliverOrder(order.fulfillmentOrderId)}
                       disabled={isLoadingThis}
-                      className="px-5 py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
                     >
-                      {isLoadingThis ? 'Đang xác nhận...' : '📦 Xác nhận giao hàng thành công'}
-                    </button>
+                      <Icon name="check" className="w-3.5 h-3.5 mr-1.5" />
+                      {isLoadingThis ? 'Đang xác nhận...' : 'Xác nhận giao hàng thành công'}
+                    </Button>
                   )}
 
                   {order.status === 'DELIVERED' && (
                     <span className="text-xs text-success font-bold flex items-center gap-1.5">
-                      <span>✓</span>
+                      <Icon name="check" className="w-3.5 h-3.5" />
                       <span>Đã hoàn tất giao hàng</span>
                     </span>
                   )}
 
                   {order.status === 'REJECTED' && (
                     <span className="text-xs text-danger font-bold flex items-center gap-1.5">
-                      <span>✕</span>
+                      <Icon name="close" className="w-3.5 h-3.5" />
                       <span>Đã từ chối đơn hàng (Đã kích hoạt hoàn tiền)</span>
                     </span>
                   )}
@@ -361,17 +376,16 @@ export default function SupplierOrdersPage() {
       {/* Floating Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold flex items-center gap-2 ${
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold flex items-center gap-2 ${
             toast.type === 'error'
               ? 'bg-danger-soft text-danger border-danger/30'
-              : 'bg-success-soft text-success border-success/30'
+              : 'bg-surface text-ink border-line'
           }`}
         >
-          <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+          <Icon name={toast.type === 'error' ? 'alert' : 'check'} className="w-4 h-4 shrink-0" />
           <span>{toast.message}</span>
         </div>
       )}
     </div>
   );
 }
-

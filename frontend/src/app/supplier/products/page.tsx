@@ -233,7 +233,7 @@ export default function SupplierProductsPage() {
         <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider text-success">Còn hàng</span>
-            <div className="w-8 h-8 rounded-xl bg-success-soft text-success border border-success/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="check" width={15} height={15} />
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function SupplierProductsPage() {
         <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider text-danger">Hết hàng</span>
-            <div className="w-8 h-8 rounded-xl bg-danger-soft text-danger border border-danger/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="alert" width={15} height={15} />
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function SupplierProductsPage() {
         <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
           <div className="flex items-center justify-between text-subtle">
             <span className="text-xs font-semibold uppercase tracking-wider text-primary">Tổng lượng tồn</span>
-            <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary border border-primary/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-canvas border border-line text-subtle flex items-center justify-center">
               <Icon name="store" width={15} height={15} />
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function SupplierProductsPage() {
           <form onSubmit={handleCreate} className="space-y-4 text-sm">
             {formError && (
               <div role="alert" className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 text-xs flex items-center gap-2">
-                <span>⚠️</span>
+                <Icon name="alert" className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
@@ -581,7 +581,7 @@ export default function SupplierProductsPage() {
                   </label>
                   {uploadError && (
                     <p role="alert" className="text-xs text-rose-600 font-medium mt-2 flex items-center gap-1.5">
-                      <span>⚠️</span>
+                      <Icon name="alert" className="w-4 h-4 shrink-0" />
                       <span>{uploadError}</span>
                     </p>
                   )}

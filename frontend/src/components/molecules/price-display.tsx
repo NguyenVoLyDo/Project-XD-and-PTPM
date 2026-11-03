@@ -26,7 +26,7 @@ export function PriceDisplay({
   const hasDiscount = originalAmount !== undefined && originalAmount > amount;
 
   return (
-    <div className={cn('inline-flex items-baseline gap-2', className)}>
+    <span className={cn('inline-flex items-baseline gap-2', className)}>
       <span
         className={cn(
           'text-primary tabular-nums',
@@ -40,6 +40,6 @@ export function PriceDisplay({
           {originalAmount!.toLocaleString('vi-VN')}&thinsp;{currency}
         </span>
       )}
-    </div>
+    </span>
   );
 }

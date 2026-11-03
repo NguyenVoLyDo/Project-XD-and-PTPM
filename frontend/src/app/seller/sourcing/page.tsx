@@ -376,7 +376,7 @@ export default function SellerSourcingPage() {
                 role="alert"
                 className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2"
               >
-                <span>⚠️</span>
+                <Icon name="alert" className="w-4 h-4 shrink-0" />
                 <span className="leading-snug">{modalError}</span>
               </div>
             )}

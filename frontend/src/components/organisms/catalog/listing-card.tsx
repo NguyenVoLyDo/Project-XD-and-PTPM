@@ -62,7 +62,7 @@ export function ListingCard({
   return (
     <article
       className={cn(
-        'product-card group bg-surface border border-line rounded-2xl overflow-hidden flex flex-col hover:border-primary/40 hover:shadow-md transition-all duration-200',
+        'product-card group bg-surface border border-line rounded-2xl overflow-hidden flex flex-col hover:border-ink/30 transition-all duration-200',
         className,
       )}
     >
@@ -80,22 +80,22 @@ export function ListingCard({
           />
         ) : (
           <div className="h-full grid place-items-center text-subtle">
-            <Icon name="box" width={48} height={48} />
+            <Icon name="box" width={40} height={40} />
           </div>
         )}
 
         {/* Discount Badge on Image */}
         {discountPercent && discountPercent > 0 && (
           <div className="absolute top-2.5 left-2.5 pointer-events-none">
-            <span className="rounded-md px-2 py-0.5 bg-rose-600 text-white font-bold text-[11px] shadow-xs">
+            <span className="rounded-md px-2 py-0.5 bg-ink text-white font-semibold text-[11px]">
               -{discountPercent}%
             </span>
           </div>
         )}
 
         {outOfStock && (
-          <div className="absolute inset-0 bg-ink/50 backdrop-blur-xs flex items-center justify-center">
-            <span className="rounded-xl px-3.5 py-1.5 bg-surface text-rose-700 font-bold text-xs shadow-lg">
+          <div className="absolute inset-0 bg-ink/40 backdrop-blur-xs flex items-center justify-center">
+            <span className="rounded-xl px-3.5 py-1.5 bg-surface text-ink font-semibold text-xs border border-line">
               Tạm hết hàng
             </span>
           </div>
@@ -111,14 +111,14 @@ export function ListingCard({
         </div>
 
         {/* Product Title */}
-        <h3 className="font-semibold text-ink text-sm sm:text-base leading-snug line-clamp-2 min-h-10 group-hover:text-primary transition-colors">
+        <h3 className="font-semibold text-ink text-sm sm:text-base leading-snug line-clamp-2 min-h-10">
           {item.productName}
         </h3>
 
         {/* Star Rating & Sold count */}
         <div className="mt-1.5 flex items-center gap-2 text-xs text-subtle">
-          <div className="flex items-center gap-1 text-amber-500 font-semibold">
-            <Icon name="star" width={12} height={12} className="fill-amber-400 text-amber-500" />
+          <div className="flex items-center gap-1 text-ink font-medium">
+            <Icon name="star" width={12} height={12} className="text-subtle" />
             <span>4.9</span>
           </div>
           <span className="text-line">•</span>
@@ -134,7 +134,7 @@ export function ListingCard({
             size="lg"
           />
           {!outOfStock && (
-            <span className="text-[11px] font-medium text-primary bg-primary-soft px-2 py-0.5 rounded-md">
+            <span className="text-[11px] font-medium text-subtle bg-canvas border border-line px-2 py-0.5 rounded-md">
               Còn hàng
             </span>
           )}

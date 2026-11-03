@@ -1,13 +1,18 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { CommerceDb, fail, uuid } from './commerce-db';
 import { CommerceService } from './commerce.service';
+import { StoreService } from '../../common/database/store.service';
 import type { CheckoutTransactionContext, IdempotencyRecord, PaginationQuery, ProcessedEventRecord } from '../../modules/orders/application/ports';
 import type { OrderAggregate, OutboxEvent, AllocationDraft, PaymentMethod, FulfillmentDraftGroup, CheckoutQuoteBatch } from '../../modules/orders/domain/order';
 
 @Injectable()
 export class PostgresCheckoutAdapter {
-  constructor(@Inject(CommerceDb) readonly db:CommerceDb,@Inject(CommerceService) readonly commerce:CommerceService) {}
+  constructor(
+    @Inject(CommerceDb) readonly db: CommerceDb,
+    @Inject(CommerceService) readonly commerce: CommerceService,
+    @Optional() @Inject(StoreService) private readonly store?: StoreService,
+  ) {}
   async runInTransaction<T>(work:(ctx:CheckoutTransactionContext)=>Promise<T>):Promise<T> { return this.db.transaction(()=>work({token:this.db})); }
   async getCheckoutQuotes(ids:readonly string[]):Promise<CheckoutQuoteBatch> {
     ids.forEach(uuid);
@@ -28,6 +33,20 @@ export class PostgresCheckoutAdapter {
     if(existing) return {reservationId:existing.id,orderItemId,quantity:existing.quantity,status:'HELD',expiresAt:existing.expires_at.toISOString()};
     if(await this.getAvailability(productId)<quantity) fail(409,'INSUFFICIENT_STOCK');
     const [row]=await this.db.query("INSERT INTO stock_reservations(order_item_id,product_id,quantity,status,expires_at) VALUES($1,$2,$3,'HELD',$4) RETURNING id",[orderItemId,productId,quantity,expiresAt]);
+    if (this.store) {
+      const exists = this.store.stockReservations.find(r => r.orderItemId === orderItemId);
+      if (!exists) {
+        this.store.stockReservations.push({
+          id: row.id,
+          orderItemId,
+          productId,
+          quantity,
+          status: 'HELD',
+          expiresAt,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
     return {reservationId:row.id,orderItemId,quantity,status:'HELD',expiresAt};
   }
   async find(customerId:string,key:string):Promise<IdempotencyRecord|null> {
@@ -55,17 +74,165 @@ export class PostgresCheckoutAdapter {
         VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO NOTHING`,[i.orderItemId,i.customerOrderId,i.listingId,i.productName,i.quantity,i.unitSalePrice,i.unitCostPrice]);
       await this.db.query('INSERT INTO fulfillment_items(fulfillment_order_id,order_item_id,quantity,item_gross_snapshot) VALUES($1,$2,$3,$4) ON CONFLICT(fulfillment_order_id,order_item_id) DO NOTHING',[i.fulfillmentOrderId,i.orderItemId,i.quantity,i.lineSaleTotal]);
     }
+    if (!previous && agg.items.length > 0) {
+      await this.db.query(
+        'DELETE FROM cart_items WHERE cart_id IN (SELECT id FROM carts WHERE customer_id = $1) AND listing_id = ANY($2::uuid[])',
+        [uuid(o.customerId), agg.items.map(i => uuid(i.listingId))],
+      );
+    }
+    if (this.store) {
+      const co = this.store.customerOrders.find(c => c.id === o.orderId);
+      if (!co) {
+        this.store.customerOrders.push({
+          id: o.orderId,
+          orderNo: o.orderNo,
+          customerId: o.customerId,
+          status: o.status,
+          fulfillmentSummary: o.fulfillmentSummary,
+          shippingAddress: (o as any).shippingAddress || { recipientName: 'Khách hàng', phone: '', address: '', city: '' },
+          grandTotal: o.grandTotal,
+          totalPayable: o.totalPayable,
+          currency: 'VND',
+          placedAt: o.createdAt,
+          createdAt: o.createdAt,
+          updatedAt: o.createdAt,
+        });
+      } else {
+        co.status = o.status;
+        co.fulfillmentSummary = o.fulfillmentSummary;
+        co.totalPayable = o.totalPayable;
+        co.updatedAt = new Date().toISOString();
+      }
+      for (const i of agg.items) {
+        if (!this.store.orderItems.some(oi => oi.id === i.orderItemId)) {
+          this.store.orderItems.push({
+            id: i.orderItemId,
+            customerOrderId: i.customerOrderId,
+            listingId: i.listingId,
+            productNameSnapshot: i.productName,
+            quantity: i.quantity,
+            unitSalePriceSnapshot: i.unitSalePrice,
+            unitCostPriceSnapshot: i.unitCostPrice,
+            createdAt: o.createdAt,
+          });
+        }
+        if (!this.store.fulfillmentItems.some(fi => fi.orderItemId === i.orderItemId && fi.fulfillmentOrderId === i.fulfillmentOrderId)) {
+          this.store.fulfillmentItems.push({
+            id: randomUUID(),
+            fulfillmentOrderId: i.fulfillmentOrderId,
+            orderItemId: i.orderItemId,
+            quantity: i.quantity,
+            itemGrossSnapshot: i.lineSaleTotal,
+          });
+        }
+      }
+    }
   }
-  async findById(id:string):Promise<OrderAggregate|null> { const [r]=await this.db.query('SELECT snapshot FROM customer_orders WHERE id=$1',[uuid(id)]); return r?.snapshot||null; }
+  async findById(id:string):Promise<OrderAggregate|null> {
+    const [r]=await this.db.query('SELECT * FROM customer_orders WHERE id=$1',[uuid(id)]);
+    if (!r) return null;
+    if (r.snapshot) return r.snapshot;
+    return this.reconstructSnapshot(r);
+  }
   async findByCustomerId(id:string,p:PaginationQuery={}) {
     const page=p.page||1,limit=p.limit||20;
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100 || !Number.isSafeInteger((page-1)*limit) || (page-1)*limit > 2147483647) fail(400, 'INVALID_REQUEST');
     const [count]=await this.db.query('SELECT count(*)::int AS total FROM customer_orders WHERE customer_id=$1',[id]);
-    const rows=await this.db.query('SELECT snapshot FROM customer_orders WHERE customer_id=$1 ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3',[id,limit,(page-1)*limit]);
-    return {items:rows.map(r=>r.snapshot),total:count.total,page,limit,totalPages:Math.max(1,Math.ceil(count.total/limit))};
+    const rows=await this.db.query('SELECT * FROM customer_orders WHERE customer_id=$1 ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3',[id,limit,(page-1)*limit]);
+    const items: OrderAggregate[] = [];
+    for (const r of rows) {
+      if (r.snapshot) {
+        items.push(r.snapshot);
+      } else {
+        const reconstructed = await this.reconstructSnapshot(r);
+        if (reconstructed) items.push(reconstructed);
+      }
+    }
+    return {items,total:count.total,page,limit,totalPages:Math.max(1,Math.ceil(count.total/limit))};
+  }
+  private async reconstructSnapshot(r: any): Promise<OrderAggregate | null> {
+    try {
+      const orderId = r.id;
+      const orderItems = await this.db.query('SELECT * FROM order_items WHERE customer_order_id=$1', [orderId]);
+      const fos = await this.db.query('SELECT * FROM fulfillment_orders WHERE customer_order_id=$1', [orderId]);
+      const payments = await this.db.query('SELECT * FROM payments WHERE customer_order_id=$1', [orderId]);
+      const snapshot: OrderAggregate = {
+        order: {
+          orderId,
+          orderNo: r.order_no,
+          customerId: r.customer_id,
+          status: r.status,
+          fulfillmentSummary: r.fulfillment_summary,
+          currency: r.currency || 'VND',
+          grandTotal: Number(r.grand_total),
+          totalPayable: Number(r.total_payable),
+          createdAt: r.placed_at ? new Date(r.placed_at).toISOString() : new Date().toISOString(),
+          updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+          itemsCount: orderItems.length,
+          shippingAddress: { recipientName: 'Khách hàng', phone: '', address: '', city: '' },
+        } as any,
+        items: orderItems.map((oi: any, idx: number) => ({
+          orderItemId: oi.id,
+          customerOrderId: orderId,
+          listingId: oi.listing_id,
+          productId: oi.product_id || '',
+          supplierId: fos[0]?.supplier_id || '',
+          sellerId: fos[0]?.seller_id || '',
+          productName: oi.product_name_snapshot,
+          listingTitle: oi.product_name_snapshot,
+          lineIndex: idx,
+          quantity: oi.quantity,
+          unitSalePrice: Number(oi.unit_sale_price_snapshot),
+          unitCostPrice: Number(oi.unit_cost_price_snapshot),
+          lineSaleTotal: Number(oi.unit_sale_price_snapshot) * oi.quantity,
+          lineCostTotal: Number(oi.unit_cost_price_snapshot) * oi.quantity,
+          fulfillmentOrderId: fos[0]?.id || '',
+          reservationId: '',
+          currency: 'VND' as const,
+        })),
+        fulfillmentOrders: fos.map((f: any) => ({
+          fulfillmentOrderId: f.id,
+          customerOrderId: orderId,
+          supplierId: f.supplier_id,
+          sellerId: f.seller_id,
+          status: f.status,
+          fulfillmentNo: f.fulfillment_no,
+          amountToCollect: payments[0]?.amount ? Number(payments[0].amount) : 0,
+          paymentAllocationId: '',
+          orderItemIds: orderItems.map((oi: any) => oi.id),
+          carrierCode: f.carrier_code || 'GHN_EXPRESS',
+          trackingNo: f.tracking_no || undefined,
+        })),
+      };
+      await this.db.query('UPDATE customer_orders SET snapshot=$1 WHERE id=$2', [snapshot, orderId]).catch(() => {});
+      return snapshot;
+    } catch {
+      return null;
+    }
   }
   async createInitialInCheckout(ctx:CheckoutTransactionContext,groups:readonly FulfillmentDraftGroup[]) {
-    for(const g of groups) await this.db.query("INSERT INTO fulfillment_orders(id,fulfillment_no,customer_order_id,supplier_id,seller_id,status) VALUES($1,$2,$3,$4,$5,'PENDING_ACCEPTANCE')",[g.fulfillmentOrderId,'FF-'+g.fulfillmentOrderId,g.customerOrderId,g.supplierId,g.sellerId]);
+    for(const g of groups) {
+      await this.db.query("INSERT INTO fulfillment_orders(id,fulfillment_no,customer_order_id,supplier_id,seller_id,status) VALUES($1,$2,$3,$4,$5,'PENDING_ACCEPTANCE')",[g.fulfillmentOrderId,'FF-'+g.fulfillmentOrderId,g.customerOrderId,g.supplierId,g.sellerId]);
+      if (this.store) {
+        const exists = this.store.fulfillmentOrders.some(f => f.id === g.fulfillmentOrderId);
+        if (!exists) {
+          this.store.fulfillmentOrders.push({
+            id: g.fulfillmentOrderId,
+            fulfillmentNo: 'FF-' + g.fulfillmentOrderId,
+            customerOrderId: g.customerOrderId,
+            supplierId: g.supplierId,
+            sellerId: g.sellerId,
+            status: 'PENDING_ACCEPTANCE',
+            trackingNo: null,
+            carrierCode: 'GHN_EXPRESS',
+            currency: 'VND',
+            deliveryAttemptCount: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
   }
   async createCheckoutObligation(ctx:CheckoutTransactionContext,id:string,method:PaymentMethod,allocations:readonly AllocationDraft[]) {
     const paymentId=randomUUID(),paymentIntentId=randomUUID(),allocationIds=allocations.map(()=>randomUUID());
@@ -73,6 +240,34 @@ export class PostgresCheckoutAdapter {
     await this.db.query("INSERT INTO payment_intents(id,customer_order_id,provider,amount,status) VALUES($1,$2,'INTERNAL_OBLIGATION',$3,$4)",[paymentIntentId,id,total,status]);
     await this.db.query('INSERT INTO payments(id,customer_order_id,payment_intent_id,method,status,amount) VALUES($1,$2,$3,$4,$5,$6)',[paymentId,id,paymentIntentId,method,status,total]);
     for(let i=0;i<allocations.length;i++) {const a=allocations[i];await this.db.query('INSERT INTO payment_allocations(id,payment_id,fulfillment_order_id,merchandise_amount,shipping_amount,discount_amount,amount_to_collect) VALUES($1,$2,$3,$4,$5,$6,$7)',[allocationIds[i],paymentId,a.fulfillmentOrderId,a.merchandiseAmount,a.shippingAmount,a.discountAmount,a.amountToCollect]);}
+    if (this.store) {
+      this.store.payments.push({
+        id: paymentId,
+        customerOrderId: id,
+        paymentIntentId,
+        method: method === 'COD' ? 'COD' : 'ONLINE_MOCK',
+        status,
+        amount: total,
+        providerTransactionRef: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      for (let i = 0; i < allocations.length; i++) {
+        const a = allocations[i];
+        this.store.paymentAllocations.push({
+          id: allocationIds[i],
+          paymentId,
+          fulfillmentOrderId: a.fulfillmentOrderId,
+          merchandiseAmount: a.merchandiseAmount,
+          shippingAmount: a.shippingAmount,
+          discountAmount: a.discountAmount,
+          amountToCollect: a.amountToCollect,
+          currency: 'VND',
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
     return {paymentId,paymentIntentId,status,allocationIds};
   }
   async add(ctx:CheckoutTransactionContext,e:OutboxEvent) {

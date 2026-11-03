@@ -114,7 +114,7 @@ export function RegisterForm() {
         </div>
         {selectedRole !== 'CUSTOMER' && (
           <p className="mt-2 text-xs text-primary bg-primary-soft p-2 rounded-lg border border-primary/20">
-            ℹ️ Lưu ý: Hồ sơ {selectedRole === 'SELLER' ? 'Người bán' : 'Nhà cung cấp'} sẽ ở trạng thái chờ Admin xét duyệt trước khi được tạo Listing/Sản phẩm.
+            Lưu ý: Hồ sơ {selectedRole === 'SELLER' ? 'Người bán' : 'Nhà cung cấp'} sẽ ở trạng thái chờ Admin xét duyệt trước khi được tạo Listing/Sản phẩm.
           </p>
         )}
       </div>

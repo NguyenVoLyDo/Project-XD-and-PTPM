@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../../features/auth/hooks/use-auth';
+import { useAuth as useIdentity } from '../../../../features/auth/hooks/use-auth';
+import { useAuth as useDemoAuth } from '../../../../lib/auth-context';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ApiClient } from '../../../../lib/api';
@@ -12,6 +13,7 @@ import { OrderStepper, StepItem } from '../../../../components/molecules/order-s
 import { ErrorFallback } from '../../../../components/molecules/error-fallback';
 import { Card } from '../../../../components/ui/card';
 import { Badge } from '../../../../components/ui/badge';
+import { Icon } from '../../../../components/ui/icon';
 import { Separator } from '../../../../components/ui/separator';
 import { Skeleton } from '../../../../components/ui/skeleton';
 
@@ -62,10 +64,12 @@ interface OrderDetail {
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params?.id as string;
-  const { actor, isLoading } = useAuth();
-  if (isLoading) return <Skeleton className="h-56 w-full" />;
-  if (actor?.activeRole !== 'CUSTOMER') return <ErrorFallback title="Không có quyền truy cập" message="Vui lòng đăng nhập bằng tài khoản khách hàng." />;
-  return <CustomerOrderDetail key={`${actor.userId}:${actor.activeRole}:${orderId}`} orderId={orderId} />;
+  const { actor, isLoading } = useIdentity();
+  const { currentUser } = useDemoAuth();
+  if (isLoading && process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED !== 'true') return <Skeleton className="h-56 w-full" />;
+  const activeRole = actor?.activeRole || currentUser?.role;
+  if (activeRole !== 'CUSTOMER') return <ErrorFallback title="Không có quyền truy cập" message="Vui lòng đăng nhập bằng tài khoản khách hàng." />;
+  return <CustomerOrderDetail key={`${actor?.userId || currentUser?.id}:${activeRole}:${orderId}`} orderId={orderId} />;
 }
 
 function CustomerOrderDetail({ orderId }: { orderId: string }) {
@@ -262,10 +266,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
               {/* Shipping Address Card */}
               <Card className="p-5 space-y-4">
                 <h4 className="font-bold text-ink text-sm flex items-center gap-2">
-                  <svg aria-hidden="true" className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <Icon name="mapPin" className="w-4 h-4 text-subtle" />
                   <span>Địa Chỉ Nhận Hàng</span>
                 </h4>
 
@@ -287,9 +288,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
               {/* Payment Summary Card */}
               <Card className="p-5 space-y-4">
                 <h4 className="font-bold text-ink text-sm flex items-center gap-2">
-                  <svg aria-hidden="true" className="w-4 h-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
+                  <Icon name="creditCard" className="w-4 h-4 text-subtle" />
                   <span>Thanh Toán & Hóa Đơn</span>
                 </h4>
 
@@ -386,7 +385,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
                         <span>Đang xử lý Webhook...</span>
                       ) : (
                         <>
-                          <span>⚡</span>
+                          <Icon name="check" className="w-4 h-4" />
                           <span>Xác nhận đã chuyển khoản (Mô phỏng thanh toán)</span>
                         </>
                       )}
@@ -418,7 +417,7 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
               : 'bg-success-soft text-success border-success/30'
           }`}
         >
-          <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+          <Icon name={toast.type === 'error' ? 'alert' : 'check'} className="w-4 h-4 shrink-0" />
           <span>{toast.message}</span>
         </div>
       )}

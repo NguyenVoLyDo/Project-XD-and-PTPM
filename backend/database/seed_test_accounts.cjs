@@ -438,17 +438,97 @@ async function main() {
       ON CONFLICT (cart_id, listing_id) DO UPDATE SET quantity = 2, last_viewed_unit_sale_price = 289000;
     `, [cartId]);
 
-    // 6. Tạo các đơn hàng mẫu phong phú (CustomerOrders & FulfillmentOrders)
+    // 6. Tạo các đơn hàng mẫu phong phú (CustomerOrders, FulfillmentOrders, Payments, Reservations)
     console.log('-> Đang chèn các đơn hàng mẫu cho Customer 2 và Customer 3...');
 
     // Đơn mẫu 1: Customer 2 đặt đơn chia làm 2 kiện (Supplier 1 + Supplier 2), trạng thái PROCESSING
     const order1Id = '88888888-8888-4888-8888-111111111111';
     const customer2Id = '44444444-4444-4444-8444-222222222222';
+    const snapshot1 = {
+      order: {
+        orderId: order1Id,
+        orderNo: 'DC-ORD-SPLIT-001',
+        customerId: customer2Id,
+        status: 'PROCESSING',
+        paymentStatus: 'PAID',
+        fulfillmentSummary: 'PARTIALLY_FULFILLED',
+        currency: 'VND',
+        grandTotal: 608000,
+        totalPayable: 608000,
+        createdAt: '2026-11-01T10:00:00.000Z',
+        updatedAt: '2026-11-01T10:30:00.000Z',
+        shippingAddress: {
+          recipientName: 'Khách hàng B',
+          phone: '0987654321',
+          address: '456 Đường Nguyễn Huệ, Phường Bến Nghé',
+          city: 'TP. Hồ Chí Minh',
+        },
+      },
+      items: [
+        {
+          orderItemId: '99999999-9999-4999-8999-111111111111',
+          customerOrderId: order1Id,
+          listingId: '66666666-6666-4666-8666-333333333333',
+          productName: 'Tai nghe Bluetooth True Wireless Baseus Bowie E16',
+          quantity: 1,
+          unitSalePrice: 249000,
+          unitCostPrice: 160000,
+          lineSaleTotal: 249000,
+          fulfillmentOrderId: 'aaaaaaaa-aaaa-4aaa-8aaa-111111111111',
+        },
+        {
+          orderItemId: '99999999-9999-4999-8999-222222222222',
+          customerOrderId: order1Id,
+          listingId: '66666666-6666-4666-8666-555555555555',
+          productName: 'Bình giữ nhiệt LocknLock Easy Take 500ml',
+          quantity: 1,
+          unitSalePrice: 359000,
+          unitCostPrice: 260000,
+          lineSaleTotal: 359000,
+          fulfillmentOrderId: 'aaaaaaaa-aaaa-4aaa-8aaa-333333333333',
+        },
+      ],
+      fulfillmentOrders: [
+        {
+          fulfillmentOrderId: 'aaaaaaaa-aaaa-4aaa-8aaa-111111111111',
+          fulfillmentNo: 'FO-001-SUP1',
+          customerOrderId: order1Id,
+          supplierId: 'aaaaaaaa-3333-4333-8333-111111111111',
+          sellerId: 'bbbbbbbb-2222-4222-8222-111111111111',
+          status: 'ACCEPTED',
+          carrierCode: 'VNPOST',
+          trackingNo: 'VNPOST-888999',
+          currency: 'VND',
+        },
+        {
+          fulfillmentOrderId: 'aaaaaaaa-aaaa-4aaa-8aaa-333333333333',
+          fulfillmentNo: 'FO-002-SUP2',
+          customerOrderId: order1Id,
+          supplierId: 'aaaaaaaa-3333-4333-8333-222222222222',
+          sellerId: 'bbbbbbbb-2222-4222-8222-222222222222',
+          status: 'PENDING_ACCEPTANCE',
+          carrierCode: 'GHN_EXPRESS',
+          trackingNo: null,
+          currency: 'VND',
+        },
+      ],
+      payments: [
+        {
+          paymentId: 'cccccccc-cccc-4ccc-8ccc-111111111111',
+          customerOrderId: order1Id,
+          paymentIntentId: 'eeeeeeee-eeee-4eee-8eee-111111111111',
+          method: 'ONLINE_MOCK',
+          status: 'PAID',
+          amount: 608000,
+        },
+      ],
+    };
+
     await client.query(`
-      INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at)
-      VALUES ($1, 'DC-ORD-SPLIT-001', $2, 'PROCESSING', 'PARTIALLY_FULFILLED', 'VND', 608000, 608000, now() - interval '2 days')
-      ON CONFLICT (id) DO UPDATE SET status = 'PROCESSING', fulfillment_summary = 'PARTIALLY_FULFILLED';
-    `, [order1Id, customer2Id]);
+      INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at, snapshot)
+      VALUES ($1, 'DC-ORD-SPLIT-001', $2, 'PROCESSING', 'PARTIALLY_FULFILLED', 'VND', 608000, 608000, now() - interval '2 days', $3)
+      ON CONFLICT (id) DO UPDATE SET status = 'PROCESSING', fulfillment_summary = 'PARTIALLY_FULFILLED', snapshot = EXCLUDED.snapshot;
+    `, [order1Id, customer2Id, JSON.stringify(snapshot1)]);
 
     // Order items đơn 1
     const item1_1 = '99999999-9999-4999-8999-111111111111';
@@ -457,7 +537,7 @@ async function main() {
       INSERT INTO order_items (id, customer_order_id, listing_id, product_name_snapshot, quantity, unit_sale_price_snapshot, unit_cost_price_snapshot)
       VALUES 
         ($1, $2, '66666666-6666-4666-8666-333333333333', 'Tai nghe Bluetooth True Wireless Baseus Bowie E16', 1, 249000, 160000),
-        ($3, $2, '66666666-6666-4666-8666-111111111111', 'Củ sạc nhanh 65W GaN 3 cổng Baseus GaN5 Pro', 1, 359000, 260000)
+        ($3, $2, '66666666-6666-4666-8666-555555555555', 'Bình giữ nhiệt LocknLock Easy Take 500ml', 1, 359000, 260000)
       ON CONFLICT (id) DO NOTHING;
     `, [item1_1, order1Id, item1_2]);
 
@@ -466,17 +546,119 @@ async function main() {
     await client.query(`
       INSERT INTO fulfillment_orders (id, fulfillment_no, customer_order_id, supplier_id, seller_id, status, tracking_no, currency)
       VALUES ($1, 'FO-001-SUP1', $2, 'aaaaaaaa-3333-4333-8333-111111111111', 'bbbbbbbb-2222-4222-8222-111111111111', 'ACCEPTED', 'VNPOST-888999', 'VND')
-      ON CONFLICT (id) DO UPDATE SET status = 'ACCEPTED';
+      ON CONFLICT (id) DO UPDATE SET status = 'ACCEPTED', tracking_no = 'VNPOST-888999';
     `, [fo1Id, order1Id]);
+
+    // Kiện hàng 2: Thuộc Supplier 2 (PENDING_ACCEPTANCE)
+    const fo1_2Id = 'aaaaaaaa-aaaa-4aaa-8aaa-333333333333';
+    await client.query(`
+      INSERT INTO fulfillment_orders (id, fulfillment_no, customer_order_id, supplier_id, seller_id, status, tracking_no, currency)
+      VALUES ($1, 'FO-002-SUP2', $2, 'aaaaaaaa-3333-4333-8333-222222222222', 'bbbbbbbb-2222-4222-8222-222222222222', 'PENDING_ACCEPTANCE', NULL, 'VND')
+      ON CONFLICT (id) DO UPDATE SET status = 'PENDING_ACCEPTANCE';
+    `, [fo1_2Id, order1Id]);
+
+    await client.query(`
+      INSERT INTO fulfillment_items (fulfillment_order_id, order_item_id, quantity, item_gross_snapshot)
+      VALUES 
+        ($1, $2, 1, 249000),
+        ($3, $4, 1, 359000)
+      ON CONFLICT (fulfillment_order_id, order_item_id) DO NOTHING;
+    `, [fo1Id, item1_1, fo1_2Id, item1_2]);
+
+    await client.query(`
+      INSERT INTO payment_intents (id, customer_order_id, provider, amount, status)
+      VALUES ('eeeeeeee-eeee-4eee-8eee-111111111111', $1, 'ONLINE_VIETQR', 608000, 'PAID')
+      ON CONFLICT (id) DO NOTHING;
+    `, [order1Id]);
+
+    await client.query(`
+      INSERT INTO payments (id, customer_order_id, payment_intent_id, method, status, amount, provider_transaction_ref)
+      VALUES ('cccccccc-cccc-4ccc-8ccc-111111111111', $1, 'eeeeeeee-eeee-4eee-8eee-111111111111', 'ONLINE_MOCK', 'PAID', 608000, 'VIETQR-DEMO-001')
+      ON CONFLICT (id) DO NOTHING;
+    `, [order1Id]);
+
+    await client.query(`
+      INSERT INTO payment_allocations (id, payment_id, fulfillment_order_id, merchandise_amount, shipping_amount, discount_amount, amount_to_collect, status)
+      VALUES 
+        ('dddddddd-dddd-4ddd-8ddd-111111111111', 'cccccccc-cccc-4ccc-8ccc-111111111111', $1, 249000, 0, 0, 249000, 'FUNDED'),
+        ('dddddddd-dddd-4ddd-8ddd-222222222222', 'cccccccc-cccc-4ccc-8ccc-111111111111', $2, 359000, 0, 0, 359000, 'FUNDED')
+      ON CONFLICT (id) DO NOTHING;
+    `, [fo1Id, fo1_2Id]);
+
+    await client.query(`
+      INSERT INTO stock_reservations (id, order_item_id, product_id, quantity, status)
+      VALUES 
+        ('ffffffff-ffff-4fff-8fff-111111111111', $1, '55555555-5555-4555-8555-333333333333', 1, 'COMMITTED'),
+        ('ffffffff-ffff-4fff-8fff-222222222222', $2, '55555555-5555-4555-8555-555555555555', 1, 'HELD')
+      ON CONFLICT (id) DO NOTHING;
+    `, [item1_1, item1_2]);
 
     // Đơn mẫu 2: Customer 3 đặt đơn COD, đã hoàn thành FULFILLED
     const order2Id = '88888888-8888-4888-8888-222222222222';
     const customer3Id = '44444444-4444-4444-8444-333333333333';
+    const snapshot2 = {
+      order: {
+        orderId: order2Id,
+        orderNo: 'DC-ORD-COD-DELIVERED',
+        customerId: customer3Id,
+        status: 'CLOSED',
+        paymentStatus: 'COLLECTED',
+        fulfillmentSummary: 'COMPLETED',
+        currency: 'VND',
+        grandTotal: 279000,
+        totalPayable: 279000,
+        createdAt: '2026-10-29T08:00:00.000Z',
+        updatedAt: '2026-10-31T15:00:00.000Z',
+        shippingAddress: {
+          recipientName: 'Khách hàng C',
+          phone: '0912345678',
+          address: '789 Đường Lê Duẩn, Quận 1',
+          city: 'TP. Hồ Chí Minh',
+        },
+      },
+      items: [
+        {
+          orderItemId: '99999999-9999-4999-8999-333333333333',
+          customerOrderId: order2Id,
+          listingId: '66666666-6666-4666-8666-888888888888',
+          productName: 'Balo laptop công sở chống nước đa năng 15.6 inch',
+          quantity: 1,
+          unitSalePrice: 279000,
+          unitCostPrice: 155000,
+          lineSaleTotal: 279000,
+          fulfillmentOrderId: 'aaaaaaaa-aaaa-4aaa-8aaa-222222222222',
+        },
+      ],
+      fulfillmentOrders: [
+        {
+          fulfillmentOrderId: 'aaaaaaaa-aaaa-4aaa-8aaa-222222222222',
+          fulfillmentNo: 'FO-002-DELIVERED',
+          customerOrderId: order2Id,
+          supplierId: 'aaaaaaaa-3333-4333-8333-333333333333',
+          sellerId: 'bbbbbbbb-2222-4222-8222-333333333333',
+          status: 'DELIVERED',
+          carrierCode: 'GHN_EXPRESS',
+          trackingNo: 'GHN-99887766',
+          currency: 'VND',
+        },
+      ],
+      payments: [
+        {
+          paymentId: 'cccccccc-cccc-4ccc-8ccc-222222222222',
+          customerOrderId: order2Id,
+          paymentIntentId: 'eeeeeeee-eeee-4eee-8eee-222222222222',
+          method: 'COD',
+          status: 'COLLECTED',
+          amount: 279000,
+        },
+      ],
+    };
+
     await client.query(`
-      INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at)
-      VALUES ($1, 'DC-ORD-COD-DELIVERED', $2, 'CONFIRMED', 'FULFILLED', 'VND', 279000, 279000, now() - interval '5 days')
-      ON CONFLICT (id) DO UPDATE SET status = 'CONFIRMED', fulfillment_summary = 'FULFILLED';
-    `, [order2Id, customer3Id]);
+      INSERT INTO customer_orders (id, order_no, customer_id, status, fulfillment_summary, currency, grand_total, total_payable, placed_at, snapshot)
+      VALUES ($1, 'DC-ORD-COD-DELIVERED', $2, 'COMPLETED', 'COMPLETED', 'VND', 279000, 279000, now() - interval '5 days', $3)
+      ON CONFLICT (id) DO UPDATE SET status = 'COMPLETED', fulfillment_summary = 'COMPLETED', snapshot = EXCLUDED.snapshot;
+    `, [order2Id, customer3Id, JSON.stringify(snapshot2)]);
 
     const item2_1 = '99999999-9999-4999-8999-333333333333';
     await client.query(`
@@ -489,8 +671,38 @@ async function main() {
     await client.query(`
       INSERT INTO fulfillment_orders (id, fulfillment_no, customer_order_id, supplier_id, seller_id, status, tracking_no, currency)
       VALUES ($1, 'FO-002-DELIVERED', $2, 'aaaaaaaa-3333-4333-8333-333333333333', 'bbbbbbbb-2222-4222-8222-333333333333', 'DELIVERED', 'GHN-99887766', 'VND')
-      ON CONFLICT (id) DO UPDATE SET status = 'DELIVERED';
+      ON CONFLICT (id) DO UPDATE SET status = 'DELIVERED', tracking_no = 'GHN-99887766';
     `, [fo2Id, order2Id]);
+
+    await client.query(`
+      INSERT INTO fulfillment_items (fulfillment_order_id, order_item_id, quantity, item_gross_snapshot)
+      VALUES ($1, $2, 1, 279000)
+      ON CONFLICT (fulfillment_order_id, order_item_id) DO NOTHING;
+    `, [fo2Id, item2_1]);
+
+    await client.query(`
+      INSERT INTO payment_intents (id, customer_order_id, provider, amount, status)
+      VALUES ('eeeeeeee-eeee-4eee-8eee-222222222222', $1, 'COD', 279000, 'COLLECTED')
+      ON CONFLICT (id) DO NOTHING;
+    `, [order2Id]);
+
+    await client.query(`
+      INSERT INTO payments (id, customer_order_id, payment_intent_id, method, status, amount)
+      VALUES ('cccccccc-cccc-4ccc-8ccc-222222222222', $1, 'eeeeeeee-eeee-4eee-8eee-222222222222', 'COD', 'COLLECTED', 279000)
+      ON CONFLICT (id) DO NOTHING;
+    `, [order2Id]);
+
+    await client.query(`
+      INSERT INTO payment_allocations (id, payment_id, fulfillment_order_id, merchandise_amount, shipping_amount, discount_amount, amount_to_collect, status)
+      VALUES ('dddddddd-dddd-4ddd-8ddd-333333333333', 'cccccccc-cccc-4ccc-8ccc-222222222222', $1, 279000, 0, 0, 279000, 'COLLECTED')
+      ON CONFLICT (id) DO NOTHING;
+    `, [fo2Id]);
+
+    await client.query(`
+      INSERT INTO stock_reservations (id, order_item_id, product_id, quantity, status)
+      VALUES ('ffffffff-ffff-4fff-8fff-333333333333', $1, '55555555-5555-4555-8555-888888888888', 1, 'COMMITTED')
+      ON CONFLICT (id) DO NOTHING;
+    `, [item2_1]);
 
     await client.query('COMMIT');
     console.log('✅ ĐÃ NẠP THÀNH CÔNG DỮ LIỆU TEST VÀO POSTGRESQL!');

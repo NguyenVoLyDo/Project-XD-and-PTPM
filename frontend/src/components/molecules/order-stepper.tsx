@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Icon } from '../ui/icon';
 import { cn } from '../../lib/utils';
 
 export interface StepItem {
@@ -20,7 +21,7 @@ export function OrderStepper({ steps, className }: OrderStepperProps) {
         {/* Connector line behind circles */}
         <div
           aria-hidden="true"
-          className="absolute top-4 left-0 right-0 h-[2px] mx-[18px] bg-line z-0"
+          className="absolute top-3.5 left-0 right-0 h-[1px] mx-[18px] bg-line z-0"
         />
 
         {steps.map((s, idx) => {
@@ -31,19 +32,14 @@ export function OrderStepper({ steps, className }: OrderStepperProps) {
               {/* Circle */}
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2',
-                  done
-                    ? 'bg-accent border-accent text-white shadow-md shadow-accent/30'
-                    : isCurrent
-                    ? 'bg-primary border-primary text-white shadow-md shadow-primary/30'
+                  'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200 border',
+                  done || isCurrent
+                    ? 'bg-ink border-ink text-white'
                     : 'bg-surface border-line text-subtle',
                 )}
               >
                 {done ? (
-                  /* Check icon */
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Icon name="check" className="w-3.5 h-3.5" />
                 ) : (
                   idx + 1
                 )}
