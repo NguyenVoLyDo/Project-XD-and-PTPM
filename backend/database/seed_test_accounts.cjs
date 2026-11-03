@@ -3,7 +3,7 @@ const path = require('node:path');
 const { Client } = require('pg');
 const argon2 = require('argon2');
 
-const DB_URL = 'postgresql://postgres:S28nguyenduong@localhost:5433/dropconnect';
+const DB_URL = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/dropconnect';
 
 async function main() {
   console.log('--- BẮT ĐẦU TẠO DỮ LIỆU TEST & TÀI KHOẢN MẪU ---');

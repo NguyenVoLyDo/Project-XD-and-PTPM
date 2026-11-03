@@ -7,7 +7,7 @@ export const loginSchema = z.object({
     .email('Định dạng email không hợp lệ'),
   password: z
     .string()
-    .min(8, 'Mật khẩu phải có tối thiểu 8 ký tự'),
+    .min(1, 'Vui lòng nhập mật khẩu'),
   rememberMe: z.boolean().optional(),
 });
 

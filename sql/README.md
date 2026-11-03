@@ -30,7 +30,8 @@ Dùng để đăng nhập vào phân hệ Người bán (`/seller`), quản lý 
 
 | STT | Email đăng nhập | Mật khẩu | Tên gian hàng (Shop Name) | Lĩnh vực kinh doanh chính |
 | :---: | :--- | :---: | :--- | :--- |
-| **1** | `seller1@dropconnect.vn` | `123456789` | **TechZone Official Shop** | Phụ kiện công nghệ, sạc cáp, tai nghe Baseus |
+| **1** | `
+` | `123456789` | **TechZone Official Shop** | Phụ kiện công nghệ, sạc cáp, tai nghe Baseus |
 | **2** | `seller2@dropconnect.vn` | `123456789` | **EcoHome Living Shop** | Đồ gia dụng thông minh, bình giữ nhiệt Lock&Lock |
 | **3** | `seller3@dropconnect.vn` | `123456789` | **UrbanStyle Shop** | Thời trang GenZ, balo laptop, áo thun Polo |
 
