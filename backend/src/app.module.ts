@@ -9,6 +9,7 @@ import { HealthController } from './health/health.controller';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DatabaseModule } from './common/database/database.module.js';
 import { CommonModule } from './common/common.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
@@ -43,6 +44,7 @@ import { UploadController } from './common/upload/upload.controller.js';
       }),
     }),
     PostgresCommerceModule,
+    DatabaseModule,
     CartModule,
     OrdersModule,
     CommonModule,

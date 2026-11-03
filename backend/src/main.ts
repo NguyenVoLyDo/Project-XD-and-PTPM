@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import express from 'express';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { DemoAppModule } from './demo-app.module.js';
@@ -12,7 +12,9 @@ import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/errors/http-exception.filter.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(process.env.DEMO_AUTH_ENABLED === 'true' && process.env.NODE_ENV !== 'production' ? DemoAppModule : AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(
+    process.env.DEMO_AUTH_ENABLED === 'true' && process.env.NODE_ENV !== 'production' ? DemoAppModule : AppModule
+  );
 
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -24,7 +26,7 @@ async function bootstrap() {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-  app.use('/uploads', express.static(uploadsDir));
+  app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
