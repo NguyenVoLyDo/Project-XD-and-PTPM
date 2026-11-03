@@ -68,10 +68,14 @@ export function Navbar() {
           { href: '/admin/users', label: 'Quản lý người dùng' },
           { href: '/admin/profiles', label: 'Xét duyệt hồ sơ' },
           { href: '/admin/audit', label: 'Nhật ký kiểm toán' },
+          { href: '/customer/disputes', label: 'Xử lý khiếu nại' },
+          { href: '/supplier/finance', label: 'Đối soát NCC' },
+          { href: '/seller/finance', label: 'Đối soát Seller' },
         ]
       : currentUser.role === 'SELLER'
       ? [
           { href: '/seller/listings', label: 'Quản lý gian hàng' },
+          { href: '/seller/finance', label: 'Doanh thu & Đối soát' },
           { href: '/seller/sourcing', label: 'Khám phá nguồn hàng' },
           { href: '/orders', label: 'Theo dõi đơn bán' },
         ]
@@ -79,12 +83,14 @@ export function Navbar() {
       ? [
           { href: '/supplier/products', label: 'Sản phẩm & Tồn kho' },
           { href: '/supplier/orders', label: 'Đơn hàng cần xử lý' },
+          { href: '/supplier/finance', label: 'Tài chính & Đối soát' },
           { href: '/supplier/market', label: 'Thị trường bán lẻ' },
         ]
       : [
           { href: '/', label: 'Trang chủ' },
           { href: '/catalog', label: 'Khám phá' },
           { href: '/orders', label: 'Đơn mua của tôi' },
+          { href: '/customer/disputes', label: 'Khiếu nại & Đổi trả' },
         ];
 
   return (

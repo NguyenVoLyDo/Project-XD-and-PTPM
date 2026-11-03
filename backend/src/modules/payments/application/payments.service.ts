@@ -29,6 +29,10 @@ export class PaymentsService {
    * Key dạng: `${provider}:${providerEventId}`
    */
   private readonly processedWebhookEvents = new Set<string>();
+  private readonly processedRefundRefs = new Map<
+    string,
+    { refundId: string; allocationId: string; refundedAmount: number; paymentStatus: PaymentStatus; duplicate?: boolean }
+  >();
 
   constructor(
     @Inject(StoreService)
@@ -297,12 +301,23 @@ export class PaymentsService {
     reasonCode: string,
     sourceRef: string,
   ) {
-    const allocation = this.store.paymentAllocations.find((a) => a.id === allocationId);
+    if (sourceRef && this.processedRefundRefs.has(sourceRef)) {
+      const existing = this.processedRefundRefs.get(sourceRef)!;
+      return { ...existing, duplicate: true };
+    }
+
+    const allocation = this.store.paymentAllocations.find(
+      (a) => a.id === allocationId || a.fulfillmentOrderId === allocationId,
+    );
     if (!allocation) {
       throw new NotFoundException(`Không tìm thấy phân bổ thanh toán: ${allocationId}`);
     }
 
-    if (amount <= 0 || amount > allocation.amountToCollect) {
+    const existingRefundTotal = this.store.refunds
+      .filter((r) => r.paymentAllocationId === allocation.id && r.status === 'REFUNDED')
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    if (amount <= 0 || existingRefundTotal + amount > allocation.amountToCollect) {
       throw new BadRequestException('Số tiền hoàn không hợp lệ hoặc vượt quá số tiền đã thu');
     }
 
@@ -328,7 +343,9 @@ export class PaymentsService {
 
     // Cập nhật trạng thái Payment tổng (REFUNDED nếu hoàn tất cả, PARTIALLY_REFUNDED nếu hoàn 1 phần)
     const allAllocations = this.store.paymentAllocations.filter((a) => a.paymentId === payment.id);
-    const allRefunded = allAllocations.every((a) => a.status === 'REFUNDED');
+    const allRefunded =
+      allAllocations.every((a) => a.status === 'REFUNDED') &&
+      existingRefundTotal + amount >= allocation.amountToCollect;
     payment.status = allRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
     payment.updatedAt = new Date().toISOString();
 
@@ -340,12 +357,19 @@ export class PaymentsService {
       `Hoàn tiền ${amount} VND cho đơn con ${allocation.fulfillmentOrderId}. Lý do: ${reasonCode}. Ref: ${sourceRef}`,
     );
 
-    return {
+    const response = {
       refundId,
       allocationId: allocation.id,
       refundedAmount: amount,
       paymentStatus: payment.status,
+      duplicate: false,
     };
+
+    if (sourceRef) {
+      this.processedRefundRefs.set(sourceRef, response);
+    }
+
+    return response;
   }
 
   /**

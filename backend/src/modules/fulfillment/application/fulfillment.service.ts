@@ -13,6 +13,7 @@ import {
 } from '../../../common/database/types';
 import { DemoCheckoutState } from '../../../integration/store-adapters.service';
 import { PaymentsService } from '../../payments/application/payments.service';
+import { SettlementsService } from '../../settlements/application/settlements.service';
 
 @Injectable()
 export class FulfillmentService {
@@ -24,6 +25,9 @@ export class FulfillmentService {
     @Optional()
     @Inject(DemoCheckoutState)
     private readonly demoState?: DemoCheckoutState,
+    @Optional()
+    @Inject(SettlementsService)
+    private readonly settlementsService?: SettlementsService,
   ) {}
 
   /**
@@ -216,6 +220,25 @@ export class FulfillmentService {
     const now = new Date().toISOString();
     fo.status = 'DELIVERED';
     fo.updatedAt = now;
+
+    // Nếu là đơn COD đang chờ thu tiền (PENDING), shipper giao thành công -> chuyển sang COLLECTED
+    const allocation = this.store.paymentAllocations.find((pa) => pa.fulfillmentOrderId === fo.id);
+    if (allocation && allocation.status === 'PENDING') {
+      const payment = this.store.payments.find((p) => p.id === allocation.paymentId);
+      if (payment && payment.method === 'COD') {
+        allocation.status = 'COLLECTED';
+        const allAllocs = this.store.paymentAllocations.filter((a) => a.paymentId === payment.id);
+        if (allAllocs.every((a) => a.status === 'COLLECTED' || a.status === 'VOIDED')) {
+          payment.status = 'COLLECTED';
+          payment.updatedAt = now;
+        }
+      }
+    }
+
+    // Tự động khởi tạo khoản đối soát HOLD (7 ngày đổi trả) và ghi sổ cái kế toán kép
+    if (this.settlementsService) {
+      await this.settlementsService.ensureSettlementOnDelivered(fo.id, now).catch(() => {});
+    }
 
     // Kiểm tra nếu tất cả các đơn con đều đã DELIVERED -> đóng đơn tổng
     const allSiblingFos = this.store.fulfillmentOrders.filter(
