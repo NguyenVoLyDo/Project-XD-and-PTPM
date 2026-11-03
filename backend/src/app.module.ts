@@ -10,6 +10,8 @@ import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
+import { SettlementsModule } from './modules/settlements/settlements.module';
+import { DisputesModule } from './modules/disputes/disputes.module';
 import { HealthController } from './health/health.controller';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
@@ -33,6 +35,8 @@ import { RolesGuard } from './common/auth/roles.guard';
     OrdersModule,
     PaymentsModule,
     FulfillmentModule,
+    SettlementsModule,
+    DisputesModule,
   ],
   providers: [JwtAuthGuard, RolesGuard],
   controllers: [HealthController],

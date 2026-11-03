@@ -10,10 +10,30 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const links = currentUser.role === 'SELLER'
-    ? [{ href: '/seller/listings', label: 'Quản lý gian hàng' }, { href: '/catalog', label: 'Khám phá sản phẩm' }]
+    ? [
+        { href: '/seller/listings', label: 'Quản lý gian hàng' },
+        { href: '/seller/finance', label: 'Doanh thu & Đối soát' },
+        { href: '/catalog', label: 'Khám phá sản phẩm' },
+      ]
     : currentUser.role === 'SUPPLIER'
-      ? [{ href: '/supplier/products', label: 'Sản phẩm & tồn kho' }, { href: '/supplier/orders', label: 'Đơn hàng cần xử lý' }, { href: '/catalog', label: 'Danh mục sản phẩm' }]
-      : [{ href: '/', label: 'Trang chủ' }, { href: '/catalog', label: 'Khám phá' }, { href: '/orders', label: 'Đơn hàng' }];
+      ? [
+          { href: '/supplier/products', label: 'Sản phẩm & tồn kho' },
+          { href: '/supplier/orders', label: 'Đơn hàng cần xử lý' },
+          { href: '/supplier/finance', label: 'Tài chính & Đối soát' },
+        ]
+      : currentUser.role === 'ADMIN'
+        ? [
+            { href: '/customer/disputes', label: 'Xử lý khiếu nại' },
+            { href: '/supplier/finance', label: 'Đối soát NCC' },
+            { href: '/seller/finance', label: 'Đối soát Seller' },
+            { href: '/catalog', label: 'Danh mục' },
+          ]
+        : [
+            { href: '/', label: 'Trang chủ' },
+            { href: '/catalog', label: 'Khám phá' },
+            { href: '/orders', label: 'Đơn hàng' },
+            { href: '/customer/disputes', label: 'Khiếu nại & Đổi trả' },
+          ];
   const renderLinks = () => links.map(link => <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
     aria-current={pathname === link.href ? 'page' : undefined}
     className={'min-h-11 flex items-center px-3 rounded-lg text-sm font-semibold transition-colors ' + (pathname === link.href ? 'bg-primary-soft text-primary' : 'text-subtle hover:bg-muted hover:text-ink')}>{link.label}</Link>);
